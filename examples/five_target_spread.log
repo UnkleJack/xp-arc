@@ -1,0 +1,48 @@
+>>> STARTING XP-ARC 5-TARGET SPREAD LIVE <<<
+[POOL] + Added new url: https://news.ycombinator.com
+[POOL] + Added new url: https://github.com/unklejack
+[POOL] + Added new url: https://zo.computer
+[POOL] + Added new url: https://lobste.rs
+[POOL] + Added new url: https://httpbin.org
+
+[EXECUTIVE] Raw ingredient on the pass: [url] https://news.ycombinator.com
+[The Forager] Scraping target DOM: https://news.ycombinator.com
+[POOL] + Added new domain: www.apple.com
+[The Forager] + Extracted Domain: www.apple.com
+
+[EXECUTIVE] Raw ingredient on the pass: [domain] www.apple.com
+  [!] No station available for [domain] yet.
+
+[EXECUTIVE] Raw ingredient on the pass: [url] https://github.com/unklejack
+[The Forager] Scraping target DOM: https://github.com/unklejack
+[POOL] + Added new domain: skills.github.com
+[The Forager] + Extracted Domain: skills.github.com
+
+[EXECUTIVE] Raw ingredient on the pass: [domain] skills.github.com
+  [!] No station available for [domain] yet.
+
+[EXECUTIVE] Raw ingredient on the pass: [url] https://zo.computer
+[The Forager] Scraping target DOM: https://zo.computer
+[POOL] + Added new domain: www.youtube.com
+[The Forager] + Extracted Domain: www.youtube.com
+
+[EXECUTIVE] Raw ingredient on the pass: [domain] www.youtube.com
+  [!] No station available for [domain] yet.
+
+==================================================
+KITCHEN CLOSED. THE CORKBOARD:
+==================================================
+[ ENTITIES COLLECTED ]
+ - [URL] https://news.ycombinator.com (mapped)
+ - [URL] https://github.com/unklejack (mapped)
+ - [URL] https://zo.computer (mapped)
+ - [URL] https://lobste.rs (mapped)
+ - [URL] https://httpbin.org (mapped)
+ - [DOMAIN] www.apple.com (unhandled)
+ - [DOMAIN] skills.github.com (unhandled)
+ - [DOMAIN] www.youtube.com (unhandled)
+
+[ EDGES GENERATED (Showing 15 max) ]
+ - https://news.ycombinator.com --(links_to)--> www.apple.com
+ - https://github.com/unklejack --(links_to)--> skills.github.com
+ - https://zo.computer --(links_to)--> www.youtube.com

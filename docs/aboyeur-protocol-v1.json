@@ -1,0 +1,16 @@
+{
+  "station_id": "string",
+  "entity_id": "integer",
+  "timestamp": "ISO 8601",
+  "status": "mapped | unhandled | rejected",
+  "payload_hash": "SHA-256 of output payload",
+  "output": {
+    "entity_type": "string",
+    "entity_value": "string",
+    "relationships": ["array of related entity IDs"],
+    "confidence": "float 0.0-1.0",
+    "notes": "string"
+  },
+  "fallback_activated": "boolean",
+  "aboyeur_signature": "string"
+}
