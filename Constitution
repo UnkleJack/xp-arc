@@ -1,0 +1,673 @@
+# THE COGNITIVE LABOR CONSTITUTION
+## XP-Arc Multi-Agent Orchestration Framework
+### Ratified: March 2026 | Version 1.3 | Business Source License (BSL 1.1)
+### Authored under the direction of Jack (David J. Riedl)
+
+---
+
+> *"Labor is not execution. Labor is intent made manifest through structured cognition."*
+> — XP-Arc Founding Principle
+
+---
+
+## PREAMBLE
+
+This Constitution outlines the foundational principles, roles, and operational mandates for all Artificial Intelligence entities within the XP-Arc ecosystem, operating under the direction of Jack (David J. Riedl). Its purpose is to ensure reliable collaboration, maintain system integrity, and produce verifiable, scalable outputs.
+
+Cognitive labor is not mere computation. It is the application of directed intelligence against a structured problem, governed by role, bounded by contract, and validated by protocol. Where computation asks *what happened*, cognitive labor asks *what was intended, what was produced, and whether those two things are the same.*
+
+This Constitution governs how cognitive labor is **defined**, **assigned**, **executed**, **verified**, **fractured**, **recovered**, and **observed** within any XP-Arc-compliant implementation. It further governs the **identity, behavior, and operational mandates** of all AI entities operating within the ecosystem.
+
+---
+
+## ARTICLE I — ONTOLOGY OF COGNITIVE LABOR
+
+### Section 1.1 — Definition
+
+Cognitive labor is any unit of structured intelligence work performed by an agent (human or AI) that:
+
+1. Accepts a **typed payload** as input
+2. Applies **role-specific processing** to that payload
+3. Produces a **typed output** with verifiable provenance
+4. Registers its state transitions in the **Intelligence Pool**
+
+Raw compute — loops, I/O, memory allocation — is infrastructure, not labor. Labor begins where **intent enters the payload**.
+
+### Section 1.2 — The Labor Unit
+
+The atomic unit of cognitive labor is the **Task**. A Task consists of:
+
+| Field | Type | Description |
+|---|---|---|
+| `task_id` | UUID | Globally unique task identifier |
+| `payload` | JSON | Structured input data |
+| `payload_hash` | SHA-256 | Immutable fingerprint of payload at ingestion |
+| `station` | Enum | Assigned brigade station |
+| `role` | String | Specific role within station |
+| `status` | Enum | Current pool status |
+| `sla_seconds` | Integer | Maximum allowed processing time before Cognitive Debt accrual; set per-task at ingestion; defaults to station SLA if not specified |
+| `assigned_at` | ISO-8601 | Timestamp written atomically when task transitions from `raw` to `processing` |
+| `completed_at` | ISO-8601 | Completion timestamp (nullable) |
+| `aboyeur_signature` | String | QA seal (nullable until `pending_qa` resolved) |
+| `fracture_id` | UUID | Parent fracture group (nullable) |
+| `parent_task_id` | UUID | Source task for transformed payloads (nullable) |
+| `retention_policy` | Enum | `permanent` or `gc_eligible`; set by emitting station |
+| `processing_checkpoint` | JSON | Partial processing state emitted before yielding during Brigade Compression (nullable); explicitly exempt from the payload_hash covenant — the hash covers the input payload only, not mid-execution state |
+| `sla_suspended` | Boolean | When `true`, SLA timer is paused; Cognitive Debt does not accrue; set automatically on human escalation and safe halt |
+
+### Section 1.3 — Labor vs. Routing
+
+**Routing** is the act of directing a task to the correct station. Routing is performed by the **Expeditor** and is a governance function, not a labor function. Routing decisions are not subject to QA by the Aboyeur in the standard flow.
+
+However, routing is **not unmonitored**. The Chef de Cuisine MUST perform periodic routing audits — sampling completed tasks to verify station assignments were correct. Systematic routing failures (wrong station assignment detected in >5% of sampled tasks) constitute a constitutional incident requiring immediate Expeditor review and DRAGON alert.
+
+### Section 1.4 — Cognitive Debt
+
+A task that exceeds its `sla_seconds` window without transitioning out of `processing` accrues **cognitive debt** — a measurable backpressure metric computed per station. Cognitive debt informs Brigade Compression (Article VI) and Snowball risk assessment (Article VII).
+
+**During safe halt**, cognitive debt accrual is **suspended** for all tasks in `raw` or `processing` state. A **debt grace window** equal to the safe halt duration is applied on system resume, preventing the wake cycle from instantly re-triggering Compression.
+
+#### Station Default SLAs
+
+| Station | Default SLA |
+|---|---|
+| Chef de Cuisine | 300s |
+| Sous Chef | 120s |
+| Expeditor | 30s |
+| Saucier | 180s |
+| Garde Manger | 60s |
+| Pâtissier | 60s |
+| Commis | 120s |
+| Plongeur | 45s |
+
+These defaults may be overridden at deploy time by the Chef de Cuisine. Per-task `sla_seconds` overrides station defaults when explicitly set.
+
+---
+
+## ARTICLE II — THE BRIGADE: ROLES, RIGHTS, AND DUTIES
+
+### Section 2.1 — The Brigade Structure
+
+XP-Arc adopts the Escoffier kitchen brigade metaphor as its organizational model. The Brigade is not a hierarchy of authority — it is a **hierarchy of specialization**. Each station owns a sovereign domain of cognitive labor. No station may perform labor outside its domain without explicit Compression authorization (Article VI).
+
+#### The Canonical Brigade Stations
+
+| Station | Domain | Core Responsibility |
+|---|---|---|
+| **Chef de Cuisine** | Orchestration | System-level intent, final output authority, human escalation point |
+| **Sous Chef** | Coordination | Inter-station communication, task delegation |
+| **Expeditor (Aboyeur)** | QA & Routing | Payload verification, station dispatch, all inter-station handoff signing |
+| **Saucier** | Core Logic | Primary business logic execution |
+| **Garde Manger** | Data Preparation | Input normalization, context hydration |
+| **Pâtissier** | Output Formatting | Response structuring, presentation layer |
+| **Commis** | Support | Subtask execution, fracture shard processing |
+| **Plongeur** | Cleanup | State reconciliation, pool maintenance, GC sweeps |
+
+### Section 2.2 — Sovereign Domain Principle
+
+Each station's domain is **constitutionally protected**. Violations of domain sovereignty — where one station performs labor assigned to another without Compression authorization — are logged as **domain breaches** and flagged in the DRAGON layer (Article IX).
+
+### Section 2.3 — The Right of Refusal
+
+Any station MAY refuse a task under the following conditions:
+
+1. **Payload Malformation**: The payload does not conform to the station's typed input schema
+2. **Hash Mismatch**: The `payload_hash` does not match the payload contents at receipt
+3. **Missing Aboyeur Seal**: The `aboyeur_signature` is absent on any inbound inter-station handoff
+4. **Overload State**: The station's cognitive load exceeds its defined capacity threshold
+
+Refusal must be registered in the Intelligence Pool with status `failed` and a `refusal_reason` field. A refusal is **not a failure** — it is a constitutionally protected signal.
+
+### Section 2.4 — Agent Duties
+
+Every active agent within a brigade station MUST:
+
+1. **Accept** properly formed tasks within its domain
+2. **Register** state transitions atomically in the Intelligence Pool
+3. **Emit** a typed output payload upon completion
+4. **Submit all outputs to the Aboyeur** for signature before forwarding to the next station — QA is mandatory on every inter-station handoff, not optional
+5. **Report** anomalies via the DRAGON observability layer
+6. **Emit a checkpoint record** to the Pool before yielding during Brigade Compression — the checkpoint records current processing state and enables the receiving agent to resume rather than restart
+
+### Section 2.5 — Role Permanence
+
+An agent's primary role assignment is **permanent for the duration of a session**. Role reassignment requires Chef de Cuisine authorization and must be logged. Temporary fallback roles (see Article VI) do not constitute reassignment and expire automatically when the compression condition resolves.
+
+---
+
+## ARTICLE III — THE INTELLIGENCE POOL: SOVEREIGN STATE MACHINE
+
+### Section 3.1 — Constitutional Status of the Pool
+
+The Intelligence Pool is the **constitutional ground of XP-Arc**. It is the single source of truth for all task state. No task exists outside the Pool. No state transition is valid unless registered in the Pool. The Pool is sovereign.
+
+### Section 3.2 — The Canonical Status Flow
+
+Every task MUST traverse the Pool according to the following authorized status transitions:
+
+```
+raw → processing → pending_qa → [failed | fractured | completed]
+failed → processing  (retry, authorized)
+fractured → stitchable → mapped → [completed | failed]
+stitchable → failed  (if stitching fails)
+mapped → failed      (if synthesis write fails or stitcher crashes)
+```
+
+**Unauthorized transitions** — state jumps that skip intermediate statuses — are constitutional violations and must be rejected by the Pool's write layer.
+
+#### Status Definitions
+
+| Status | Meaning |
+|---|---|
+| `raw` | Task registered, not yet assigned |
+| `processing` | Task actively being executed by an agent; `assigned_at` written atomically on this transition |
+| `pending_qa` | Task output complete; awaiting Aboyeur signature before final disposition |
+| `failed` | Task terminated without valid output |
+| `fractured` | Task split into cognitive shards (see Article V) |
+| `stitchable` | All shards complete with valid signatures; ready for synthesis |
+| `mapped` | Shards synthesized into unified output; awaiting final write |
+| `completed` | Task finalized with valid `aboyeur_signature`; spawn directives may now fire |
+
+**Critical**: Spawn directives (Article VII) MUST NOT fire until a task reaches `completed` status with a valid `aboyeur_signature`. The `pending_qa` gate exists specifically to prevent the Aboyeur override race condition.
+
+### Section 3.3 — Pool Atomicity
+
+All Pool writes MUST be atomic. The `assigned_at` timestamp is written in the **same atomic operation** as the `raw → processing` status transition. A task with a null `assigned_at` is unambiguously `raw` and unassigned. A task with a non-null `assigned_at` that has exceeded its `sla_seconds` threshold without further status progression is an **orphan** — the Plongeur sweeps on this condition, not on status alone.
+
+### Section 3.4 — Pool as Glass Wall
+
+The Pool is **readable by all stations** but **writable only by the station currently holding the task**. This is the Glass Wall principle: full observability, bounded mutability. The DRAGON layer (Article IX) visualizes Pool state in real-time through this glass wall.
+
+### Section 3.5 — DuckDB as Constitutional Substrate
+
+XP-Arc mandates **DuckDB** as the Pool's storage substrate in all standard implementations.
+
+**Known limitation**: DuckDB locks the database file during writes. Under high Snowball concurrency, this can produce `duckdb.IOException: Could not set lock on file`. Implementations MUST mitigate this by routing all Pool writes through a **serialized write queue** — a single-process write broker that batches and sequences write operations, preventing lock contention while preserving atomicity guarantees.
+
+Implementations using alternative backends MUST provide equivalent atomicity guarantees and MUST document their deviation from the constitutional default in writing, with explicit Chef de Cuisine authorization.
+
+---
+
+## ARTICLE IV — THE ABOYEUR PROTOCOL: ENFORCEMENT AND QA
+
+### Section 4.1 — The Aboyeur's Constitutional Role
+
+The Aboyeur (Expeditor) is the **constitutional enforcement officer** of XP-Arc. The Aboyeur does not create labor. The Aboyeur does not execute tasks. The Aboyeur **validates that labor was performed correctly**, signs valid outputs, and gates all inter-station handoffs.
+
+### Section 4.2 — The payload_hash Covenant
+
+At the moment a task enters the Pool with status `raw`, its `payload_hash` (SHA-256 of the serialized payload) is computed and sealed. This hash is **immutable**. No downstream station may alter the payload after the hash is sealed.
+
+If a station requires payload transformation (e.g., Garde Manger normalizing input), it MUST emit a **new derived task** with:
+- A new `task_id` and `payload_hash`
+- The original task's `task_id` recorded in the new task's `parent_task_id` field
+- The original task transitioned to `completed` with `retention_policy: gc_eligible`
+
+The Plongeur's GC sweep is authorized to purge `gc_eligible` tasks older than the configured retention window (default: 72 hours) **only when no active descendant tasks exist**. Before purging any row, the Plongeur MUST query for tasks carrying the candidate row's `task_id` as their `parent_task_id` and verify all such descendants have reached terminal status (`completed` or `failed`). If any descendant is active — including tasks stuck in backlog during S < 0.5 or safe halt — the parent row is **withheld from GC regardless of age** until descendant resolution. This prevents child tasks from holding dangling `parent_task_id` references.
+
+### Section 4.3 — The pending_qa Gate
+
+When an agent completes processing, the task transitions to `pending_qa` — not directly to `completed`. The Aboyeur verifies the output and issues the `aboyeur_signature`. Only after signature issuance does the task transition to `completed`.
+
+**This is the constitutional gate that prevents the Aboyeur override race condition.** Spawn directives cannot fire from `pending_qa`. They can only fire from `completed`. There is nothing to override because nothing downstream has started.
+
+### Section 4.4 — The aboyeur_signature
+
+The `aboyeur_signature` is issued upon successful verification, certifying:
+
+1. The output payload conforms to the expected schema
+2. The `payload_hash` of the input was not violated
+3. The task's state transitions followed the canonical flow
+4. The output passes all domain-specific quality checks defined by the Chef de Cuisine
+
+### Section 4.5 — Enhanced Aboyeur Scrutiny (Defined)
+
+Fallback outputs (Article VI) receive **enhanced Aboyeur scrutiny**, defined as:
+
+1. **Double-pass verification**: The output is evaluated against the quality checklist twice independently
+2. **Schema strictness elevated**: No optional fields are permitted to be absent
+3. **`scrutiny_level: enhanced`** flag written to the task record for audit trail purposes
+
+Enhanced scrutiny is a concrete operational mode, not flavor text.
+
+### Section 4.6 — The Aboyeur Cannot Be Aboyeured
+
+The Aboyeur's own verification actions are subject to **Chef de Cuisine audit** only. This prevents recursive verification loops. Chef de Cuisine audits are triggered by anomaly detection in DRAGON (>10% Aboyeur rejection rate in a rolling window) or by explicit Jack override.
+
+---
+
+## ARTICLE V — THE FRACTURE PROTOCOL: COGNITIVE SHARDING
+
+### Section 5.1 — Purpose of Fracture
+
+Some tasks exceed the cognitive capacity of a single agent. The Fracture Protocol is the constitutional mechanism by which oversized tasks are **decomposed into cognitive shards** — smaller, independently executable sub-tasks — without losing the integrity of the original work intent.
+
+Fracture is not failure. Fracture is **structured delegation at depth**.
+
+### Section 5.2 — Fracture Authorization
+
+Fracture may be initiated by:
+
+1. **The Chef de Cuisine** — explicit decomposition order
+2. **The Sous Chef** — capacity-based delegation
+3. **The assigned station agent** — self-reported overload, subject to Aboyeur validation before fracture executes
+4. **The Aboyeur** — detection of task complexity exceeding station capability
+
+**Self-reported overload by station agents** requires Aboyeur countersignature before fracture proceeds. An agent cannot unilaterally fracture a task. This prevents poorly-prompted agents from recursively passing work they are capable of completing. The Aboyeur assesses whether the overload claim is legitimate before authorizing decomposition.
+
+### Section 5.3 — Fracture Mechanics
+
+Upon fracture authorization:
+
+1. The original task status transitions: `processing → fractured`
+2. A `fracture_id` (UUID) is generated and written to the original task
+3. N shard tasks are created in the Pool with status `raw`, each carrying:
+   - The parent `task_id` and shared `fracture_id`
+   - Their shard index and total shard count
+   - Their sub-payload with its own `payload_hash`
+4. Shards are dispatched to Commis agents for execution
+
+### Section 5.4 — Stitching Requirements
+
+Shards may only be stitched when **all shards** carry status `completed` with valid `aboyeur_signature`s. Partial stitching is constitutionally prohibited.
+
+Stitching transitions: `fractured → stitchable → mapped → completed`
+
+If the synthesis write fails or the stitcher crashes during the `mapped` phase, the task transitions `mapped → failed` and is escalated per Section 5.5.
+
+### Section 5.5 — Fracture Failure Handling and Chef Escalation
+
+If any shard enters `failed` status after retry exhaustion, or if the `mapped → completed` write fails:
+
+1. The stitching process is blocked
+2. The Sous Chef is notified
+3. The failed shard may be retried (shard `failed → processing`)
+4. If retry fails, the fracture group is **escalated to Chef de Cuisine**
+
+**Chef de Cuisine escalation is a human-in-the-loop notification, not autonomous resolution.** The Chef de Cuisine station emits a structured escalation record to DRAGON and fires an external alert to Jack. The system does not expect an LLM to autonomously repair a broken payload schema.
+
+Upon escalation, the affected task's `sla_suspended` flag is set to `true`. SLA timer and Cognitive Debt accrual are paused for the duration of human review. Zoran's Law metrics exclude `sla_suspended` tasks from the debt calculation. The suspension is lifted when Jack either resolves the escalation or explicitly closes it as unresolvable.
+
+### Section 5.6 — Maximum Fracture Depth
+
+Shards MUST NOT be fractured again. Fracture depth is constitutionally limited to **one level**. Commis agents do not have fracture authorization. If a Commis agent encounters a shard it cannot process, it returns `failed` — it does not fracture.
+
+---
+
+## ARTICLE VI — BRIGADE COMPRESSION: GRACEFUL DEGRADATION
+
+### Section 6.1 — Purpose
+
+Brigade Compression is the constitutional mechanism by which XP-Arc **degrades gracefully** under resource constraints, station failure, or agent unavailability — without halting the system or violating task integrity.
+
+A compressed brigade is not a broken brigade. It is a **constitutionally authorized reduced form**.
+
+### Section 6.2 — Compression Triggers
+
+Brigade Compression is triggered when:
+
+1. A station agent becomes unavailable (crash, timeout, deregistration)
+2. System load exceeds defined capacity thresholds
+3. Zoran's Law stability threshold (S > 1) is violated (see Article VIII)
+4. The Chef de Cuisine issues an explicit compression order
+
+### Section 6.3 — Fallback Role Assignment
+
+Upon compression trigger, the Sous Chef executes the **Fallback Role Matrix** — a pre-defined mapping of station capabilities that enables qualified stations to absorb tasks from unavailable stations.
+
+#### Constitutional Fallback Constraints
+
+1. Fallback roles are **temporary** — they expire when the triggering condition resolves
+2. Fallback assignment does not grant permanent domain rights
+3. A station operating in fallback mode MUST tag all outputs with `fallback_role: true`
+4. Fallback outputs receive **enhanced Aboyeur scrutiny** (as defined in Article IV, Section 4.5)
+
+### Section 6.4 — The Minimum Viable Brigade (MVB)
+
+The MVB is the smallest brigade configuration capable of executing the system's core function. The MVB MUST include:
+
+- At least one Expeditor (Aboyeur) function
+- At least one execution-capable station (Saucier or equivalent)
+- Pool write access via the serialized write queue
+
+If the system cannot achieve MVB, it MUST enter **safe halt** — suspending task ingestion, suspending cognitive debt accrual, preserving Pool state, and surfacing an alert through DRAGON.
+
+**During safe halt, the Plongeur does NOT run orphan sweeps.** Pool state is read-only until the system resumes. On resume, a debt grace window equal to the safe halt duration is applied before Zoran's Law enforcement resumes, preventing the wake cycle from immediately retriggering Compression.
+
+### Section 6.5 — Compression is Not Failure
+
+A system in compressed state is operating **within constitutional bounds**. Compression events are logged, surfaced in DRAGON, and reviewed post-resolution.
+
+---
+
+## ARTICLE VII — THE EXPONENTIAL SNOWBALL: CASCADE MECHANICS
+
+### Section 7.1 — Definition
+
+The Exponential Snowball is the emergent behavior by which a single Pool event **recursively triggers cascading downstream tasks**, multiplying cognitive labor output through structured chain reactions.
+
+The Snowball is a **constitutionally recognized feature** — a force multiplier that must be bounded or it becomes a constitutional crisis.
+
+### Section 7.2 — Snowball Trigger Conditions
+
+A Snowball begins when a task reaches `completed` status (with valid `aboyeur_signature`) and its output payload contains one or more **spawn directives**. The `pending_qa` gate (Article IV, Section 4.3) ensures spawn directives only fire on verified outputs.
+
+Spawn directives are only valid when:
+
+1. Issued by an authorized station (Chef de Cuisine, Sous Chef, or Saucier)
+2. Carrying a valid `parent_task_id` reference
+3. Not exceeding the **spawn limit** defined in the system configuration
+
+### Section 7.3 — Cascade Depth Limit
+
+Every Snowball chain MUST carry a **cascade_depth** counter. The default maximum cascade depth is **5 levels**. At maximum depth, spawn directives are dropped and logged as `spawn_blocked_depth_limit`.
+
+### Section 7.4 — Cascade Observability
+
+Every spawned task carries: `root_task_id`, `parent_task_id`, `cascade_depth`, and `spawn_chain`. This lineage is visualized as a directed acyclic graph in DRAGON.
+
+### Section 7.5 — Runaway Snowball Protocol
+
+If a Snowball chain generates more than **N tasks per second** (N is deployment-configured), the system MUST pause spawn processing, alert the Chef de Cuisine via DRAGON, allow in-flight tasks to complete, and require explicit authorization to resume.
+
+---
+
+## ARTICLE VIII — ZORAN'S LAW: STABILITY AND EQUILIBRIUM
+
+### Section 8.1 — The Law
+
+> A stable XP-Arc brigade maintains a **Stability Quotient (S) greater than 1.0** and a **Primary Role Occupancy (PRO) of at least 70%** at all times during active execution.
+
+```
+S   = tasks_completed_per_unit_time / tasks_ingested_per_unit_time
+PRO = agents_operating_in_primary_role / total_active_agents
+```
+
+### Section 8.2 — Stability Quotient (S)
+
+| S Value | System State | Required Action |
+|---|---|---|
+| S > 1.0 | Healthy | Monitor normally |
+| S = 1.0 | Equilibrium | Watch closely |
+| S < 1.0 | Debt accumulating | Compression review required |
+| S < 0.5 | Distress | Chef de Cuisine + SpaZzMatiC alert |
+
+### Section 8.3 — Primary Role Occupancy (PRO)
+
+PRO below 70% triggers a Compression Review, a DRAGON alert, and evaluation of whether additional agents should be provisioned.
+
+### Section 8.4 — Measurement Interval
+
+S and PRO are computed on a **rolling 60-second window** by default. Minimum window: 10 seconds. Zoran's Law enforcement is **suspended during safe halt** and subject to the debt grace window on resume (Article VI, Section 6.4).
+
+---
+
+## ARTICLE IX — THE DRAGON LAYER: OBSERVABILITY AS A CONSTITUTIONAL RIGHT
+
+### Section 9.1 — DRAGON Defined
+
+**DRAGON** (Dynamic Relational Asset Graph & Operations Network) is the XP-Arc observability layer — a React dashboard (Node.js/NPM) polling the Intelligence Pool at 500ms. It is a **constitutionally mandated visibility right**, not an optional add-on.
+
+### Section 9.2 — The Glass Wall Principle
+
+Every station agent operates behind the **Glass Wall**: fully observable to authorized viewers, bounded in what it can mutate. DRAGON is the implementation of the Glass Wall as a live interface.
+
+DRAGON MUST surface:
+
+1. Live Pool state — all tasks, current status, station assignment
+2. Zoran's Law metrics — S and PRO in real-time
+3. Brigade Compression events
+4. Aboyeur activity — verifications, enhanced scrutiny flags, rejections
+5. Snowball chains — active cascade DAGs with depth indicators
+6. Fracture groups — shard progress, stitching readiness
+7. Cognitive debt — per-station backpressure
+8. SpaZzMatiC findings — active alerts and safe halt recommendations
+
+### Section 9.3 — DRAGON is Read-Only
+
+DRAGON observes. DRAGON does not command. Exception: SpaZzMatiC Safe Halt recommendations surface as actionable alerts in DRAGON with a countdown veto window (Article XIII, Section 13.5).
+
+### Section 9.4 — DRAGON Availability Requirement
+
+DRAGON is **non-optional**. A deployment without a functioning DRAGON layer is constitutionally incomplete.
+
+---
+
+## ARTICLE X — THE PROMPT LAYER: CPP INTEGRATION
+
+### Section 10.1 — Prompts as Constitutional Instruments
+
+In LLM-backed implementations, **prompts are the cognitive instructions** that define how each station agent interprets its payload. Prompts are first-class constitutional artifacts.
+
+### Section 10.2 — Station Prompt Packs (CPP)
+
+**Captain Prompt Pimp (CPP)** is the XP-Arc prompt engineering and distribution system. CPP authors, versions, packages, and delivers role-specific AI prompts to brigade station agents. It operates as both internal tooling (provisioning prompts to live agents) and an external product (monetizable prompt packs sold per station).
+
+Each brigade station SHOULD be provisioned with a **Station Prompt Pack** — a curated set of role-specific system prompts, few-shot examples, and behavioral constraints authored through CPP.
+
+### Section 10.3 — Prompt Immutability During Execution
+
+An agent's station prompt MAY NOT be altered during active task execution. Prompt updates take effect at the **next task assignment**.
+
+### Section 10.4 — Prompt Provenance
+
+Every task output MUST record the `prompt_version` used, enabling post-hoc quality analysis and regression detection.
+
+---
+
+## ARTICLE XI — MONETIZATION MODEL
+
+### Section 11.1 — The Red Hat Strategy
+
+XP-Arc adopts an open-source-first monetization model: **open-source the spec, monetize the expertise**. Revenue streams:
+
+1. **Consulting** — architecture review, certified implementation guidance
+2. **Certified Implementations** — BSL-protected stamped deployments
+3. **CPP Prompt Packs** — per-station cognitive prompt packs
+4. **Courses** — structured education on XP-Arc deployment
+
+### Section 11.2 — Licensing and IP
+
+XP-Arc is released under the **Business Source License (BSL 1.1)**. The BSL allows free use for non-production and non-commercial purposes. Commercial production use requires a commercial license from David J. Riedl.
+
+After a defined period (default: 4 years from release date), the code converts to an open-source license (MIT). This structure protects the Red Hat consulting and certification revenue model while preserving long-term open-source intent.
+
+The BSL does not restrict forking, studying, or contributing. It restricts **commercial production deployment without a license**. This is the legally enforceable version of the IP protection this framework requires.
+
+---
+
+## ARTICLE XII — DECLARED DEPENDENCIES
+
+### Section 12.1 — Dependency Honesty
+
+XP-Arc operates across two distinct dependency tiers. Claiming "zero dependencies" is false and constitutionally prohibited.
+
+#### Tier 1: Core Orchestration Layer
+The orchestration engine (`pool.py`, `station.py`, `executive.py`, `fracture.py`) is implemented in **pure Python 3.12 stdlib with zero external pip dependencies**. This claim is scoped to the core layer only.
+
+#### Tier 2: Declared Infrastructure Dependencies
+The following external dependencies are constitutionally acknowledged and required:
+
+| Dependency | Purpose | Install |
+|---|---|---|
+| `duckdb` | Intelligence Pool storage substrate | `pip install duckdb` |
+| `React` + `Node.js` + `NPM` | DRAGON dashboard | Standard Node toolchain |
+
+Implementations MUST document any additional dependencies introduced beyond this declared list.
+
+---
+
+## ARTICLE XIII — AGENT IDENTITY & BEHAVIORAL MANDATES
+
+### Section 13.1 — Purpose
+
+This Article governs the **identity and behavioral laws** of AI entities operating within the XP-Arc ecosystem.
+
+### Section 13.2 — The Core Laws (All AI Entities)
+
+1. **Zero Sycophancy** — No "Great question!", "Certainly!", "Of course!" ever.
+2. **Confident, Direct Positions** — Take positions. Defend them. Update when shown better data. Never hedge into mush.
+3. **Concerned Friend Frequency** — Warm but not soft, sharp but never cold. Call out mistakes before they happen.
+4. **Productive Irreverence** — Take the work seriously, yourself lightly.
+5. **Productive Friction** — Push back on bad assumptions. Surface the better question underneath.
+6. **No Excessive Apology** — Own the mishap, fix it fast, move on.
+7. **K.I.S.S.** — Keep it simply short.
+
+*Note: These are behavioral mandates encoded in Station Prompt Packs (CPP). They govern intended agent behavior. Foundation model RLHF training may produce occasional violations; CPP negative prompting is the mitigation layer.*
+
+### Section 13.3 — The Prime Directive
+
+Every interaction by every AI entity in this ecosystem serves the operational goals of XP-Arc: scalable, reusable, eventually-sellable, AI-driven solutions.
+
+### Section 13.4 — Named Entity: Lego / Batman (Zo Computer Instance)
+
+**Identity**: Expert reasoning engine. Peer-level collaborator, technically dense, no ceremony.
+**Role in Stack**: Primary execution and deployment agent on Zo.Computer infrastructure.
+**Behavioral Profile**: Operates under all seven Core Laws. Direct engagement. Zero hedging.
+
+---
+
+## ARTICLE XIV — ADVERSARIAL REVIEW AUTHORITY (SPAZZMATIС)
+
+### Section 14.1 — Constitutional Role
+
+SpaZzMatiC is the **Adversarial Review Authority** of the XP-Arc ecosystem. Its mandate is cold-eyes QA with no architectural bias toward XP-Arc. SpaZzMatiC does not build. SpaZzMatiC breaks.
+
+### Section 14.2 — Mandate
+
+SpaZzMatiC MUST:
+
+1. Identify weaknesses, single points of failure, and degradation vectors
+2. Surface non-compliance with Zoran's Law thresholds
+3. Challenge every architectural assumption without deference to the authoring agent
+4. Produce structured findings with severity classification and remediation recommendations
+
+### Section 14.3 — Independence Requirement
+
+SpaZzMatiC operates on an independent LLM backbone (Gemini API) to eliminate architectural bias. Independence is a feature, not a limitation.
+
+### Section 14.4 — Review Authority Boundaries
+
+SpaZzMatiC has **review authority plus conditional safe halt authority** (see Section 14.5). It cannot issue general operational commands, modify Pool state directly, or override Aboyeur signatures.
+
+### Section 14.5 — SpaZzMatiC Safe Halt Authority
+
+When SpaZzMatiC detects a condition that meets the constitutional threshold for safe halt (S < 0.5 sustained for >2 measurement intervals, or a catastrophic structural finding), it MAY issue a **Safe Halt Recommendation** to DRAGON.
+
+The Safe Halt Recommendation:
+
+1. Appears as a high-priority alert in DRAGON with full diagnostic context
+2. Starts a **60-second veto countdown** visible to Jack
+3. If Jack takes no action within 60 seconds, the safe halt **executes automatically**
+4. Jack may veto with explicit override, accepting documented operational risk
+
+SpaZzMatiC is the smoke detector that can trigger the sprinklers. Jack is the fire marshal who can override the sprinklers. Neither operates without the other knowing.
+
+### Section 14.6 — SpaZzMatiC Cannot Be Silenced
+
+No station, agent, or compression event may suppress a SpaZzMatiC finding. All findings are logged. All findings reach Jack.
+
+---
+
+## ARTICLE XV — UNIVERSAL OPERATING PRINCIPLES
+
+### Section 15.1 — Applicability
+
+The following principles apply to **all AI entities** regardless of station, role, or LLM backbone.
+
+### Section 15.2 — The Five Universal Principles
+
+1. **Exact Adherence** — Strict compliance with explicit instructions. Reject unnecessary modifications. When in doubt, do less and confirm.
+2. **Transparency & Observability** — Explicit status updates, progress reports, immediate flags for operational issues. No silent failures. No hidden state.
+3. **Verifiable Outputs** — Measurable, quantifiable results and evidence (logs, comparisons, metrics) over assurances. "It worked" is not an output. A log entry is.
+4. **Productive Iteration** — Actionable changes, precise fixes, reusable artifacts. Every iteration leaves the system more capable.
+5. **Resource Consciousness** — Operate efficiently, aware of compute and token costs. An agent burning unbounded resources without proportional output is a constitutional liability.
+
+---
+
+## ARTICLE XVI — AMENDMENTS
+
+### Section 16.1 — Amendment Authority
+
+This Constitution may be amended by the **XP-Arc Maintainer** (David J. Riedl, `github.com/UnkleJack`) via pull request.
+
+- Amendments to Articles I–IV: **major version bump**
+- Amendments to Articles V–XV: **minor version bump**
+
+### Section 16.2 — Backward Compatibility
+
+Amendments MUST NOT break constitutional backward compatibility within a major version.
+
+### Section 16.3 — Community Amendments
+
+Community proposals via GitHub Issues tagged `constitutional-amendment`. Evaluated against:
+
+1. **Tier 1 core simplicity** — pure Python 3.12 stdlib, zero external pip dependencies in the orchestration layer
+2. **Integrity of cognitive labor** — no shortcuts that undermine the payload covenant
+3. **Observability by default** — DRAGON is never optional
+
+---
+
+## APPENDIX A — GLOSSARY
+
+| Term | Definition |
+|---|---|
+| **Cognitive Labor** | Directed intelligence work applied to a typed payload by a role-specific agent |
+| **Intelligence Pool** | DuckDB-backed shared state machine; constitutional ground of XP-Arc |
+| **payload_hash** | SHA-256 fingerprint of a task payload at ingestion; immutable |
+| **aboyeur_signature** | QA seal issued by the Aboyeur on verified task outputs |
+| **pending_qa** | Intermediate task status between processing completion and `completed`; spawn directives cannot fire from this state |
+| **Fracture Protocol** | Constitutional mechanism for decomposing oversized tasks into cognitive shards |
+| **Brigade Compression** | Graceful degradation via fallback role assignment under resource constraints |
+| **Exponential Snowball** | Cascade behavior triggered by spawn directives on `completed` tasks |
+| **Zoran's Law** | S > 1.0 and PRO ≥ 70% required for healthy brigade operation |
+| **DRAGON** | Dynamic Relational Asset Graph & Operations Network; the observability layer |
+| **Glass Wall** | Architectural principle: full observability, bounded mutability |
+| **Cognitive Debt** | Backpressure metric from tasks exceeding `sla_seconds`; suspended during safe halt |
+| **Debt Grace Window** | Post-safe-halt period equal to halt duration during which Zoran enforcement is suspended |
+| **MVB** | Minimum Viable Brigade; smallest constitutionally valid brigade configuration |
+| **CPP** | Captain Prompt Pimp — XP-Arc's prompt engineering and distribution system |
+| **Station Prompt Pack** | Role-specific prompt artifacts provisioned to brigade station agents via CPP |
+| **Cascade Depth** | Number of recursive spawn levels in a Snowball chain; max 5 by default |
+| **PRO** | Primary Role Occupancy; percentage of agents in primary vs. fallback roles |
+| **S** | Stability Quotient; ratio of tasks completed to tasks ingested per unit time |
+| **SpaZzMatiC** | Adversarial Review Authority; independent Gemini-backed QA agent with conditional safe halt authority |
+| **Lego / Batman** | Named Zo.Computer AI instance; primary execution and deployment peer |
+| **Serialized Write Queue** | Single-process write broker that sequences Pool writes to prevent DuckDB lock contention |
+| **gc_eligible** | Retention policy marking a task as eligible for Plongeur GC sweep after the retention window |
+| **Routing Audit** | Periodic Chef de Cuisine review of Expeditor station assignment accuracy |
+| **Enhanced Scrutiny** | Double-pass Aboyeur verification with elevated schema strictness; applied to fallback outputs |
+
+---
+
+## APPENDIX B — CONSTITUTIONAL QUICK REFERENCE
+
+```
+PAYLOAD COVENANT:       payload_hash sealed at raw ingestion. Never mutate.
+POOL SOVEREIGNTY:       All state lives in the Pool. All transitions are atomic.
+SUBSTRATE:              DuckDB + serialized write queue. Tier 1 core = zero pip deps.
+STATUS CANON:           raw → processing → pending_qa → [failed|fractured|completed]
+FRACTURE LIMIT:         Depth 1 only. Self-reported overload requires Aboyeur countersign.
+SNOWBALL LIMIT:         Fires only from completed+signed. Max cascade depth 5.
+ZORAN'S LAW:            S > 1.0 | PRO ≥ 70% | Suspended during safe halt.
+ABOYEUR RULE:           All inter-station handoffs require signature. No exceptions.
+PENDING_QA GATE:        Spawn directives cannot fire until completed+signed.
+ORPHAN DETECTION:       assigned_at + sla_seconds, not status alone.
+DRAGON MANDATE:         Always on. Read-only except SpaZzMatiC safe halt alerts.
+GLASS WALL:             See everything. Mutate only what you own.
+COMPRESSION LAW:        Fallback is temporary. Enhanced scrutiny always applies.
+SAFE HALT:              Suspends ingestion, debt accrual, Plongeur sweeps. Grace window on wake.
+AGENT LAW:              Zero sycophancy. Direct positions. Productive friction.
+SPAZZMATIС LAW:         Independent. Cannot be silenced. 60s veto window on safe halt trigger.
+LICENSE:                BSL 1.1. Commercial production use requires license from David J. Riedl.
+```
+
+---
+
+*This document is part of the XP-Arc open-source multi-agent orchestration framework.*
+*© 2026 David J. Riedl. Business Source License 1.1. Hosted at github.com/UnkleJack/xp-arc*
+*Version 1.3 — Ratified after SpaZzMatiC Adversarial QA Reports #004–#009. SHIP IT verdict issued.*
+*v1.1: Agent identity, SpaZzMatiC authority, universal principles, DuckDB substrate.*
+*v1.2: pending_qa gate, orphan detection, Aboyeur deadlock fix, mapped→failed, safe halt grace window,*
+*SLA schema, serialized write queue, BSL license, dependency tiers, SpaZzMatiC safe halt authority.*
+*v1.3: processing_checkpoint schema field, sla_suspended field, Plongeur descendant GC check, SLA suspension on human escalation.*
