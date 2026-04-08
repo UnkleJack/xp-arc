@@ -1,0 +1,11 @@
+[2026-04-08 19:26:53 UTC] ═══ BATCH RUN START — Processing up to 1000 entities ═══
+[2026-04-08 19:26:53 UTC] Raw entities waiting: 34956
+[2026-04-08 19:31:51 UTC] Batch complete: 1000 entities processed in 298.2s
+[2026-04-08 19:31:51 UTC]   Rate: 3.4 entities/sec
+[2026-04-08 19:31:51 UTC]   Remaining raw: 33957
+[2026-04-08 19:31:51 UTC]   Total completed: 1000
+[2026-04-08 19:31:51 UTC]   Zoran S=0.029 PRO=100%
+[2026-04-08 19:31:51 UTC]   Aboyeur: 1000 approved, 0 rejected
+[2026-04-08 19:31:53 UTC] DRAGON export updated: /home/user/workspace/xp-arc/dragon/pool_state.json
+[2026-04-08 19:31:53 UTC] ═══ BATCH RUN COMPLETE ═══
+[2026-04-08 19:31:53 UTC] 
