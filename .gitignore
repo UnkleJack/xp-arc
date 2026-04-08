@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.db
+*.json
+!dragon/pool_state.json
+!docs/aboyeur-protocol-v1.json
+.DS_Store

@@ -1,0 +1,3103 @@
+{
+  "meta": {
+    "exported_at": "2026-04-08T13:28:58.968529+00:00",
+    "db_path": "xp_arc_demo.db",
+    "version": "0.2.0",
+    "protocol": "XP-Arc"
+  },
+  "entities": [
+    {
+      "id": 1,
+      "type": "url",
+      "value": "https://news.ycombinator.com",
+      "status": "completed",
+      "payload_hash": "bd80378834b33aee882f0b3ad697ac7b06b70d00353eb078cb7f6761e90f6e5c",
+      "station": "forager",
+      "confidence": 0.85,
+      "notes": "Title: Hacker News. Extracted 5 external domains.",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:42.079835+00:00",
+      "completed_at": "2026-04-08T13:28:42.308787+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-bf81b9f020fe236a01b16517c32adf18",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 2,
+      "type": "url",
+      "value": "https://github.com/unklejack",
+      "status": "completed",
+      "payload_hash": "692e2f22ffa811d04186f31a78a17e71c2252e9aadf810bd725ca4732330a165",
+      "station": "forager",
+      "confidence": 0.85,
+      "notes": "Title: UnkleJack (Jack) \u00b7 GitHub. Extracted 5 external domains.",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:42.310217+00:00",
+      "completed_at": "2026-04-08T13:28:42.918381+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-ae2d830779e4ca0ab4db46c720fe1a4f",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 3,
+      "type": "url",
+      "value": "https://lobste.rs",
+      "status": "completed",
+      "payload_hash": "c3c9fabb6cbd875ff5b51dadb184b618c46506ce363a33e5b46b89f92d3fcf74",
+      "station": "forager",
+      "confidence": 0.85,
+      "notes": "Title: Lobsters. Extracted 5 external domains.",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:42.919607+00:00",
+      "completed_at": "2026-04-08T13:28:43.343895+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-c0c5738bad18228ca25a347d53374686",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 4,
+      "type": "url",
+      "value": "https://httpbin.org/html",
+      "status": "completed",
+      "payload_hash": "67a51e4eaad5084982faecc95ab293bb0e56b5cfd8fdeabc6dca9fb2230aefb1",
+      "station": "forager",
+      "confidence": 0.85,
+      "notes": "Title: No title. Extracted 0 external domains.",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:43.344978+00:00",
+      "completed_at": "2026-04-08T13:28:43.749230+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-a3c4311dc2231308cc2cc4aef4c08ce7",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 5,
+      "type": "url",
+      "value": "https://en.wikipedia.org/wiki/Kitchen_brigade_system",
+      "status": "completed",
+      "payload_hash": "dde0d2771474401cc29bbf0d9b347a8474ab04e13625e419222103ce82abb0af",
+      "station": "forager",
+      "confidence": 0.2,
+      "notes": "Forage failed: HTTP Error 404: Not Found",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:43.750368+00:00",
+      "completed_at": "2026-04-08T13:28:44.141221+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-b148e6f4a21fe1febe8dab671f8d497b",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 6,
+      "type": "domain",
+      "value": "indraneelpatil.github.io",
+      "status": "completed",
+      "payload_hash": "be46f0f94ebafa07a283dea1cc4b166091cd668ef4cc69e64e258ada85f8dd8c",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Server: GitHub.com. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:44.142535+00:00",
+      "completed_at": "2026-04-08T13:28:44.261993+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-6bcd666ea6eba49f52e231ff830363c2",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 7,
+      "type": "domain",
+      "value": "www.terrybisson.com",
+      "status": "completed",
+      "payload_hash": "ee10fadfe59f563bd6f55877fbd3c8339bcb4ac5f3ac2ac0131c5f973405770b",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Server: Apache. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:44.263211+00:00",
+      "completed_at": "2026-04-08T13:28:44.430354+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-0d22d936846915021c67919336a7ef66",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 8,
+      "type": "domain",
+      "value": "lucumr.pocoo.org",
+      "status": "completed",
+      "payload_hash": "17e7b60ffb2ef6d7394e947d6cd6fe752242ef8cd2164d1211152153decaca5b",
+      "station": "analyst",
+      "confidence": 0.85,
+      "notes": "Classification: organization. Server: GitHub.com. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:44.431681+00:00",
+      "completed_at": "2026-04-08T13:28:44.561019+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-6bc3308c0d40bd37b9fe79ce9f617165",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 9,
+      "type": "domain",
+      "value": "sourceforge.net",
+      "status": "completed",
+      "payload_hash": "f39bbc117ab917d856e3e2395a9fd1f36a470ce682afcbf66fce0fbd6c8426da",
+      "station": "analyst",
+      "confidence": 0.5,
+      "notes": "Classification: unknown. Reachable: False",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:44.562322+00:00",
+      "completed_at": "2026-04-08T13:28:44.657994+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-bf5cd24a2476565434bc65c84f0a84ba",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 10,
+      "type": "domain",
+      "value": "middle-earth-interactive-map.web.app",
+      "status": "completed",
+      "payload_hash": "983eabaf22c7704c1fbe9837e7530ea6456e7fae19f74428e1d0ceafa976ce90",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Server: unknown. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:44.659191+00:00",
+      "completed_at": "2026-04-08T13:28:44.734382+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-9cf7e1492257dd0e219098a82b1365bb",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 11,
+      "type": "domain",
+      "value": "github.githubassets.com",
+      "status": "completed",
+      "payload_hash": "6ae0c0fc262de81692bd06c07929965ccdbf5f0d972b4aff229be18c7e70a53f",
+      "station": "analyst",
+      "confidence": 0.5,
+      "notes": "Classification: unknown. Reachable: False",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:44.735652+00:00",
+      "completed_at": "2026-04-08T13:28:44.887596+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-f4c6f7e8640a6e8bebfc94c4ff586494",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 12,
+      "type": "domain",
+      "value": "www.githubstatus.com",
+      "status": "completed",
+      "payload_hash": "80b5568e3d0b667ec93ae599ffed8f9934f43d228cf0d192d9fe6e65465cde8d",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Server: AtlassianEdge. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:44.888920+00:00",
+      "completed_at": "2026-04-08T13:28:44.960722+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-941adc7d69145c7d3521d5ced78b4178",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 13,
+      "type": "domain",
+      "value": "github.blog",
+      "status": "completed",
+      "payload_hash": "38cdbabd6149c30b100d614dcc456683a6f7a77b2cacf42c3972e50e0377c7d3",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Server: nginx. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:44.961920+00:00",
+      "completed_at": "2026-04-08T13:28:45.047971+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-e2c6333f63e2ce645046b599680b3ac1",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 14,
+      "type": "domain",
+      "value": "avatars.githubusercontent.com",
+      "status": "completed",
+      "payload_hash": "38a47a4a67dcfd4bb88664d1c6eb3cc7bb9ed57d45bb344b9b204fb76f4e1f32",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Redirects to: https://github.com/. Server: github.com. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:45.049302+00:00",
+      "completed_at": "2026-04-08T13:28:45.120452+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-3f1d0d7bd77bb1f5aba0983ed59720bb",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 15,
+      "type": "domain",
+      "value": "github-cloud.s3.amazonaws.com",
+      "status": "completed",
+      "payload_hash": "e8e4269b69b3ce01342c6b1652bd0c3272b201197d55b5114655831b47a21fd8",
+      "station": "analyst",
+      "confidence": 0.5,
+      "notes": "Classification: unknown. Reachable: False",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:45.121860+00:00",
+      "completed_at": "2026-04-08T13:28:45.481707+00:00",
+      "created_at": "2026-04-08 13:28:42",
+      "aboyeur_signature": "ABOY-bc77c724b944a5e036deab281d034a89",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 16,
+      "type": "domain",
+      "value": "caio.ca",
+      "status": "completed",
+      "payload_hash": "b623ab2c64da03073e978272d1f1b417ba8d24280b7d9ab3cfd46c7b9cdd9773",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Server: cloudflare. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:45.482835+00:00",
+      "completed_at": "2026-04-08T13:28:45.635554+00:00",
+      "created_at": "2026-04-08 13:28:43",
+      "aboyeur_signature": "ABOY-41e36efc0f87e67042813b76a06fcf2a",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 17,
+      "type": "domain",
+      "value": "developer.mozilla.org",
+      "status": "completed",
+      "payload_hash": "a8da73b0427342ffe8e81943c9044484df5429db17a3f44a80324cd44ba37f38",
+      "station": "analyst",
+      "confidence": 0.85,
+      "notes": "Classification: organization. Redirects to: https://developer.mozilla.org/en-US/. Server: Google Frontend. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:45.636691+00:00",
+      "completed_at": "2026-04-08T13:28:45.827372+00:00",
+      "created_at": "2026-04-08 13:28:43",
+      "aboyeur_signature": "ABOY-adde23481d08d5bed49fb062c0827740",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 18,
+      "type": "domain",
+      "value": "words.filippo.io",
+      "status": "completed",
+      "payload_hash": "0c222a0eaeab0741291846bcd600d831021476fc85676960d6bd82a38de785d8",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Server: Fly/6df7278a (2026-04-07). Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:45.828743+00:00",
+      "completed_at": "2026-04-08T13:28:45.980865+00:00",
+      "created_at": "2026-04-08 13:28:43",
+      "aboyeur_signature": "ABOY-3e5abcbb57d8788177b06030f391ea96",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 19,
+      "type": "domain",
+      "value": "www.openssh.com",
+      "status": "completed",
+      "payload_hash": "495eec70937fe41b2d55c61eb49e4e8165773c9e70a593cd6b90c68d5f55c387",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Redirects to: https://www.openssh.org/. Server: OpenBSD httpd. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:45.982401+00:00",
+      "completed_at": "2026-04-08T13:28:46.238505+00:00",
+      "created_at": "2026-04-08 13:28:43",
+      "aboyeur_signature": "ABOY-35367a99b201022f0e8f11cd41591640",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 20,
+      "type": "domain",
+      "value": "discourse.llvm.org",
+      "status": "completed",
+      "payload_hash": "e7bedc86c298921fc81a402502a38a205c74f7833a456e0d380f85274e6e7eab",
+      "station": "analyst",
+      "confidence": 0.85,
+      "notes": "Classification: organization. Server: nginx. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:46.239895+00:00",
+      "completed_at": "2026-04-08T13:28:46.451283+00:00",
+      "created_at": "2026-04-08 13:28:43",
+      "aboyeur_signature": "ABOY-bf4beeb20de433706713ecbdafbd597d",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 21,
+      "type": "domain",
+      "value": "github.io",
+      "status": "completed",
+      "payload_hash": "f3bf6707000277584341b3314845e3da0ad11371e5e42cf42a8f6222e0da7165",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Redirects to: https://pages.github.com/. Server: GitHub.com. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:46.453005+00:00",
+      "completed_at": "2026-04-08T13:28:46.524953+00:00",
+      "created_at": "2026-04-08 13:28:44",
+      "aboyeur_signature": "ABOY-59a08df22d3b253ab619c308d7206dbb",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 22,
+      "type": "domain",
+      "value": "terrybisson.com",
+      "status": "completed",
+      "payload_hash": "36cbc34a72550debe2b7cf6cba935ca720b6e52bd5932e25786a87a2eac098a1",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Server: Apache. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:46.526353+00:00",
+      "completed_at": "2026-04-08T13:28:47.446888+00:00",
+      "created_at": "2026-04-08 13:28:44",
+      "aboyeur_signature": "ABOY-2cf51271d8966fff2800667f9fb4ecbc",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 23,
+      "type": "domain",
+      "value": "pocoo.org",
+      "status": "completed",
+      "payload_hash": "6a9c7783d5148967892d24ebb2e88e63f238de71401b96616211b97f47326afe",
+      "station": "analyst",
+      "confidence": 0.85,
+      "notes": "Classification: organization. Server: nginx. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:47.448051+00:00",
+      "completed_at": "2026-04-08T13:28:48.446736+00:00",
+      "created_at": "2026-04-08 13:28:44",
+      "aboyeur_signature": "ABOY-e859ad6e7f5b59110223ebd7211c07cd",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 24,
+      "type": "domain",
+      "value": "web.app",
+      "status": "completed",
+      "payload_hash": "2401db802cabc25137f7aa965256f125b2bc5599712dd86c9e70ac9ae6c5f917",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Redirects to: https://firebase.google.com/products/hosting/. Server: Google Frontend. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:48.448458+00:00",
+      "completed_at": "2026-04-08T13:28:48.678942+00:00",
+      "created_at": "2026-04-08 13:28:44",
+      "aboyeur_signature": "ABOY-f6562ba3139a72ae945196270ea66e80",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 25,
+      "type": "domain",
+      "value": "githubassets.com",
+      "status": "completed",
+      "payload_hash": "210e17a6c2077342411d32f2b32994560193bd27b88cbac6d4b90dab8deac6d9",
+      "station": "analyst",
+      "confidence": 0.5,
+      "notes": "Classification: unknown. Reachable: False",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:48.680230+00:00",
+      "completed_at": "2026-04-08T13:28:48.690222+00:00",
+      "created_at": "2026-04-08 13:28:44",
+      "aboyeur_signature": "ABOY-f0ad4bcc4ce17a6ddf1ae2095bfc0cf9",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 26,
+      "type": "domain",
+      "value": "githubstatus.com",
+      "status": "completed",
+      "payload_hash": "535de706ae781b7a13cc9f28390a42af460addaa380e3563a90f184c8af8df2c",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Redirects to: https://www.githubstatus.com/. Server: AtlassianEdge. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:48.691375+00:00",
+      "completed_at": "2026-04-08T13:28:48.806333+00:00",
+      "created_at": "2026-04-08 13:28:44",
+      "aboyeur_signature": "ABOY-b80f4a7a1fd1c1d726c33589cfe5faa2",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 27,
+      "type": "domain",
+      "value": "githubusercontent.com",
+      "status": "completed",
+      "payload_hash": "1857fac6c9bed6fc15fe2bc667457c47efbaa22ba19d2969dc1acfa54968170a",
+      "station": "analyst",
+      "confidence": 0.5,
+      "notes": "Classification: unknown. Reachable: False",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:48.807573+00:00",
+      "completed_at": "2026-04-08T13:28:48.818618+00:00",
+      "created_at": "2026-04-08 13:28:45",
+      "aboyeur_signature": "ABOY-27dae7dcb6cca55b5ff44dbe95e4047f",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 28,
+      "type": "domain",
+      "value": "amazonaws.com",
+      "status": "completed",
+      "payload_hash": "98e65495941d9a8cad286c7ed1b6658eecfc4b130027ce5a08630ad4f1aa8462",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Redirects to: https://aws.amazon.com:443/. Server: Server. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:48.819827+00:00",
+      "completed_at": "2026-04-08T13:28:49.135987+00:00",
+      "created_at": "2026-04-08 13:28:45",
+      "aboyeur_signature": "ABOY-a3d4766003cc0db4a869852b9b8516e2",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 29,
+      "type": "domain",
+      "value": "mozilla.org",
+      "status": "completed",
+      "payload_hash": "2a538ed4ac3591050ca5b2c66ac97e947b99d7654b6cceffe918b91a88d38a5f",
+      "station": "analyst",
+      "confidence": 0.85,
+      "notes": "Classification: organization. Redirects to: https://www.mozilla.org/. Server: granian. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:49.137029+00:00",
+      "completed_at": "2026-04-08T13:28:49.193414+00:00",
+      "created_at": "2026-04-08 13:28:45",
+      "aboyeur_signature": "ABOY-59d0936776ea44071e24a30a64f05922",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 30,
+      "type": "domain",
+      "value": "filippo.io",
+      "status": "completed",
+      "payload_hash": "cc030d2f289263d5af804d12d528202d12e8acacd2da9bc9f6392e05e44ff23d",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Server: Fly/6df7278a (2026-04-07). Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:49.194645+00:00",
+      "completed_at": "2026-04-08T13:28:49.353042+00:00",
+      "created_at": "2026-04-08 13:28:45",
+      "aboyeur_signature": "ABOY-cfdb1ca0ddbbde228113b67dce9af983",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 31,
+      "type": "domain",
+      "value": "openssh.com",
+      "status": "completed",
+      "payload_hash": "611a6e9c309aa4f01019bb9e0e94de6f6a4a17b9ff7f1822d6830ac58b0e1325",
+      "station": "analyst",
+      "confidence": 0.65,
+      "notes": "Classification: unknown. Redirects to: https://www.openssh.org/. Server: OpenBSD httpd. Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:49.354278+00:00",
+      "completed_at": "2026-04-08T13:28:49.576927+00:00",
+      "created_at": "2026-04-08 13:28:45",
+      "aboyeur_signature": "ABOY-e7a001f3efa8213e9ea78fa9a5f0f5a2",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    },
+    {
+      "id": 32,
+      "type": "domain",
+      "value": "llvm.org",
+      "status": "completed",
+      "payload_hash": "6faffad826ddede6480b9ad813513b9dfcb75a8211b8df01b8c328b0d0e5c8ae",
+      "station": "analyst",
+      "confidence": 0.85,
+      "notes": "Classification: organization. Server: Apache/2.4.7 (Ubuntu). Reachable: True",
+      "sla_seconds": 60,
+      "assigned_at": "2026-04-08T13:28:49.578243+00:00",
+      "completed_at": "2026-04-08T13:28:49.725422+00:00",
+      "created_at": "2026-04-08 13:28:46",
+      "aboyeur_signature": "ABOY-53cd12ee9c32d5cb859abed9e6625d90",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "source": "https://news.ycombinator.com",
+      "relationship": "links_to",
+      "target": "indraneelpatil.github.io",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 2,
+      "source": "https://news.ycombinator.com",
+      "relationship": "links_to",
+      "target": "www.terrybisson.com",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 3,
+      "source": "https://news.ycombinator.com",
+      "relationship": "links_to",
+      "target": "lucumr.pocoo.org",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 4,
+      "source": "https://news.ycombinator.com",
+      "relationship": "links_to",
+      "target": "sourceforge.net",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 5,
+      "source": "https://news.ycombinator.com",
+      "relationship": "links_to",
+      "target": "middle-earth-interactive-map.web.app",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 6,
+      "source": "https://github.com/unklejack",
+      "relationship": "links_to",
+      "target": "github.githubassets.com",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 7,
+      "source": "https://github.com/unklejack",
+      "relationship": "links_to",
+      "target": "www.githubstatus.com",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 8,
+      "source": "https://github.com/unklejack",
+      "relationship": "links_to",
+      "target": "github.blog",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 9,
+      "source": "https://github.com/unklejack",
+      "relationship": "links_to",
+      "target": "avatars.githubusercontent.com",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 10,
+      "source": "https://github.com/unklejack",
+      "relationship": "links_to",
+      "target": "github-cloud.s3.amazonaws.com",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 11,
+      "source": "https://lobste.rs",
+      "relationship": "links_to",
+      "target": "caio.ca",
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 12,
+      "source": "https://lobste.rs",
+      "relationship": "links_to",
+      "target": "developer.mozilla.org",
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 13,
+      "source": "https://lobste.rs",
+      "relationship": "links_to",
+      "target": "words.filippo.io",
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 14,
+      "source": "https://lobste.rs",
+      "relationship": "links_to",
+      "target": "www.openssh.com",
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 15,
+      "source": "https://lobste.rs",
+      "relationship": "links_to",
+      "target": "discourse.llvm.org",
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 16,
+      "source": "indraneelpatil.github.io",
+      "relationship": "subdomain_of",
+      "target": "github.io",
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 17,
+      "source": "www.terrybisson.com",
+      "relationship": "subdomain_of",
+      "target": "terrybisson.com",
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 18,
+      "source": "lucumr.pocoo.org",
+      "relationship": "subdomain_of",
+      "target": "pocoo.org",
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 19,
+      "source": "middle-earth-interactive-map.web.app",
+      "relationship": "subdomain_of",
+      "target": "web.app",
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 20,
+      "source": "github.githubassets.com",
+      "relationship": "subdomain_of",
+      "target": "githubassets.com",
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 21,
+      "source": "www.githubstatus.com",
+      "relationship": "subdomain_of",
+      "target": "githubstatus.com",
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 22,
+      "source": "avatars.githubusercontent.com",
+      "relationship": "subdomain_of",
+      "target": "githubusercontent.com",
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 23,
+      "source": "github-cloud.s3.amazonaws.com",
+      "relationship": "subdomain_of",
+      "target": "amazonaws.com",
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 24,
+      "source": "developer.mozilla.org",
+      "relationship": "subdomain_of",
+      "target": "mozilla.org",
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 25,
+      "source": "words.filippo.io",
+      "relationship": "subdomain_of",
+      "target": "filippo.io",
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 26,
+      "source": "www.openssh.com",
+      "relationship": "subdomain_of",
+      "target": "openssh.com",
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 27,
+      "source": "discourse.llvm.org",
+      "relationship": "subdomain_of",
+      "target": "llvm.org",
+      "created_at": "2026-04-08 13:28:46"
+    }
+  ],
+  "stations": [
+    {
+      "id": 5,
+      "station_id": "forager",
+      "name": "The Forager",
+      "handles_types": "[\"url\"]",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-04-08 13:28:58"
+    },
+    {
+      "id": 6,
+      "station_id": "analyst",
+      "name": "The Analyst",
+      "handles_types": "[\"domain\"]",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-04-08 13:28:58"
+    },
+    {
+      "id": 7,
+      "station_id": "sentinel",
+      "name": "The Sentinel",
+      "handles_types": "[\"_sentinel_check\"]",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-04-08 13:28:58"
+    },
+    {
+      "id": 8,
+      "station_id": "plongeur",
+      "name": "The Plongeur",
+      "handles_types": "[\"_plongeur_sweep\"]",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-04-08 13:28:58"
+    }
+  ],
+  "findings": [],
+  "zorans_metrics": [
+    {
+      "id": 1,
+      "stability_quotient": 1.0,
+      "primary_role_occupancy": 1.0,
+      "system_state": "equilibrium",
+      "active_stations": 4,
+      "primary_stations": 4,
+      "tasks_completed": 32,
+      "tasks_ingested": 32,
+      "measured_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 2,
+      "stability_quotient": 1.0,
+      "primary_role_occupancy": 1.0,
+      "system_state": "equilibrium",
+      "active_stations": 4,
+      "primary_stations": 4,
+      "tasks_completed": 32,
+      "tasks_ingested": 32,
+      "measured_at": "2026-04-08 13:28:58"
+    }
+  ],
+  "events": [
+    {
+      "id": 1,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New url: https://news.ycombinator.com",
+      "detail": "id=1",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 2,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New url: https://github.com/unklejack",
+      "detail": "id=2",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 3,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New url: https://lobste.rs",
+      "detail": "id=3",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 4,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New url: https://httpbin.org/html",
+      "detail": "id=4",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 5,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New url: https://en.wikipedia.org/wiki/Kitchen_brigade_system",
+      "detail": "id=5",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 6,
+      "event_type": "kitchen_open",
+      "source": "executive",
+      "message": "Brigade started. 2 stations registered. Max entities: 500",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 7,
+      "event_type": "status_transition",
+      "source": "forager",
+      "message": "Entity 1: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 8,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "Foraging target DOM: https://news.ycombinator.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 9,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: indraneelpatil.github.io",
+      "detail": "id=6",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 10,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://news.ycombinator.com --(links_to)--> indraneelpatil.github.io",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 11,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: indraneelpatil.github.io",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 12,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: www.terrybisson.com",
+      "detail": "id=7",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 13,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://news.ycombinator.com --(links_to)--> www.terrybisson.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 14,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: www.terrybisson.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 15,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: lucumr.pocoo.org",
+      "detail": "id=8",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 16,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://news.ycombinator.com --(links_to)--> lucumr.pocoo.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 17,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: lucumr.pocoo.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 18,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: sourceforge.net",
+      "detail": "id=9",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 19,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://news.ycombinator.com --(links_to)--> sourceforge.net",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 20,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: sourceforge.net",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 21,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: middle-earth-interactive-map.web.app",
+      "detail": "id=10",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 22,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://news.ycombinator.com --(links_to)--> middle-earth-interactive-map.web.app",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 23,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: middle-earth-interactive-map.web.app",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 24,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  Foraged 5 domains from: https://news.ycombinator.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 25,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 1: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 26,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 1 approved. Station: forager. Confidence: 0.85",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 27,
+      "event_type": "status_transition",
+      "source": "forager",
+      "message": "Entity 1: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 28,
+      "event_type": "status_transition",
+      "source": "forager",
+      "message": "Entity 2: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 29,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "Foraging target DOM: https://github.com/unklejack",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 30,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: github.githubassets.com",
+      "detail": "id=11",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 31,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://github.com/unklejack --(links_to)--> github.githubassets.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 32,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: github.githubassets.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 33,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: www.githubstatus.com",
+      "detail": "id=12",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 34,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://github.com/unklejack --(links_to)--> www.githubstatus.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 35,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: www.githubstatus.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 36,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: github.blog",
+      "detail": "id=13",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 37,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://github.com/unklejack --(links_to)--> github.blog",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 38,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: github.blog",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 39,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: avatars.githubusercontent.com",
+      "detail": "id=14",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 40,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://github.com/unklejack --(links_to)--> avatars.githubusercontent.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 41,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: avatars.githubusercontent.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 42,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: github-cloud.s3.amazonaws.com",
+      "detail": "id=15",
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 43,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://github.com/unklejack --(links_to)--> github-cloud.s3.amazonaws.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 44,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: github-cloud.s3.amazonaws.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 45,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  Foraged 5 domains from: https://github.com/unklejack",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 46,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 2: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 47,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 2 approved. Station: forager. Confidence: 0.85",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 48,
+      "event_type": "status_transition",
+      "source": "forager",
+      "message": "Entity 2: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 49,
+      "event_type": "status_transition",
+      "source": "forager",
+      "message": "Entity 3: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 50,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "Foraging target DOM: https://lobste.rs",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:42"
+    },
+    {
+      "id": 51,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: caio.ca",
+      "detail": "id=16",
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 52,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://lobste.rs --(links_to)--> caio.ca",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 53,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: caio.ca",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 54,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: developer.mozilla.org",
+      "detail": "id=17",
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 55,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://lobste.rs --(links_to)--> developer.mozilla.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 56,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: developer.mozilla.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 57,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: words.filippo.io",
+      "detail": "id=18",
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 58,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://lobste.rs --(links_to)--> words.filippo.io",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 59,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: words.filippo.io",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 60,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: www.openssh.com",
+      "detail": "id=19",
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 61,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://lobste.rs --(links_to)--> www.openssh.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 62,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: www.openssh.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 63,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: discourse.llvm.org",
+      "detail": "id=20",
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 64,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "https://lobste.rs --(links_to)--> discourse.llvm.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 65,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: discourse.llvm.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 66,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  Foraged 5 domains from: https://lobste.rs",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 67,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 3: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 68,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 3 approved. Station: forager. Confidence: 0.85",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 69,
+      "event_type": "status_transition",
+      "source": "forager",
+      "message": "Entity 3: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 70,
+      "event_type": "status_transition",
+      "source": "forager",
+      "message": "Entity 4: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 71,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "Foraging target DOM: https://httpbin.org/html",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 72,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  Foraged 0 domains from: https://httpbin.org/html",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 73,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 4: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 74,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 4 approved. Station: forager. Confidence: 0.85",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 75,
+      "event_type": "status_transition",
+      "source": "forager",
+      "message": "Entity 4: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 76,
+      "event_type": "status_transition",
+      "source": "forager",
+      "message": "Entity 5: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 77,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "Foraging target DOM: https://en.wikipedia.org/wiki/Kitchen_brigade_system",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:43"
+    },
+    {
+      "id": 78,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  Failed to forage https://en.wikipedia.org/wiki/Kitchen_brigade_system: HTTP Error 404: Not Found",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 79,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 5: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 80,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 5 approved. Station: forager. Confidence: 0.20",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 81,
+      "event_type": "status_transition",
+      "source": "forager",
+      "message": "Entity 5: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 82,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 6: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 83,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: indraneelpatil.github.io",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 84,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: github.io",
+      "detail": "id=21",
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 85,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "indraneelpatil.github.io --(subdomain_of)--> github.io",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 86,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "  + Subdomain relationship: indraneelpatil.github.io \u2192 github.io",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 87,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 6: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 88,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 6 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 89,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 6: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 90,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 7: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 91,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: www.terrybisson.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 92,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: terrybisson.com",
+      "detail": "id=22",
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 93,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "www.terrybisson.com --(subdomain_of)--> terrybisson.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 94,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "  + Subdomain relationship: www.terrybisson.com \u2192 terrybisson.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 95,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 7: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 96,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 7 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 97,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 7: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 98,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 8: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 99,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: lucumr.pocoo.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 100,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: pocoo.org",
+      "detail": "id=23",
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 101,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "lucumr.pocoo.org --(subdomain_of)--> pocoo.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 102,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "  + Subdomain relationship: lucumr.pocoo.org \u2192 pocoo.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 103,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 8: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 104,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 8 approved. Station: analyst. Confidence: 0.85",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 105,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 8: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 106,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 9: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 107,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: sourceforge.net",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 108,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 9: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 109,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 9 approved. Station: analyst. Confidence: 0.50",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 110,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 9: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 111,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 10: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 112,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: middle-earth-interactive-map.web.app",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 113,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: web.app",
+      "detail": "id=24",
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 114,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "middle-earth-interactive-map.web.app --(subdomain_of)--> web.app",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 115,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "  + Subdomain relationship: middle-earth-interactive-map.web.app \u2192 web.app",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 116,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 10: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 117,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 10 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 118,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 10: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 119,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 11: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 120,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: github.githubassets.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 121,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: githubassets.com",
+      "detail": "id=25",
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 122,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "github.githubassets.com --(subdomain_of)--> githubassets.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 123,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "  + Subdomain relationship: github.githubassets.com \u2192 githubassets.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 124,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 11: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 125,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 11 approved. Station: analyst. Confidence: 0.50",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 126,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 11: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 127,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 12: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 128,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: www.githubstatus.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 129,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: githubstatus.com",
+      "detail": "id=26",
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 130,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "www.githubstatus.com --(subdomain_of)--> githubstatus.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 131,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "  + Subdomain relationship: www.githubstatus.com \u2192 githubstatus.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 132,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 12: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 133,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 12 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 134,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 12: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 135,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 13: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 136,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: github.blog",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:44"
+    },
+    {
+      "id": 137,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 13: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 138,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 13 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 139,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 13: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 140,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 14: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 141,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: avatars.githubusercontent.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 142,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: githubusercontent.com",
+      "detail": "id=27",
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 143,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "avatars.githubusercontent.com --(subdomain_of)--> githubusercontent.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 144,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "  + Subdomain relationship: avatars.githubusercontent.com \u2192 githubusercontent.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 145,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 14: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 146,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 14 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 147,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 14: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 148,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 15: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 149,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: github-cloud.s3.amazonaws.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 150,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: amazonaws.com",
+      "detail": "id=28",
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 151,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "github-cloud.s3.amazonaws.com --(subdomain_of)--> amazonaws.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 152,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "  + Subdomain relationship: github-cloud.s3.amazonaws.com \u2192 amazonaws.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 153,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 15: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 154,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 15 approved. Station: analyst. Confidence: 0.50",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 155,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 15: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 156,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 16: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 157,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: caio.ca",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 158,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 16: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 159,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 16 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 160,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 16: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 161,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 17: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 162,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: developer.mozilla.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 163,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: mozilla.org",
+      "detail": "id=29",
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 164,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "developer.mozilla.org --(subdomain_of)--> mozilla.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 165,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "  + Subdomain relationship: developer.mozilla.org \u2192 mozilla.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 166,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 17: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 167,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 17 approved. Station: analyst. Confidence: 0.85",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 168,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 17: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 169,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 18: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 170,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: words.filippo.io",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 171,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: filippo.io",
+      "detail": "id=30",
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 172,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "words.filippo.io --(subdomain_of)--> filippo.io",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 173,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "  + Subdomain relationship: words.filippo.io \u2192 filippo.io",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 174,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 18: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 175,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 18 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 176,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 18: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 177,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 19: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 178,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: www.openssh.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 179,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: openssh.com",
+      "detail": "id=31",
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 180,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "www.openssh.com --(subdomain_of)--> openssh.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 181,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "  + Subdomain relationship: www.openssh.com \u2192 openssh.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:45"
+    },
+    {
+      "id": 182,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 19: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 183,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 19 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 184,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 19: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 185,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 20: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 186,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: discourse.llvm.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 187,
+      "event_type": "entity_added",
+      "source": "pool",
+      "message": "New domain: llvm.org",
+      "detail": "id=32",
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 188,
+      "event_type": "edge_added",
+      "source": "pool",
+      "message": "discourse.llvm.org --(subdomain_of)--> llvm.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 189,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "  + Subdomain relationship: discourse.llvm.org \u2192 llvm.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 190,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 20: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 191,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 20 approved. Station: analyst. Confidence: 0.85",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 192,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 20: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 193,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 21: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 194,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: github.io",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 195,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 21: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 196,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 21 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 197,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 21: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 198,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 22: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 199,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: terrybisson.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:46"
+    },
+    {
+      "id": 200,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 22: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:47"
+    },
+    {
+      "id": 201,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 22 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:47"
+    },
+    {
+      "id": 202,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 22: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:47"
+    },
+    {
+      "id": 203,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 23: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:47"
+    },
+    {
+      "id": 204,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: pocoo.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:47"
+    },
+    {
+      "id": 205,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 23: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 206,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 23 approved. Station: analyst. Confidence: 0.85",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 207,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 23: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 208,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 24: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 209,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: web.app",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 210,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 24: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 211,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 24 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 212,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 24: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 213,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 25: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 214,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: githubassets.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 215,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 25: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 216,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 25 approved. Station: analyst. Confidence: 0.50",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 217,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 25: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 218,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 26: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 219,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: githubstatus.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 220,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 26: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 221,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 26 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 222,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 26: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 223,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 27: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 224,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: githubusercontent.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 225,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 27: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 226,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 27 approved. Station: analyst. Confidence: 0.50",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 227,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 27: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 228,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 28: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 229,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: amazonaws.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:48"
+    },
+    {
+      "id": 230,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 28: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 231,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 28 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 232,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 28: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 233,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 29: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 234,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: mozilla.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 235,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 29: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 236,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 29 approved. Station: analyst. Confidence: 0.85",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 237,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 29: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 238,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 30: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 239,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: filippo.io",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 240,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 30: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 241,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 30 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 242,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 30: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 243,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 31: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 244,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: openssh.com",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 245,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 31: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 246,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 31 approved. Station: analyst. Confidence: 0.65",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 247,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 31: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 248,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 32: raw \u2192 processing",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 249,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: llvm.org",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 250,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 32: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 251,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 32 approved. Station: analyst. Confidence: 0.85",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 252,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 32: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 253,
+      "event_type": "kitchen_closed",
+      "source": "executive",
+      "message": "Processed 32 entities. Routed: 32. Unhandled: 0.",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 254,
+      "event_type": "station_log",
+      "source": "plongeur",
+      "message": "Running sweep #1",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 255,
+      "event_type": "station_log",
+      "source": "plongeur",
+      "message": "  Pool state: completed: 32",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 256,
+      "event_type": "station_log",
+      "source": "sentinel",
+      "message": "Health check: All clear",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 257,
+      "event_type": "zorans_measurement",
+      "source": "zorans_law",
+      "message": "S=1.000 PRO=100.0% State=equilibrium",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 258,
+      "event_type": "spazzmatic_review",
+      "source": "spazzmatic",
+      "message": "Review #1: 0 findings. Safe halt: False",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:49"
+    },
+    {
+      "id": 259,
+      "event_type": "kitchen_open",
+      "source": "executive",
+      "message": "Brigade started. 2 stations registered. Max entities: 500",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:58"
+    },
+    {
+      "id": 260,
+      "event_type": "kitchen_closed",
+      "source": "executive",
+      "message": "Processed 0 entities. Routed: 0. Unhandled: 0.",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:58"
+    },
+    {
+      "id": 261,
+      "event_type": "station_log",
+      "source": "plongeur",
+      "message": "Running sweep #1",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:58"
+    },
+    {
+      "id": 262,
+      "event_type": "station_log",
+      "source": "plongeur",
+      "message": "  Pool state: completed: 32",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:58"
+    },
+    {
+      "id": 263,
+      "event_type": "station_log",
+      "source": "sentinel",
+      "message": "Health check: All clear",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:58"
+    },
+    {
+      "id": 264,
+      "event_type": "zorans_measurement",
+      "source": "zorans_law",
+      "message": "S=1.000 PRO=100.0% State=equilibrium",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:58"
+    },
+    {
+      "id": 265,
+      "event_type": "spazzmatic_review",
+      "source": "spazzmatic",
+      "message": "Review #1: 0 findings. Safe halt: False",
+      "detail": null,
+      "created_at": "2026-04-08 13:28:58"
+    }
+  ],
+  "stats": {
+    "completed": {
+      "count": 32,
+      "total_sla": 1920
+    }
+  },
+  "summary": {
+    "cycles": 0,
+    "routed": 0,
+    "unhandled": 0,
+    "stations": [
+      {
+        "station_id": "forager",
+        "name": "The Forager",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      },
+      {
+        "station_id": "analyst",
+        "name": "The Analyst",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      }
+    ],
+    "aboyeur": {
+      "verifications": 0,
+      "approvals": 0,
+      "rejections": 0,
+      "approval_rate": 0.0,
+      "rejection_rate": 0.0
+    }
+  },
+  "zorans_latest": {
+    "stability_quotient": 1.0,
+    "primary_role_occupancy": 1.0,
+    "system_state": "equilibrium",
+    "active_stations": 4,
+    "primary_stations": 4,
+    "tasks_completed": 32,
+    "tasks_ingested": 32
+  }
+}

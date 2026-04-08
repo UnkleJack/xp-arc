@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XP-Arc DRAGON Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<style>
+/* ============================================
+   DRAGON DASHBOARD — XP-Arc Intelligence Pool
+   ============================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg-deep: #0a0e17;
+  --bg-panel: #0f1520;
+  --bg-card: #141c2b;
+  --bg-card-hover: #1a2438;
+  --bg-elevated: #1e2940;
+  --border: #1e2940;
+  --border-subtle: #162033;
+  --text-primary: #e2e8f0;
+  --text-secondary: #8899b0;
+  --text-dim: #4a5e78;
+  --text-label: #6b7f9a;
+  --cyan: #00e5ff;
+  --cyan-dim: #00b8d4;
+  --cyan-muted: rgba(0,229,255,0.15);
+  --cyan-glow: rgba(0,229,255,0.08);
+  --green: #00e676;
+  --green-dim: rgba(0,230,118,0.15);
+  --amber: #ffab00;
+  --amber-dim: rgba(255,171,0,0.15);
+  --red: #ff1744;
+  --red-dim: rgba(255,23,68,0.15);
+  --purple: #b388ff;
+  --purple-dim: rgba(179,136,255,0.15);
+  --blue: #448aff;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --transition: 180ms cubic-bezier(0.16,1,0.3,1);
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+  font-size: 14px;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+/* ---- HEADER BAR ---- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: linear-gradient(180deg, rgba(14,20,33,0.98) 0%, rgba(10,14,23,0.95) 100%);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-mark {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.logo-title {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+
+.logo-subtitle {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.header-meta {
+  text-align: right;
+}
+
+.header-meta-label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.header-meta-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid;
+}
+
+.status-badge--healthy {
+  background: var(--green-dim);
+  border-color: rgba(0,230,118,0.3);
+  color: var(--green);
+}
+
+.status-badge--debt {
+  background: var(--amber-dim);
+  border-color: rgba(255,171,0,0.3);
+  color: var(--amber);
+}
+
+.status-badge--distress {
+  background: var(--red-dim);
+  border-color: rgba(255,23,68,0.3);
+  color: var(--red);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.status-dot--green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.status-dot--amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.status-dot--red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ---- MAIN LAYOUT ---- */
+.dashboard {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 20px 24px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ---- SECTION TITLES ---- */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.section-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+/* ---- METRICS ROW ---- */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color var(--transition);
+}
+
+.metric-card:hover {
+  border-color: var(--text-dim);
+}
+
+.metric-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.metric-value {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.metric-value--cyan { color: var(--cyan); }
+.metric-value--green { color: var(--green); }
+.metric-value--amber { color: var(--amber); }
+.metric-value--red { color: var(--red); }
+
+.metric-detail {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-bar {
+  display: flex;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  width: 100%;
+  margin-top: 4px;
+  background: var(--bg-deep);
+}
+
+.mini-bar__segment {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+/* ---- NETWORK GRAPH ---- */
+.graph-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  position: relative;
+  overflow: hidden;
+  height: 520px;
+}
+
+.graph-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.graph-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
+}
+
+.graph-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  transition: all var(--transition);
+}
+
+.graph-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--cyan);
+  border-color: var(--cyan-muted);
+}
+
+.graph-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: rgba(10,14,23,0.85);
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-subtle);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.node-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 11px;
+  color: var(--text-primary);
+  max-width: 360px;
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 150ms;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.node-tooltip.visible { opacity: 1; }
+
+.tooltip-row {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.tooltip-key {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.tooltip-val {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  word-break: break-all;
+}
+
+/* ---- STATIONS ---- */
+.stations-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.station-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.station-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.station-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.station-badge {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+.station-badge--active {
+  background: var(--green-dim);
+  color: var(--green);
+}
+
+.station-badge--inactive {
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+.station-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.station-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.station-meta-label {
+  color: var(--text-dim);
+}
+
+.station-meta-value {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ---- SPAZZMATIC PANEL ---- */
+.spazz-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+}
+
+.spazz-nominal {
+  border: 1px solid rgba(0,230,118,0.3);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  background: var(--green-dim);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--green);
+}
+
+.spazz-finding {
+  border: 1px solid;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+}
+
+.spazz-finding:last-child { margin-bottom: 0; }
+
+.spazz-finding--critical {
+  border-color: rgba(255,23,68,0.4);
+  background: var(--red-dim);
+}
+
+.spazz-finding--warning {
+  border-color: rgba(255,171,0,0.4);
+  background: var(--amber-dim);
+}
+
+/* ---- ENTITY TABLE ---- */
+.table-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.entity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.entity-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.entity-table th {
+  background: var(--bg-elevated);
+  padding: 10px 14px;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--transition);
+}
+
+.entity-table th:hover {
+  color: var(--cyan);
+}
+
+.entity-table th .sort-arrow {
+  margin-left: 4px;
+  font-size: 9px;
+  opacity: 0.4;
+}
+
+.entity-table th.sorted .sort-arrow {
+  opacity: 1;
+  color: var(--cyan);
+}
+
+.entity-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entity-table tbody tr {
+  transition: background var(--transition);
+}
+
+.entity-table tbody tr:nth-child(even) {
+  background: rgba(15,21,32,0.4);
+}
+
+.entity-table tbody tr:hover {
+  background: var(--bg-card-hover);
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-indicator--completed { background: var(--green); box-shadow: 0 0 4px rgba(0,230,118,0.4); }
+.status-indicator--pending { background: var(--amber); box-shadow: 0 0 4px rgba(255,171,0,0.4); }
+.status-indicator--failed { background: var(--red); box-shadow: 0 0 4px rgba(255,23,68,0.4); }
+.status-indicator--queued { background: var(--blue); box-shadow: 0 0 4px rgba(68,138,255,0.4); }
+
+.confidence-bar-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.confidence-bar {
+  width: 60px;
+  height: 4px;
+  background: var(--bg-deep);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.confidence-bar__fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.type-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+}
+
+.type-badge--url {
+  background: var(--cyan-muted);
+  color: var(--cyan);
+}
+
+.type-badge--domain {
+  background: var(--purple-dim);
+  color: var(--purple);
+}
+
+/* ---- EVENT TIMELINE ---- */
+.timeline-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.timeline-scroll {
+  max-height: 450px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 80px 130px 1fr;
+  gap: 12px;
+  padding: 8px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 11px;
+  transition: background var(--transition);
+  align-items: start;
+}
+
+.timeline-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.timeline-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.timeline-source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline-event-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+
+.evt-entity_added { background: var(--cyan-muted); color: var(--cyan); }
+.evt-edge_added { background: var(--purple-dim); color: var(--purple); }
+.evt-status_transition { background: rgba(68,138,255,0.15); color: var(--blue); }
+.evt-aboyeur_approval { background: var(--green-dim); color: var(--green); }
+.evt-station_log { background: rgba(255,255,255,0.06); color: var(--text-secondary); }
+.evt-kitchen_open { background: var(--green-dim); color: var(--green); }
+.evt-kitchen_closed { background: var(--amber-dim); color: var(--amber); }
+.evt-zorans_measurement { background: var(--cyan-muted); color: var(--cyan); }
+.evt-spazzmatic_review { background: var(--amber-dim); color: var(--amber); }
+
+.timeline-message {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-show-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--cyan);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  transition: background var(--transition);
+}
+
+.timeline-show-more:hover {
+  background: var(--bg-card-hover);
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 1100px) {
+  .metrics-row { grid-template-columns: repeat(2, 1fr); }
+  .stations-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .header { padding: 10px 14px; }
+  .dashboard { padding: 14px 14px 40px; gap: 14px; }
+  .metrics-row { grid-template-columns: 1fr; }
+  .stations-row { grid-template-columns: 1fr; }
+  .graph-container { height: 350px; }
+  .timeline-item { grid-template-columns: 70px 100px 1fr; gap: 6px; padding: 6px 12px; }
+}
+
+/* ---- D3 GRAPH STYLES ---- */
+.link-line {
+  stroke: var(--border);
+  stroke-opacity: 0.5;
+  fill: none;
+}
+
+.link-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  fill: var(--text-dim);
+  pointer-events: none;
+}
+
+.node-circle {
+  cursor: pointer;
+  stroke-width: 2;
+  transition: stroke-width 0.2s, r 0.2s;
+}
+
+.node-circle:hover {
+  stroke-width: 3;
+}
+
+.node-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--text-secondary);
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+.arrow-head {
+  fill: var(--text-dim);
+  fill-opacity: 0.6;
+}
+
+/* Grid lines background */
+.graph-grid line {
+  stroke: var(--border-subtle);
+  stroke-opacity: 0.3;
+}
+
+/* ---- SCAN LINE ANIMATION ---- */
+.scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0.15;
+  animation: scan 8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scan {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <svg class="logo-mark" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="XP-Arc DRAGON">
+      <!-- Hexagonal dragon eye motif -->
+      <polygon points="18,2 32,10 32,26 18,34 4,26 4,10" stroke="#00e5ff" stroke-width="1.5" fill="none" opacity="0.4"/>
+      <polygon points="18,7 27,12 27,24 18,29 9,24 9,12" stroke="#00e5ff" stroke-width="1" fill="none" opacity="0.6"/>
+      <polygon points="18,12 22,14.5 22,21.5 18,24 14,21.5 14,14.5" stroke="#00e5ff" stroke-width="1.2" fill="rgba(0,229,255,0.08)"/>
+      <circle cx="18" cy="18" r="3" fill="#00e5ff" opacity="0.9"/>
+      <circle cx="18" cy="18" r="1.2" fill="#0a0e17"/>
+      <!-- Cross-hair lines -->
+      <line x1="18" y1="5" x2="18" y2="12" stroke="#00e5ff" stroke-width="0.5" opacity="0.5"/>
+      <line x1="18" y1="24" x2="18" y2="31" stroke="#00e5ff" stroke-width="0.5" opacity="0.5"/>
+      <line x1="7" y1="18" x2="14" y2="18" stroke="#00e5ff" stroke-width="0.5" opacity="0.5"/>
+      <line x1="22" y1="18" x2="29" y2="18" stroke="#00e5ff" stroke-width="0.5" opacity="0.5"/>
+    </svg>
+    <div class="logo-text">
+      <div class="logo-title">XP-ARC DRAGON</div>
+      <div class="logo-subtitle">Dynamic Relational Asset Graph &amp; Operations Network</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="header-meta">
+      <div class="header-meta-label">Protocol</div>
+      <div class="header-meta-value" id="protocol-version">--</div>
+    </div>
+    <div class="header-meta">
+      <div class="header-meta-label">Last Updated</div>
+      <div class="header-meta-value" id="last-updated">--</div>
+    </div>
+    <div id="zoran-badge" class="status-badge status-badge--healthy">
+      <span class="status-dot status-dot--green"></span>
+      <span id="zoran-badge-text">--</span>
+    </div>
+  </div>
+</header>
+
+<!-- DASHBOARD -->
+<main class="dashboard">
+
+  <!-- METRICS ROW -->
+  <section>
+    <div class="section-header">
+      <span class="section-title">System Metrics</span>
+      <span class="section-line"></span>
+    </div>
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-label">Total Entities</div>
+        <div class="metric-value metric-value--cyan" id="metric-entities">--</div>
+        <div class="metric-detail" id="metric-entities-detail">--</div>
+        <div class="mini-bar" id="entity-status-bar"></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Total Edges</div>
+        <div class="metric-value" id="metric-edges">--</div>
+        <div class="metric-detail" id="metric-edges-detail">--</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Aboyeur Stats</div>
+        <div class="metric-value metric-value--green" id="metric-aboyeur">--</div>
+        <div class="metric-detail" id="metric-aboyeur-detail">--</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">System State</div>
+        <div class="metric-value" id="metric-state">--</div>
+        <div class="metric-detail" id="metric-state-detail">--</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NETWORK GRAPH -->
+  <section>
+    <div class="section-header">
+      <span class="section-title">Intelligence Pool &mdash; Entity Graph</span>
+      <span class="section-line"></span>
+    </div>
+    <div class="graph-container" id="graph-container">
+      <div class="scan-line"></div>
+      <svg class="graph-svg" id="graph-svg"></svg>
+      <div class="graph-controls">
+        <button class="graph-btn" id="zoom-in" title="Zoom In">+</button>
+        <button class="graph-btn" id="zoom-out" title="Zoom Out">&minus;</button>
+        <button class="graph-btn" id="zoom-reset" title="Reset View">R</button>
+      </div>
+      <div class="graph-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--cyan);box-shadow:0 0 4px var(--cyan)"></div>URL (Seed)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Domain</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--text-dim);width:20px;height:2px;border-radius:1px"></div>links_to</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--amber);width:20px;height:2px;border-radius:1px;opacity:0.6"></div>subdomain_of</div>
+      </div>
+      <div class="node-tooltip" id="node-tooltip"></div>
+    </div>
+  </section>
+
+  <!-- STATION REGISTRY -->
+  <section>
+    <div class="section-header">
+      <span class="section-title">Station Registry</span>
+      <span class="section-line"></span>
+    </div>
+    <div class="stations-row" id="stations-row"></div>
+  </section>
+
+  <!-- SPAZZMATIC PANEL -->
+  <section>
+    <div class="section-header">
+      <span class="section-title">SpaZzMatiC &mdash; Adversarial Analysis</span>
+      <span class="section-line"></span>
+    </div>
+    <div class="spazz-panel" id="spazz-panel"></div>
+  </section>
+
+  <!-- ENTITY TABLE -->
+  <section>
+    <div class="section-header">
+      <span class="section-title">Entity Registry</span>
+      <span class="section-line"></span>
+    </div>
+    <div class="table-container">
+      <div class="table-scroll">
+        <table class="entity-table" id="entity-table">
+          <thead>
+            <tr>
+              <th data-sort="status">Status <span class="sort-arrow">&#9650;</span></th>
+              <th data-sort="type">Type <span class="sort-arrow">&#9650;</span></th>
+              <th data-sort="value">Value <span class="sort-arrow">&#9650;</span></th>
+              <th data-sort="station">Station <span class="sort-arrow">&#9650;</span></th>
+              <th data-sort="confidence">Confidence <span class="sort-arrow">&#9650;</span></th>
+              <th data-sort="aboyeur_signature">Aboyeur Sig <span class="sort-arrow">&#9650;</span></th>
+              <th data-sort="notes">Notes <span class="sort-arrow">&#9650;</span></th>
+            </tr>
+          </thead>
+          <tbody id="entity-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- EVENT TIMELINE -->
+  <section>
+    <div class="section-header">
+      <span class="section-title">Event Timeline</span>
+      <span class="section-line"></span>
+    </div>
+    <div class="timeline-container">
+      <div class="timeline-scroll" id="timeline-scroll"></div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function() {
+  'use strict';
+
+  // ==========================================
+  // DATA LOADING
+  // ==========================================
+  let DATA = null;
+
+  async function init() {
+    try {
+      const resp = await fetch('pool_state.json');
+      DATA = await resp.json();
+      renderAll();
+    } catch(e) {
+      console.error('Failed to load pool_state.json:', e);
+      document.body.innerHTML = '<div style="padding:40px;color:#ff1744;font-family:monospace">ERROR: Failed to load pool_state.json</div>';
+    }
+  }
+
+  function renderAll() {
+    renderHeader();
+    renderMetrics();
+    renderGraph();
+    renderStations();
+    renderSpazzmatic();
+    renderEntityTable();
+    renderTimeline();
+  }
+
+  // ==========================================
+  // HEADER
+  // ==========================================
+  function renderHeader() {
+    const meta = DATA.meta;
+    const zl = DATA.zorans_latest;
+
+    document.getElementById('protocol-version').textContent = `${meta.protocol} v${meta.version}`;
+
+    const dt = new Date(meta.exported_at);
+    document.getElementById('last-updated').textContent = dt.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+
+    // Zoran's badge
+    const S = zl.stability_quotient;
+    const PRO = zl.primary_role_occupancy;
+    const state = zl.system_state;
+
+    let badgeClass = 'status-badge--healthy';
+    let dotClass = 'status-dot--green';
+    if (state === 'debt' || S < 0.8) {
+      badgeClass = 'status-badge--debt';
+      dotClass = 'status-dot--amber';
+    }
+    if (state === 'distress' || S < 0.5) {
+      badgeClass = 'status-badge--distress';
+      dotClass = 'status-dot--red';
+    }
+
+    const badge = document.getElementById('zoran-badge');
+    badge.className = 'status-badge ' + badgeClass;
+    badge.querySelector('.status-dot').className = 'status-dot ' + dotClass;
+    document.getElementById('zoran-badge-text').textContent =
+      `S=${S.toFixed(2)} | PRO=${(PRO * 100).toFixed(0)}% | ${state.toUpperCase()}`;
+  }
+
+  // ==========================================
+  // METRICS
+  // ==========================================
+  function renderMetrics() {
+    const entities = DATA.entities;
+    const edges = DATA.edges;
+    const zl = DATA.zorans_latest;
+
+    // Count by status
+    const statusCounts = {};
+    entities.forEach(e => { statusCounts[e.status] = (statusCounts[e.status] || 0) + 1; });
+
+    // Count by type
+    const typeCounts = {};
+    entities.forEach(e => { typeCounts[e.type] = (typeCounts[e.type] || 0) + 1; });
+
+    // ENTITIES
+    document.getElementById('metric-entities').textContent = entities.length;
+    const typeStr = Object.entries(typeCounts).map(([k,v]) => `${v} ${k}s`).join(' / ');
+    document.getElementById('metric-entities-detail').textContent = typeStr;
+
+    const bar = document.getElementById('entity-status-bar');
+    bar.innerHTML = '';
+    const colors = { completed: '#00e676', pending: '#ffab00', failed: '#ff1744', queued: '#448aff' };
+    Object.entries(statusCounts).forEach(([status, count]) => {
+      const seg = document.createElement('div');
+      seg.className = 'mini-bar__segment';
+      seg.style.width = (count / entities.length * 100) + '%';
+      seg.style.background = colors[status] || '#4a5e78';
+      seg.title = `${status}: ${count}`;
+      bar.appendChild(seg);
+    });
+
+    // EDGES
+    const relCounts = {};
+    edges.forEach(e => { relCounts[e.relationship] = (relCounts[e.relationship] || 0) + 1; });
+    document.getElementById('metric-edges').textContent = edges.length;
+    const relStr = Object.entries(relCounts).map(([k,v]) => `${v} ${k}`).join(' / ');
+    document.getElementById('metric-edges-detail').textContent = relStr;
+
+    // ABOYEUR
+    const aby = DATA.summary.aboyeur;
+    // Derive from events
+    const aboyeurApprovals = DATA.events.filter(e => e.event_type === 'aboyeur_approval').length;
+    const aboyeurRejections = DATA.events.filter(e => e.event_type === 'aboyeur_rejection').length;
+    const totalVerif = aboyeurApprovals + aboyeurRejections;
+    const approvalRate = totalVerif > 0 ? (aboyeurApprovals / totalVerif * 100) : (aby.verifications > 0 ? aby.approval_rate * 100 : 100);
+
+    document.getElementById('metric-aboyeur').textContent = approvalRate.toFixed(0) + '%';
+    document.getElementById('metric-aboyeur-detail').textContent =
+      `${aboyeurApprovals || aby.approvals} approved / ${aboyeurRejections || aby.rejections} rejected of ${totalVerif || aby.verifications} total`;
+
+    // SYSTEM STATE
+    const stateEl = document.getElementById('metric-state');
+    stateEl.textContent = zl.system_state.toUpperCase();
+    if (zl.system_state === 'equilibrium') stateEl.classList.add('metric-value--green');
+    else if (zl.system_state === 'debt') stateEl.classList.add('metric-value--amber');
+    else stateEl.classList.add('metric-value--red');
+
+    document.getElementById('metric-state-detail').textContent =
+      `S=${zl.stability_quotient.toFixed(2)} | PRO=${(zl.primary_role_occupancy * 100).toFixed(0)}% | ${zl.active_stations}/${zl.primary_stations} stations | ${zl.tasks_completed}/${zl.tasks_ingested} tasks`;
+  }
+
+  // ==========================================
+  // D3 NETWORK GRAPH
+  // ==========================================
+  function renderGraph() {
+    const container = document.getElementById('graph-container');
+    const svg = d3.select('#graph-svg');
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    svg.selectAll('*').remove();
+
+    // Build nodes and links from data
+    const entityMap = {};
+    DATA.entities.forEach(e => {
+      entityMap[e.value] = e;
+    });
+
+    const nodeIds = new Set();
+    const nodes = [];
+    const links = [];
+
+    DATA.entities.forEach(e => {
+      if (!nodeIds.has(e.value)) {
+        nodeIds.add(e.value);
+        // Count edges for this entity
+        const edgeCount = DATA.edges.filter(edge => edge.source === e.value || edge.target === e.value).length;
+        nodes.push({
+          id: e.value,
+          type: e.type,
+          status: e.status,
+          station: e.station,
+          confidence: e.confidence,
+          aboyeur_signature: e.aboyeur_signature,
+          notes: e.notes,
+          edgeCount: edgeCount,
+          isSeed: e.type === 'url'
+        });
+      }
+    });
+
+    DATA.edges.forEach(e => {
+      // Make sure both source and target exist
+      if (nodeIds.has(e.source) && nodeIds.has(e.target)) {
+        links.push({
+          source: e.source,
+          target: e.target,
+          relationship: e.relationship
+        });
+      }
+    });
+
+    // Defs for arrows
+    const defs = svg.append('defs');
+
+    defs.append('marker')
+      .attr('id', 'arrow-links_to')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 20)
+      .attr('refY', 0)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M0,-4L10,0L0,4')
+      .attr('class', 'arrow-head')
+      .style('fill', '#4a5e78');
+
+    defs.append('marker')
+      .attr('id', 'arrow-subdomain_of')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 20)
+      .attr('refY', 0)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M0,-4L10,0L0,4')
+      .attr('class', 'arrow-head')
+      .style('fill', '#ffab0099');
+
+    // Radial gradient for glow effect
+    defs.append('radialGradient')
+      .attr('id', 'glow-cyan')
+      .selectAll('stop')
+      .data([
+        {offset: '0%', color: 'rgba(0,229,255,0.3)'},
+        {offset: '100%', color: 'rgba(0,229,255,0)'}
+      ])
+      .enter().append('stop')
+      .attr('offset', d => d.offset)
+      .attr('stop-color', d => d.color);
+
+    const g = svg.append('g');
+
+    // Zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.3, 4])
+      .on('zoom', (event) => g.attr('transform', event.transform));
+
+    svg.call(zoom);
+
+    // Zoom controls
+    document.getElementById('zoom-in').addEventListener('click', () => svg.transition().call(zoom.scaleBy, 1.4));
+    document.getElementById('zoom-out').addEventListener('click', () => svg.transition().call(zoom.scaleBy, 0.7));
+    document.getElementById('zoom-reset').addEventListener('click', () => svg.transition().call(zoom.transform, d3.zoomIdentity));
+
+    // Draw links
+    const link = g.append('g')
+      .selectAll('line')
+      .data(links)
+      .enter().append('line')
+      .attr('class', 'link-line')
+      .attr('stroke', d => d.relationship === 'subdomain_of' ? 'rgba(255,171,0,0.3)' : 'rgba(30,41,64,0.8)')
+      .attr('stroke-width', d => d.relationship === 'subdomain_of' ? 1 : 1.5)
+      .attr('stroke-dasharray', d => d.relationship === 'subdomain_of' ? '3,3' : 'none')
+      .attr('marker-end', d => `url(#arrow-${d.relationship})`);
+
+    // Edge labels
+    const linkLabel = g.append('g')
+      .selectAll('text')
+      .data(links)
+      .enter().append('text')
+      .attr('class', 'link-label')
+      .text(d => d.relationship)
+      .style('font-size', '7px');
+
+    // Draw node glow for seeds
+    const nodeGlow = g.append('g')
+      .selectAll('circle')
+      .data(nodes.filter(n => n.isSeed))
+      .enter().append('circle')
+      .attr('r', 24)
+      .attr('fill', 'url(#glow-cyan)')
+      .attr('pointer-events', 'none');
+
+    // Draw nodes
+    const nodeColor = d => d.type === 'url' ? '#00e5ff' : '#b388ff';
+    const nodeRadius = d => {
+      if (d.isSeed) return Math.max(10, 6 + d.edgeCount * 1.5);
+      return Math.max(5, 3 + d.edgeCount * 1.2);
+    };
+
+    const node = g.append('g')
+      .selectAll('circle')
+      .data(nodes)
+      .enter().append('circle')
+      .attr('class', 'node-circle')
+      .attr('r', nodeRadius)
+      .attr('fill', d => d.isSeed ? '#00e5ff' : 'rgba(179,136,255,0.7)')
+      .attr('stroke', d => d.isSeed ? '#00e5ff' : '#b388ff')
+      .attr('stroke-opacity', d => d.isSeed ? 0.6 : 0.4)
+      .call(d3.drag()
+        .on('start', dragStart)
+        .on('drag', dragging)
+        .on('end', dragEnd));
+
+    // Node labels (always visible for seeds, hidden for others)
+    const nodeLabel = g.append('g')
+      .selectAll('text')
+      .data(nodes)
+      .enter().append('text')
+      .attr('class', 'node-label')
+      .text(d => {
+        const val = d.id;
+        if (d.isSeed) {
+          try { return new URL(val).hostname; } catch(e) { return val.slice(0,25); }
+        }
+        return val.length > 22 ? val.slice(0,22) + '..' : val;
+      })
+      .attr('dy', d => nodeRadius(d) + 12)
+      .style('font-size', d => d.isSeed ? '10px' : '8px')
+      .style('fill', d => d.isSeed ? 'rgba(0,229,255,0.8)' : 'rgba(136,153,176,0.7)');
+
+    // Tooltip
+    const tooltip = document.getElementById('node-tooltip');
+
+    node.on('mouseover', (event, d) => {
+      tooltip.innerHTML = `
+        <div class="tooltip-row"><span class="tooltip-key">Value</span><span class="tooltip-val">${d.id}</span></div>
+        <div class="tooltip-row"><span class="tooltip-key">Type</span><span class="tooltip-val">${d.type}</span></div>
+        <div class="tooltip-row"><span class="tooltip-key">Status</span><span class="tooltip-val">${d.status}</span></div>
+        <div class="tooltip-row"><span class="tooltip-key">Station</span><span class="tooltip-val">${d.station}</span></div>
+        <div class="tooltip-row"><span class="tooltip-key">Confidence</span><span class="tooltip-val">${(d.confidence * 100).toFixed(0)}%</span></div>
+        <div class="tooltip-row"><span class="tooltip-key">Aboyeur</span><span class="tooltip-val">${d.aboyeur_signature || 'N/A'}</span></div>
+        ${d.notes ? `<div class="tooltip-row"><span class="tooltip-key">Notes</span><span class="tooltip-val">${d.notes}</span></div>` : ''}
+      `;
+      tooltip.classList.add('visible');
+    }).on('mousemove', (event) => {
+      const rect = container.getBoundingClientRect();
+      let x = event.clientX - rect.left + 15;
+      let y = event.clientY - rect.top - 10;
+      if (x + 300 > width) x = x - 330;
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = y + 'px';
+    }).on('mouseout', () => {
+      tooltip.classList.remove('visible');
+    });
+
+    // Force simulation
+    const simulation = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(d => d.relationship === 'subdomain_of' ? 70 : 120))
+      .force('charge', d3.forceManyBody().strength(d => d.isSeed ? -350 : -120))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide().radius(d => nodeRadius(d) + 8))
+      .force('x', d3.forceX(width / 2).strength(0.05))
+      .force('y', d3.forceY(height / 2).strength(0.05));
+
+    simulation.on('tick', () => {
+      link
+        .attr('x1', d => d.source.x)
+        .attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x)
+        .attr('y2', d => d.target.y);
+
+      linkLabel
+        .attr('x', d => (d.source.x + d.target.x) / 2)
+        .attr('y', d => (d.source.y + d.target.y) / 2 - 4);
+
+      node
+        .attr('cx', d => d.x)
+        .attr('cy', d => d.y);
+
+      nodeGlow
+        .attr('cx', d => d.x)
+        .attr('cy', d => d.y);
+
+      nodeLabel
+        .attr('x', d => d.x)
+        .attr('y', d => d.y);
+    });
+
+    function dragStart(event, d) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+
+    function dragging(event, d) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+
+    function dragEnd(event, d) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
+  }
+
+  // ==========================================
+  // STATIONS
+  // ==========================================
+  function renderStations() {
+    const container = document.getElementById('stations-row');
+    const stations = DATA.stations;
+
+    // Count entities per station
+    const entityByStation = {};
+    DATA.entities.forEach(e => {
+      entityByStation[e.station] = (entityByStation[e.station] || 0) + 1;
+    });
+
+    container.innerHTML = stations.map(s => {
+      let types;
+      try { types = JSON.parse(s.handles_types); } catch(e) { types = [s.handles_types]; }
+      const count = entityByStation[s.station_id] || 0;
+      const isActive = s.status === 'active';
+
+      return `
+        <div class="station-card">
+          <div class="station-header">
+            <span class="station-name">${s.name}</span>
+            <span class="station-badge ${isActive ? 'station-badge--active' : 'station-badge--inactive'}">
+              ${isActive ? 'ACTIVE' : 'INACTIVE'}
+            </span>
+          </div>
+          <div class="station-meta">
+            <div class="station-meta-row">
+              <span class="station-meta-label">Station ID</span>
+              <span class="station-meta-value">${s.station_id}</span>
+            </div>
+            <div class="station-meta-row">
+              <span class="station-meta-label">Handles</span>
+              <span class="station-meta-value">${types.join(', ')}</span>
+            </div>
+            <div class="station-meta-row">
+              <span class="station-meta-label">Entities Processed</span>
+              <span class="station-meta-value" style="color:${count > 0 ? 'var(--cyan)' : 'var(--text-dim)'}">${count}</span>
+            </div>
+            <div class="station-meta-row">
+              <span class="station-meta-label">Primary</span>
+              <span class="station-meta-value">${s.is_primary ? 'Yes' : 'No'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ==========================================
+  // SPAZZMATIC PANEL
+  // ==========================================
+  function renderSpazzmatic() {
+    const panel = document.getElementById('spazz-panel');
+    const findings = DATA.findings;
+
+    if (!findings || findings.length === 0) {
+      panel.innerHTML = `
+        <div class="spazz-nominal">
+          <span class="status-dot status-dot--green" style="animation:none;opacity:1"></span>
+          System Nominal &mdash; No anomalies detected
+        </div>
+      `;
+    } else {
+      panel.innerHTML = findings.map(f => {
+        const severity = f.severity || 'warning';
+        const cls = severity === 'critical' ? 'spazz-finding--critical' : 'spazz-finding--warning';
+        return `
+          <div class="spazz-finding ${cls}">
+            <div style="font-weight:600;margin-bottom:4px;color:${severity === 'critical' ? 'var(--red)' : 'var(--amber)'}">${f.message || f.title || 'Finding'}</div>
+            <div style="font-size:11px;color:var(--text-secondary)">${f.detail || ''}</div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // ==========================================
+  // ENTITY TABLE
+  // ==========================================
+  let sortCol = 'id';
+  let sortDir = 1; // 1 = asc, -1 = desc
+
+  function renderEntityTable() {
+    const tbody = document.getElementById('entity-tbody');
+    const entities = [...DATA.entities];
+
+    // Sort
+    entities.sort((a, b) => {
+      let va = a[sortCol], vb = b[sortCol];
+      if (typeof va === 'string') va = va.toLowerCase();
+      if (typeof vb === 'string') vb = vb.toLowerCase();
+      if (va < vb) return -1 * sortDir;
+      if (va > vb) return 1 * sortDir;
+      return 0;
+    });
+
+    tbody.innerHTML = entities.map(e => {
+      const confPct = (e.confidence * 100).toFixed(0);
+      const confColor = e.confidence >= 0.8 ? 'var(--green)' : e.confidence >= 0.5 ? 'var(--amber)' : 'var(--red)';
+      const sig = e.aboyeur_signature || 'N/A';
+      const sigShort = sig.length > 18 ? sig.slice(0, 18) + '..' : sig;
+
+      return `<tr>
+        <td><span class="status-indicator status-indicator--${e.status}" title="${e.status}"></span></td>
+        <td><span class="type-badge type-badge--${e.type}">${e.type}</span></td>
+        <td title="${e.value}" style="max-width:280px">${e.value}</td>
+        <td>${e.station}</td>
+        <td>
+          <div class="confidence-bar-cell">
+            <div class="confidence-bar"><div class="confidence-bar__fill" style="width:${confPct}%;background:${confColor}"></div></div>
+            <span style="color:${confColor}">${confPct}%</span>
+          </div>
+        </td>
+        <td title="${sig}" style="font-size:10px;color:var(--text-dim)">${sigShort}</td>
+        <td title="${e.notes || ''}" style="max-width:240px;color:var(--text-dim)">${e.notes || '--'}</td>
+      </tr>`;
+    }).join('');
+
+    // Sort headers
+    document.querySelectorAll('.entity-table th').forEach(th => {
+      th.classList.toggle('sorted', th.dataset.sort === sortCol);
+      th.querySelector('.sort-arrow').textContent = (th.dataset.sort === sortCol && sortDir === -1) ? '\u25BC' : '\u25B2';
+    });
+  }
+
+  document.querySelectorAll('.entity-table th').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (sortCol === col) sortDir *= -1;
+      else { sortCol = col; sortDir = 1; }
+      renderEntityTable();
+    });
+  });
+
+  // ==========================================
+  // EVENT TIMELINE
+  // ==========================================
+  let visibleEvents = 50;
+
+  function renderTimeline() {
+    const container = document.getElementById('timeline-scroll');
+    // Reverse chronological
+    const events = [...DATA.events].reverse();
+    const visible = events.slice(0, visibleEvents);
+
+    let html = visible.map(e => {
+      const dt = new Date(e.created_at);
+      const time = dt.toTimeString().slice(0, 8);
+      return `
+        <div class="timeline-item">
+          <span class="timeline-time">${time}</span>
+          <span class="timeline-source">
+            <span class="timeline-event-badge evt-${e.event_type}">${e.event_type.replace(/_/g,' ')}</span>
+          </span>
+          <span class="timeline-message" title="${e.message}">${e.message}</span>
+        </div>
+      `;
+    }).join('');
+
+    if (events.length > visibleEvents) {
+      html += `<button class="timeline-show-more" id="show-more-btn">Show more (${events.length - visibleEvents} remaining)</button>`;
+    }
+
+    container.innerHTML = html;
+
+    const btn = document.getElementById('show-more-btn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        visibleEvents += 50;
+        renderTimeline();
+      });
+    }
+  }
+
+  // ==========================================
+  // INIT
+  // ==========================================
+  init();
+})();
+</script>
+</body>
+</html>
