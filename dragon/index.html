@@ -3,1530 +3,967 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>XP-Arc DRAGON Dashboard</title>
+<title>XP-Arc DRAGON — Multi-Agent Intelligence Protocol</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <style>
-/* ============================================
-   DRAGON DASHBOARD — XP-Arc Intelligence Pool
-   ============================================ */
-
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-:root {
-  --bg-deep: #0a0e17;
-  --bg-panel: #0f1520;
-  --bg-card: #141c2b;
-  --bg-card-hover: #1a2438;
-  --bg-elevated: #1e2940;
-  --border: #1e2940;
-  --border-subtle: #162033;
-  --text-primary: #e2e8f0;
-  --text-secondary: #8899b0;
-  --text-dim: #4a5e78;
-  --text-label: #6b7f9a;
-  --cyan: #00e5ff;
-  --cyan-dim: #00b8d4;
-  --cyan-muted: rgba(0,229,255,0.15);
-  --cyan-glow: rgba(0,229,255,0.08);
-  --green: #00e676;
-  --green-dim: rgba(0,230,118,0.15);
-  --amber: #ffab00;
-  --amber-dim: rgba(255,171,0,0.15);
-  --red: #ff1744;
-  --red-dim: rgba(255,23,68,0.15);
-  --purple: #b388ff;
-  --purple-dim: rgba(179,136,255,0.15);
-  --blue: #448aff;
-  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --radius: 6px;
-  --radius-lg: 10px;
-  --transition: 180ms cubic-bezier(0.16,1,0.3,1);
-}
-
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  scroll-behavior: smooth;
-  font-size: 14px;
-}
-
-body {
-  min-height: 100vh;
-  background: var(--bg-deep);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  line-height: 1.5;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
-
-/* ---- HEADER BAR ---- */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 24px;
-  background: linear-gradient(180deg, rgba(14,20,33,0.98) 0%, rgba(10,14,23,0.95) 100%);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  backdrop-filter: blur(12px);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.logo-mark {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-}
-
-.logo-text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.logo-title {
-  font-family: var(--font-mono);
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--cyan);
-  letter-spacing: 0.08em;
-  line-height: 1.2;
-}
-
-.logo-subtitle {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text-dim);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  line-height: 1.2;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.header-meta {
-  text-align: right;
-}
-
-.header-meta-label {
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-
-.header-meta-value {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.status-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: var(--radius);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid;
-}
-
-.status-badge--healthy {
-  background: var(--green-dim);
-  border-color: rgba(0,230,118,0.3);
-  color: var(--green);
-}
-
-.status-badge--debt {
-  background: var(--amber-dim);
-  border-color: rgba(255,171,0,0.3);
-  color: var(--amber);
-}
-
-.status-badge--distress {
-  background: var(--red-dim);
-  border-color: rgba(255,23,68,0.3);
-  color: var(--red);
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.status-dot--green { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.status-dot--amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
-.status-dot--red { background: var(--red); box-shadow: 0 0 6px var(--red); }
-
-@keyframes pulse-glow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-/* ---- MAIN LAYOUT ---- */
-.dashboard {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 20px 24px 60px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* ---- SECTION TITLES ---- */
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.section-title {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-dim);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.section-line {
-  flex: 1;
-  height: 1px;
-  background: var(--border-subtle);
-}
-
-/* ---- METRICS ROW ---- */
-.metrics-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.metric-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  transition: border-color var(--transition);
-}
-
-.metric-card:hover {
-  border-color: var(--text-dim);
-}
-
-.metric-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-
-.metric-value {
-  font-family: var(--font-mono);
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.1;
-}
-
-.metric-value--cyan { color: var(--cyan); }
-.metric-value--green { color: var(--green); }
-.metric-value--amber { color: var(--amber); }
-.metric-value--red { color: var(--red); }
-
-.metric-detail {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mini-bar {
-  display: flex;
-  height: 4px;
-  border-radius: 2px;
-  overflow: hidden;
-  width: 100%;
-  margin-top: 4px;
-  background: var(--bg-deep);
-}
-
-.mini-bar__segment {
-  height: 100%;
-  transition: width 0.5s ease;
-}
-
-/* ---- NETWORK GRAPH ---- */
-.graph-container {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  position: relative;
-  overflow: hidden;
-  height: 520px;
-}
-
-.graph-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.graph-controls {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: flex;
-  gap: 6px;
-}
-
-.graph-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 14px;
-  transition: all var(--transition);
-}
-
-.graph-btn:hover {
-  background: var(--bg-card-hover);
-  color: var(--cyan);
-  border-color: var(--cyan-muted);
-}
-
-.graph-legend {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  display: flex;
-  gap: 16px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  background: rgba(10,14,23,0.85);
-  padding: 8px 14px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-subtle);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.node-tooltip {
-  position: absolute;
-  pointer-events: none;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  font-size: 11px;
-  color: var(--text-primary);
-  max-width: 360px;
-  z-index: 50;
-  opacity: 0;
-  transition: opacity 150ms;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-}
-
-.node-tooltip.visible { opacity: 1; }
-
-.tooltip-row {
-  display: flex;
-  gap: 8px;
-  padding: 2px 0;
-}
-
-.tooltip-key {
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  min-width: 70px;
-  flex-shrink: 0;
-}
-
-.tooltip-val {
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  word-break: break-all;
-}
-
-/* ---- STATIONS ---- */
-.stations-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.station-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.station-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.station-name {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.station-badge {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: 3px;
-}
-
-.station-badge--active {
-  background: var(--green-dim);
-  color: var(--green);
-}
-
-.station-badge--inactive {
-  background: var(--red-dim);
-  color: var(--red);
-}
-
-.station-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.station-meta-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-}
-
-.station-meta-label {
-  color: var(--text-dim);
-}
-
-.station-meta-value {
-  font-family: var(--font-mono);
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-/* ---- SPAZZMATIC PANEL ---- */
-.spazz-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
-}
-
-.spazz-nominal {
-  border: 1px solid rgba(0,230,118,0.3);
-  border-radius: var(--radius);
-  padding: 14px 20px;
-  background: var(--green-dim);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--green);
-}
-
-.spazz-finding {
-  border: 1px solid;
-  border-radius: var(--radius);
-  padding: 12px 16px;
-  margin-bottom: 8px;
-}
-
-.spazz-finding:last-child { margin-bottom: 0; }
-
-.spazz-finding--critical {
-  border-color: rgba(255,23,68,0.4);
-  background: var(--red-dim);
-}
-
-.spazz-finding--warning {
-  border-color: rgba(255,171,0,0.4);
-  background: var(--amber-dim);
-}
-
-/* ---- ENTITY TABLE ---- */
-.table-container {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-.table-scroll {
-  overflow-x: auto;
-}
-
-.entity-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-.entity-table thead {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-}
-
-.entity-table th {
-  background: var(--bg-elevated);
-  padding: 10px 14px;
-  text-align: left;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-dim);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-  cursor: pointer;
-  user-select: none;
-  transition: color var(--transition);
-}
-
-.entity-table th:hover {
-  color: var(--cyan);
-}
-
-.entity-table th .sort-arrow {
-  margin-left: 4px;
-  font-size: 9px;
-  opacity: 0.4;
-}
-
-.entity-table th.sorted .sort-arrow {
-  opacity: 1;
-  color: var(--cyan);
-}
-
-.entity-table td {
-  padding: 9px 14px;
-  border-bottom: 1px solid var(--border-subtle);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.entity-table tbody tr {
-  transition: background var(--transition);
-}
-
-.entity-table tbody tr:nth-child(even) {
-  background: rgba(15,21,32,0.4);
-}
-
-.entity-table tbody tr:hover {
-  background: var(--bg-card-hover);
-}
-
-.status-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.status-indicator--completed { background: var(--green); box-shadow: 0 0 4px rgba(0,230,118,0.4); }
-.status-indicator--pending { background: var(--amber); box-shadow: 0 0 4px rgba(255,171,0,0.4); }
-.status-indicator--failed { background: var(--red); box-shadow: 0 0 4px rgba(255,23,68,0.4); }
-.status-indicator--queued { background: var(--blue); box-shadow: 0 0 4px rgba(68,138,255,0.4); }
-
-.confidence-bar-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.confidence-bar {
-  width: 60px;
-  height: 4px;
-  background: var(--bg-deep);
-  border-radius: 2px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.confidence-bar__fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.4s ease;
-}
-
-.type-badge {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: 3px;
-  letter-spacing: 0.05em;
-}
-
-.type-badge--url {
-  background: var(--cyan-muted);
-  color: var(--cyan);
-}
-
-.type-badge--domain {
-  background: var(--purple-dim);
-  color: var(--purple);
-}
-
-/* ---- EVENT TIMELINE ---- */
-.timeline-container {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-.timeline-scroll {
-  max-height: 450px;
-  overflow-y: auto;
-  padding: 4px 0;
-}
-
-.timeline-item {
-  display: grid;
-  grid-template-columns: 80px 130px 1fr;
-  gap: 12px;
-  padding: 8px 18px;
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: 11px;
-  transition: background var(--transition);
-  align-items: start;
-}
-
-.timeline-item:hover {
-  background: var(--bg-card-hover);
-}
-
-.timeline-time {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-
-.timeline-source {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.timeline-event-badge {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 3px;
-  white-space: nowrap;
-  letter-spacing: 0.04em;
-}
-
-.evt-entity_added { background: var(--cyan-muted); color: var(--cyan); }
-.evt-edge_added { background: var(--purple-dim); color: var(--purple); }
-.evt-status_transition { background: rgba(68,138,255,0.15); color: var(--blue); }
-.evt-aboyeur_approval { background: var(--green-dim); color: var(--green); }
-.evt-station_log { background: rgba(255,255,255,0.06); color: var(--text-secondary); }
-.evt-kitchen_open { background: var(--green-dim); color: var(--green); }
-.evt-kitchen_closed { background: var(--amber-dim); color: var(--amber); }
-.evt-zorans_measurement { background: var(--cyan-muted); color: var(--cyan); }
-.evt-spazzmatic_review { background: var(--amber-dim); color: var(--amber); }
-
-.timeline-message {
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.timeline-show-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--cyan);
-  cursor: pointer;
-  border: none;
-  background: transparent;
-  width: 100%;
-  transition: background var(--transition);
-}
-
-.timeline-show-more:hover {
-  background: var(--bg-card-hover);
-}
-
-/* ---- RESPONSIVE ---- */
-@media (max-width: 1100px) {
-  .metrics-row { grid-template-columns: repeat(2, 1fr); }
-  .stations-row { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 640px) {
-  .header { padding: 10px 14px; }
-  .dashboard { padding: 14px 14px 40px; gap: 14px; }
-  .metrics-row { grid-template-columns: 1fr; }
-  .stations-row { grid-template-columns: 1fr; }
-  .graph-container { height: 350px; }
-  .timeline-item { grid-template-columns: 70px 100px 1fr; gap: 6px; padding: 6px 12px; }
-}
-
-/* ---- D3 GRAPH STYLES ---- */
-.link-line {
-  stroke: var(--border);
-  stroke-opacity: 0.5;
-  fill: none;
-}
-
-.link-label {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  fill: var(--text-dim);
-  pointer-events: none;
-}
-
-.node-circle {
-  cursor: pointer;
-  stroke-width: 2;
-  transition: stroke-width 0.2s, r 0.2s;
-}
-
-.node-circle:hover {
-  stroke-width: 3;
-}
-
-.node-label {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  fill: var(--text-secondary);
-  pointer-events: none;
-  text-anchor: middle;
-}
-
-.arrow-head {
-  fill: var(--text-dim);
-  fill-opacity: 0.6;
-}
-
-/* Grid lines background */
-.graph-grid line {
-  stroke: var(--border-subtle);
-  stroke-opacity: 0.3;
-}
-
-/* ---- SCAN LINE ANIMATION ---- */
-.scan-line {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-  opacity: 0.15;
-  animation: scan 8s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes scan {
-  0% { top: 0; }
-  100% { top: 100%; }
+/* ===== RESET & BASE ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;scroll-behavior:smooth;scroll-padding-top:80px}
+body{min-height:100dvh;line-height:1.6;font-family:'Inter',sans-serif;background:#0d1117;color:#e6edf3}
+img,svg{display:block;max-width:100%}
+button{cursor:pointer;background:none;border:none;font:inherit;color:inherit}
+table{border-collapse:collapse;width:100%}
+a{color:#4ade80;text-decoration:none}
+a:hover{color:#22c55e}
+::selection{background:rgba(34,197,94,0.25);color:#e6edf3}
+
+/* ===== TOKENS ===== */
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface-2:#1c2129;--border:#21262d;
+  --green:#22c55e;--green-bright:#4ade80;--green-dim:#166534;--green-glow:rgba(34,197,94,0.15);
+  --amber:#eab308;--amber-dim:#854d0e;--red:#dc2626;--red-dim:#991b1b;
+  --text:#e6edf3;--text-muted:#7d8590;--text-dim:#484f58;
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;
+  --radius:6px;--radius-lg:10px;
+  --transition:180ms cubic-bezier(0.16,1,0.3,1);
+}
+
+/* ===== LAYOUT ===== */
+.container{max-width:1440px;margin:0 auto;padding:0 24px}
+section{padding:32px 0}
+.section-title{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.section-title::before{content:'';width:3px;height:14px;background:var(--green);border-radius:2px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;transition:border-color var(--transition)}
+.card:hover{border-color:var(--green-dim)}
+
+/* ===== HERO ===== */
+.hero{padding:28px 0 20px;border-bottom:1px solid var(--border)}
+.hero-inner{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.hero-left{display:flex;align-items:center;gap:16px}
+.hero-logo svg{width:48px;height:48px}
+.hero-title{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.5px}
+.hero-subtitle{font-size:12px;color:var(--text-muted);letter-spacing:0.5px;margin-top:2px}
+.hero-badge{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:1px}
+.badge-healthy{background:rgba(34,197,94,0.1);border:1px solid var(--green-dim);color:var(--green-bright)}
+.badge-warning{background:rgba(234,179,8,0.1);border:1px solid var(--amber-dim);color:var(--amber)}
+
+.sitrep{padding:16px 0;border-bottom:1px solid var(--border)}
+.sitrep-text{font-family:var(--mono);font-size:12px;color:var(--text-muted);line-height:1.8;letter-spacing:0.3px}
+.sitrep-text strong{color:var(--green-bright);font-weight:600}
+.sitrep-label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px}
+
+/* ===== NAV PILLS ===== */
+.nav-pills{position:sticky;top:0;z-index:100;background:rgba(13,17,23,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 0}
+.nav-inner{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.nav-inner::-webkit-scrollbar{display:none}
+.nav-pill{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:0.5px;padding:6px 14px;border-radius:20px;color:var(--text-muted);white-space:nowrap;transition:all var(--transition)}
+.nav-pill:hover{color:var(--text);background:rgba(255,255,255,0.05)}
+.nav-pill.active{color:var(--green-bright);background:rgba(34,197,94,0.1)}
+
+/* ===== STATION BRIGADE ===== */
+.stations-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.station-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;position:relative;overflow:hidden}
+.station-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--green)}
+.station-name{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px}
+.station-role{font-size:11px;color:var(--text-dim);margin-bottom:12px}
+.station-metric{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--green-bright)}
+.station-metric-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.station-badge{position:absolute;top:14px;right:14px;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.station-handles{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:8px;letter-spacing:0.3px}
+
+/* ===== METRICS CARDS ===== */
+.metrics-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:8px}
+.metric-value{font-family:var(--mono);font-size:32px;font-weight:700;color:var(--green-bright);line-height:1}
+.metric-sub{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:8px}
+.metric-bar{height:4px;background:var(--border);border-radius:2px;margin-top:12px;overflow:hidden;display:flex}
+.metric-bar-fill{height:100%;border-radius:2px;transition:width 0.6s ease}
+
+/* ===== NETWORK GRAPH ===== */
+.graph-container{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);position:relative;overflow:hidden;height:600px}
+.graph-controls{position:absolute;top:12px;right:12px;display:flex;gap:6px;z-index:10}
+.graph-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-muted);font-size:16px;transition:all var(--transition)}
+.graph-btn:hover{color:var(--green-bright);border-color:var(--green-dim)}
+.graph-legend{position:absolute;bottom:12px;left:12px;display:flex;gap:16px;z-index:10;font-family:var(--mono);font-size:10px;color:var(--text-muted)}
+.legend-item{display:flex;align-items:center;gap:6px}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+.legend-line{width:20px;height:2px}
+.graph-tooltip{position:absolute;pointer-events:none;background:var(--bg);border:1px solid var(--green-dim);border-radius:var(--radius);padding:10px 14px;font-family:var(--mono);font-size:11px;color:var(--text);z-index:20;display:none;max-width:320px;box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+.graph-tooltip .tt-label{color:var(--text-muted);font-size:9px;text-transform:uppercase;letter-spacing:1px}
+.graph-tooltip .tt-value{color:var(--green-bright);word-break:break-all}
+
+/* ===== DOSSIERS ===== */
+.dossiers-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.dossier-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.dossier-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background var(--transition)}
+.dossier-header:hover{background:rgba(255,255,255,0.02)}
+.dossier-seed{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80%}
+.dossier-toggle{color:var(--text-dim);transition:transform var(--transition);font-size:14px}
+.dossier-toggle.open{transform:rotate(180deg)}
+.dossier-body{display:none;padding:0 20px 16px;border-top:1px solid var(--border)}
+.dossier-body.open{display:block}
+.dossier-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.dossier-stat-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.8px}
+.dossier-stat-value{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--green-bright)}
+.dossier-section{margin-top:14px}
+.dossier-section-title{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:600}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-family:var(--mono);font-size:10px;margin:2px;background:rgba(34,197,94,0.08);border:1px solid var(--green-dim);color:var(--green-bright)}
+.tag-amber{background:rgba(234,179,8,0.08);border-color:var(--amber-dim);color:var(--amber)}
+.confidence-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:6px}
+.confidence-fill{height:100%;border-radius:3px;background:var(--green)}
+.connection-list{list-style:none;margin-top:6px}
+.connection-list li{font-family:var(--mono);font-size:11px;color:var(--text-muted);padding:3px 0;display:flex;justify-content:space-between;border-bottom:1px solid rgba(33,38,45,0.5)}
+.connection-list li:last-child{border-bottom:none}
+.conn-rel{color:var(--text-dim);font-size:10px}
+
+/* ===== AUDIT ===== */
+.audit-grid{display:grid;grid-template-columns:240px 1fr;gap:16px}
+.audit-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
+.audit-score{font-family:var(--mono);font-size:56px;font-weight:700;line-height:1}
+.audit-score-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:8px}
+.zero-drop-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:var(--radius);font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1.5px;margin-top:16px;background:rgba(34,197,94,0.1);border:1px solid var(--green-dim);color:var(--green-bright)}
+.audit-checks{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.audit-check{padding:16px;border-radius:var(--radius);background:var(--bg);border:1px solid var(--border)}
+.audit-check-label{font-size:11px;color:var(--text-muted);margin-bottom:6px}
+.audit-check-value{font-family:var(--mono);font-size:18px;font-weight:700}
+.audit-check-detail{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:4px}
+.pass{color:var(--green-bright)}
+.fail{color:var(--red)}
+.warn{color:var(--amber)}
+
+/* ===== USE CASES ===== */
+.usecases-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.usecase-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;transition:all var(--transition)}
+.usecase-card:hover{border-color:var(--green-dim);transform:translateY(-2px)}
+.usecase-icon{font-size:20px;color:var(--green);margin-bottom:10px;font-family:var(--mono)}
+.usecase-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.usecase-desc{font-size:11px;color:var(--text-dim);line-height:1.5}
+
+/* ===== SPAZZMATIC ===== */
+.findings-list{display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto}
+.findings-list::-webkit-scrollbar{width:6px}
+.findings-list::-webkit-scrollbar-track{background:var(--bg)}
+.findings-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.finding-row{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);font-size:12px}
+.finding-severity{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.sev-info{background:rgba(34,197,94,0.08);color:var(--green);border:1px solid var(--green-dim)}
+.sev-critical{background:rgba(220,38,38,0.1);color:var(--red);border:1px solid var(--red-dim)}
+.sev-warning{background:rgba(234,179,8,0.1);color:var(--amber);border:1px solid var(--amber-dim)}
+.finding-source{font-family:var(--mono);font-size:10px;color:var(--text-dim);min-width:70px}
+.finding-msg{color:var(--text-muted);flex:1;word-break:break-word}
+
+/* ===== ENTITY TABLE ===== */
+.table-wrap{overflow-x:auto;border-radius:var(--radius-lg);border:1px solid var(--border)}
+.entity-table{width:100%;font-size:12px}
+.entity-table thead{background:var(--surface)}
+.entity-table th{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none;transition:color var(--transition)}
+.entity-table th:hover{color:var(--green-bright)}
+.entity-table th .sort-arrow{color:var(--text-dim);margin-left:4px}
+.entity-table th.sorted .sort-arrow{color:var(--green)}
+.entity-table td{padding:8px 14px;border-bottom:1px solid rgba(33,38,45,0.5);font-family:var(--mono);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
+.entity-table tr:hover td{background:rgba(34,197,94,0.03)}
+.entity-table .type-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px}
+.type-url{background:var(--green-bright)}
+.type-domain{background:var(--green-dim)}
+.type-dossier{background:var(--amber)}
+.status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;background:var(--green)}
+.conf-bar{width:60px;height:4px;background:var(--border);border-radius:2px;display:inline-block;vertical-align:middle;margin-right:6px;overflow:hidden}
+.conf-bar-fill{height:100%;border-radius:2px}
+.table-footer{padding:10px 14px;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+.table-page-btn{padding:4px 10px;border-radius:var(--radius);border:1px solid var(--border);color:var(--text-muted);font-family:var(--mono);font-size:11px;transition:all var(--transition)}
+.table-page-btn:hover{border-color:var(--green-dim);color:var(--green-bright)}
+.table-page-btn:disabled{opacity:0.3;cursor:default}
+
+/* ===== TIMELINE ===== */
+.timeline-container{max-height:500px;overflow-y:auto;border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--surface)}
+.timeline-container::-webkit-scrollbar{width:6px}
+.timeline-container::-webkit-scrollbar-track{background:var(--surface)}
+.timeline-container::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.timeline-row{display:flex;align-items:flex-start;gap:12px;padding:8px 16px;border-bottom:1px solid rgba(33,38,45,0.3);font-size:11px;transition:background var(--transition)}
+.timeline-row:hover{background:rgba(255,255,255,0.015)}
+.timeline-time{font-family:var(--mono);color:var(--text-dim);min-width:75px;font-size:10px}
+.timeline-type{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;min-width:100px;padding:2px 0}
+.evt-status_transition{color:var(--green)}
+.evt-station_log{color:var(--text-muted)}
+.evt-aboyeur_approval{color:var(--green-bright)}
+.evt-entity_added{color:#4ade80}
+.evt-edge_added{color:var(--green-dim)}
+.evt-kitchen_closed{color:var(--amber)}
+.evt-finding{color:var(--amber)}
+.evt-cartography_complete{color:var(--green-bright)}
+.evt-zorans_measurement{color:var(--green)}
+.evt-spazzmatic_review{color:var(--amber)}
+.timeline-source{font-family:var(--mono);color:var(--text-dim);min-width:80px;font-size:10px}
+.timeline-msg{color:var(--text-muted);flex:1;word-break:break-word}
+.timeline-filter{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.timeline-filter-btn{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:14px;border:1px solid var(--border);color:var(--text-dim);transition:all var(--transition);letter-spacing:0.3px}
+.timeline-filter-btn:hover,.timeline-filter-btn.active{border-color:var(--green-dim);color:var(--green-bright);background:rgba(34,197,94,0.06)}
+
+/* ===== FOOTER ===== */
+.footer{padding:32px 0;border-top:1px solid var(--border);text-align:center;font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:1px}
+
+/* ===== SCROLLBAR GLOBAL ===== */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-dim)}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:1200px){
+  .metrics-grid{grid-template-columns:repeat(3,1fr)}
+  .usecases-grid{grid-template-columns:repeat(3,1fr)}
+  .dossiers-grid{grid-template-columns:1fr}
+  .audit-grid{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  .metrics-grid{grid-template-columns:repeat(2,1fr)}
+  .usecases-grid{grid-template-columns:repeat(2,1fr)}
+  .hero-inner{flex-direction:column;align-items:flex-start}
+  .stations-grid{grid-template-columns:repeat(2,1fr)}
 }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<header class="header">
-  <div class="header-left">
-    <svg class="logo-mark" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="XP-Arc DRAGON">
-      <!-- Hexagonal dragon eye motif -->
-      <polygon points="18,2 32,10 32,26 18,34 4,26 4,10" stroke="#00e5ff" stroke-width="1.5" fill="none" opacity="0.4"/>
-      <polygon points="18,7 27,12 27,24 18,29 9,24 9,12" stroke="#00e5ff" stroke-width="1" fill="none" opacity="0.6"/>
-      <polygon points="18,12 22,14.5 22,21.5 18,24 14,21.5 14,14.5" stroke="#00e5ff" stroke-width="1.2" fill="rgba(0,229,255,0.08)"/>
-      <circle cx="18" cy="18" r="3" fill="#00e5ff" opacity="0.9"/>
-      <circle cx="18" cy="18" r="1.2" fill="#0a0e17"/>
-      <!-- Cross-hair lines -->
-      <line x1="18" y1="5" x2="18" y2="12" stroke="#00e5ff" stroke-width="0.5" opacity="0.5"/>
-      <line x1="18" y1="24" x2="18" y2="31" stroke="#00e5ff" stroke-width="0.5" opacity="0.5"/>
-      <line x1="7" y1="18" x2="14" y2="18" stroke="#00e5ff" stroke-width="0.5" opacity="0.5"/>
-      <line x1="22" y1="18" x2="29" y2="18" stroke="#00e5ff" stroke-width="0.5" opacity="0.5"/>
-    </svg>
-    <div class="logo-text">
-      <div class="logo-title">XP-ARC DRAGON</div>
-      <div class="logo-subtitle">Dynamic Relational Asset Graph &amp; Operations Network</div>
-    </div>
-  </div>
-  <div class="header-right">
-    <div class="header-meta">
-      <div class="header-meta-label">Protocol</div>
-      <div class="header-meta-value" id="protocol-version">--</div>
-    </div>
-    <div class="header-meta">
-      <div class="header-meta-label">Last Updated</div>
-      <div class="header-meta-value" id="last-updated">--</div>
-    </div>
-    <div id="zoran-badge" class="status-badge status-badge--healthy">
-      <span class="status-dot status-dot--green"></span>
-      <span id="zoran-badge-text">--</span>
+<!-- HERO -->
+<header class="hero">
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-logo">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M24 2L43.5 13.25V35.75L24 47L4.5 35.75V13.25L24 2Z" stroke="#22c55e" stroke-width="1.5" fill="none"/>
+            <path d="M24 8L38 16.5V31.5L24 40L10 31.5V16.5L24 8Z" stroke="#22c55e" stroke-width="1" fill="rgba(34,197,94,0.05)"/>
+            <path d="M24 14L32 19V27L24 32L16 27V19L24 14Z" fill="rgba(34,197,94,0.15)" stroke="#4ade80" stroke-width="0.75"/>
+            <circle cx="24" cy="23" r="3" fill="#22c55e"/>
+            <line x1="24" y1="20" x2="24" y2="8" stroke="#22c55e" stroke-width="0.5" opacity="0.4"/>
+            <line x1="27" y1="24.5" x2="38" y2="31.5" stroke="#22c55e" stroke-width="0.5" opacity="0.4"/>
+            <line x1="21" y1="24.5" x2="10" y2="31.5" stroke="#22c55e" stroke-width="0.5" opacity="0.4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="hero-title">XP-Arc DRAGON</div>
+          <div class="hero-subtitle">Multi-Agent Intelligence Protocol &mdash; Exponential Architecture</div>
+        </div>
+      </div>
+      <div id="zoranBadge" class="hero-badge badge-healthy">
+        <span style="width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor"></span>
+        ZORAN: EQUILIBRIUM
+      </div>
     </div>
   </div>
 </header>
 
-<!-- DASHBOARD -->
-<main class="dashboard">
+<!-- SITUATION REPORT -->
+<div class="sitrep">
+  <div class="container">
+    <div class="sitrep-label">Situation Report</div>
+    <div class="sitrep-text" id="sitrepText">Loading...</div>
+  </div>
+</div>
 
-  <!-- METRICS ROW -->
-  <section>
-    <div class="section-header">
-      <span class="section-title">System Metrics</span>
-      <span class="section-line"></span>
+<!-- NAV -->
+<nav class="nav-pills">
+  <div class="container">
+    <div class="nav-inner">
+      <button class="nav-pill active" onclick="scrollTo_('#stations')">Brigade</button>
+      <button class="nav-pill" onclick="scrollTo_('#metrics')">Metrics</button>
+      <button class="nav-pill" onclick="scrollTo_('#network')">Network</button>
+      <button class="nav-pill" onclick="scrollTo_('#dossiers')">Dossiers</button>
+      <button class="nav-pill" onclick="scrollTo_('#audit')">Audit</button>
+      <button class="nav-pill" onclick="scrollTo_('#usecases')">Use Cases</button>
+      <button class="nav-pill" onclick="scrollTo_('#spazzmatic')">SpaZzMatiC</button>
+      <button class="nav-pill" onclick="scrollTo_('#entities')">Entities</button>
+      <button class="nav-pill" onclick="scrollTo_('#timeline')">Timeline</button>
     </div>
-    <div class="metrics-row">
-      <div class="metric-card">
-        <div class="metric-label">Total Entities</div>
-        <div class="metric-value metric-value--cyan" id="metric-entities">--</div>
-        <div class="metric-detail" id="metric-entities-detail">--</div>
-        <div class="mini-bar" id="entity-status-bar"></div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Total Edges</div>
-        <div class="metric-value" id="metric-edges">--</div>
-        <div class="metric-detail" id="metric-edges-detail">--</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Aboyeur Stats</div>
-        <div class="metric-value metric-value--green" id="metric-aboyeur">--</div>
-        <div class="metric-detail" id="metric-aboyeur-detail">--</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">System State</div>
-        <div class="metric-value" id="metric-state">--</div>
-        <div class="metric-detail" id="metric-state-detail">--</div>
-      </div>
-    </div>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="container">
+
+  <!-- SECTION 2: STATION BRIGADE -->
+  <section id="stations">
+    <div class="section-title">Station Brigade</div>
+    <div class="stations-grid" id="stationsGrid"></div>
   </section>
 
-  <!-- NETWORK GRAPH -->
-  <section>
-    <div class="section-header">
-      <span class="section-title">Intelligence Pool &mdash; Entity Graph</span>
-      <span class="section-line"></span>
-    </div>
-    <div class="graph-container" id="graph-container">
-      <div class="scan-line"></div>
-      <svg class="graph-svg" id="graph-svg"></svg>
+  <!-- SECTION 3: INTELLIGENCE METRICS -->
+  <section id="metrics">
+    <div class="section-title">Intelligence Metrics</div>
+    <div class="metrics-grid" id="metricsGrid"></div>
+  </section>
+
+  <!-- SECTION 4: NETWORK GRAPH -->
+  <section id="network">
+    <div class="section-title">Network Intelligence Graph</div>
+    <div class="graph-container" id="graphContainer">
       <div class="graph-controls">
-        <button class="graph-btn" id="zoom-in" title="Zoom In">+</button>
-        <button class="graph-btn" id="zoom-out" title="Zoom Out">&minus;</button>
-        <button class="graph-btn" id="zoom-reset" title="Reset View">R</button>
+        <button class="graph-btn" onclick="zoomGraph(1.3)" title="Zoom In">+</button>
+        <button class="graph-btn" onclick="zoomGraph(0.7)" title="Zoom Out">-</button>
+        <button class="graph-btn" onclick="resetGraph()" title="Reset">R</button>
       </div>
       <div class="graph-legend">
-        <div class="legend-item"><div class="legend-dot" style="background:var(--cyan);box-shadow:0 0 4px var(--cyan)"></div>URL (Seed)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Domain</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--text-dim);width:20px;height:2px;border-radius:1px"></div>links_to</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--amber);width:20px;height:2px;border-radius:1px;opacity:0.6"></div>subdomain_of</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div>URL Seed</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#166534"></div>Domain</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#eab308"></div>Dossier</div>
+        <div class="legend-item"><div class="legend-line" style="background:#22c55e"></div>links_to</div>
+        <div class="legend-item"><div class="legend-line" style="background:#eab308;border-top:2px dashed #eab308;height:0"></div>subdomain_of</div>
+        <div class="legend-item"><div class="legend-line" style="background:#166534;border-top:2px dotted #484f58;height:0"></div>indirect</div>
       </div>
-      <div class="node-tooltip" id="node-tooltip"></div>
+      <div class="graph-tooltip" id="graphTooltip"></div>
     </div>
   </section>
 
-  <!-- STATION REGISTRY -->
-  <section>
-    <div class="section-header">
-      <span class="section-title">Station Registry</span>
-      <span class="section-line"></span>
-    </div>
-    <div class="stations-row" id="stations-row"></div>
+  <!-- SECTION 5: DOSSIERS -->
+  <section id="dossiers">
+    <div class="section-title">Intelligence Dossiers</div>
+    <div class="dossiers-grid" id="dossiersGrid"></div>
   </section>
 
-  <!-- SPAZZMATIC PANEL -->
-  <section>
-    <div class="section-header">
-      <span class="section-title">SpaZzMatiC &mdash; Adversarial Analysis</span>
-      <span class="section-line"></span>
-    </div>
-    <div class="spazz-panel" id="spazz-panel"></div>
-  </section>
-
-  <!-- ENTITY TABLE -->
-  <section>
-    <div class="section-header">
-      <span class="section-title">Entity Registry</span>
-      <span class="section-line"></span>
-    </div>
-    <div class="table-container">
-      <div class="table-scroll">
-        <table class="entity-table" id="entity-table">
-          <thead>
-            <tr>
-              <th data-sort="status">Status <span class="sort-arrow">&#9650;</span></th>
-              <th data-sort="type">Type <span class="sort-arrow">&#9650;</span></th>
-              <th data-sort="value">Value <span class="sort-arrow">&#9650;</span></th>
-              <th data-sort="station">Station <span class="sort-arrow">&#9650;</span></th>
-              <th data-sort="confidence">Confidence <span class="sort-arrow">&#9650;</span></th>
-              <th data-sort="aboyeur_signature">Aboyeur Sig <span class="sort-arrow">&#9650;</span></th>
-              <th data-sort="notes">Notes <span class="sort-arrow">&#9650;</span></th>
-            </tr>
-          </thead>
-          <tbody id="entity-tbody"></tbody>
-        </table>
-      </div>
+  <!-- SECTION 6: AUDIT -->
+  <section id="audit">
+    <div class="section-title">Audit Report</div>
+    <div class="audit-grid" id="auditGrid">
+      <div class="card audit-hero" id="auditHero"></div>
+      <div class="audit-checks" id="auditChecks"></div>
     </div>
   </section>
 
-  <!-- EVENT TIMELINE -->
-  <section>
-    <div class="section-header">
-      <span class="section-title">Event Timeline</span>
-      <span class="section-line"></span>
-    </div>
-    <div class="timeline-container">
-      <div class="timeline-scroll" id="timeline-scroll"></div>
-    </div>
+  <!-- SECTION 7: USE CASES -->
+  <section id="usecases">
+    <div class="section-title">Operational Applications</div>
+    <div class="usecases-grid" id="usecasesGrid"></div>
   </section>
 
+  <!-- SECTION 8: SPAZZMATIC -->
+  <section id="spazzmatic">
+    <div class="section-title">SpaZzMatiC Findings</div>
+    <div id="findingsContainer"></div>
+  </section>
+
+  <!-- SECTION 9: ENTITY TABLE -->
+  <section id="entities">
+    <div class="section-title">Entity Registry</div>
+    <div id="entityTableContainer"></div>
+  </section>
+
+  <!-- SECTION 10: TIMELINE -->
+  <section id="timeline">
+    <div class="section-title">Event Timeline</div>
+    <div class="timeline-filter" id="timelineFilter"></div>
+    <div class="timeline-container" id="timelineContainer"></div>
+  </section>
 </main>
 
+<footer class="footer">
+  <div class="container">XP-ARC DRAGON v0.2.0 // EXPORTED 2026-04-08T18:13:45Z // PROTOCOL: EXPONENTIAL ARCHITECTURE</div>
+</footer>
+
 <script>
-(function() {
-  'use strict';
+// ===== GLOBALS =====
+let DATA = null;
+let simulation = null;
+let svgZoom = null;
 
-  // ==========================================
-  // DATA LOADING
-  // ==========================================
-  let DATA = null;
+function scrollTo_(sel) {
+  document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth' });
+  document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+}
 
-  async function init() {
-    try {
-      const resp = await fetch('pool_state.json');
-      DATA = await resp.json();
-      renderAll();
-    } catch(e) {
-      console.error('Failed to load pool_state.json:', e);
-      document.body.innerHTML = '<div style="padding:40px;color:#ff1744;font-family:monospace">ERROR: Failed to load pool_state.json</div>';
+// ===== DATA LOAD =====
+fetch('pool_state.json')
+  .then(r => r.json())
+  .then(data => {
+    DATA = data;
+    renderAll();
+  })
+  .catch(err => {
+    document.body.innerHTML = '<div style="padding:80px;text-align:center;color:#dc2626;font-family:monospace">Failed to load pool_state.json: ' + err.message + '</div>';
+  });
+
+function renderAll() {
+  renderSitrep();
+  renderStations();
+  renderMetrics();
+  renderGraph();
+  renderDossiers();
+  renderAudit();
+  renderUseCases();
+  renderFindings();
+  renderEntityTable();
+  renderTimeline();
+  updateZoranBadge();
+}
+
+// ===== SITREP =====
+function renderSitrep() {
+  const e = DATA.entities.length;
+  const s = DATA.stations.length;
+  const edges = DATA.edges.length;
+  const doss = DATA.dossiers.length;
+  const score = (DATA.audit.overall.integrity_score * 100).toFixed(1);
+  const zeroDrop = DATA.audit.zero_drop.zero_drop_verified;
+  document.getElementById('sitrepText').innerHTML =
+    `<strong>${e}</strong> entities processed through <strong>${s}</strong> stations. ` +
+    `<strong>${edges}</strong> edges mapped. <strong>${doss}</strong> dossiers generated. ` +
+    `Audit score: <strong>${score}%</strong>. ${zeroDrop ? '<strong>Zero data drops.</strong>' : '<span style="color:var(--red)">Data drops detected.</span>'}`;
+}
+
+// ===== ZORAN BADGE =====
+function updateZoranBadge() {
+  const z = DATA.zorans_latest;
+  const badge = document.getElementById('zoranBadge');
+  if (z.system_state === 'equilibrium') {
+    badge.className = 'hero-badge badge-healthy';
+    badge.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor"></span> ZORAN: EQUILIBRIUM';
+  } else {
+    badge.className = 'hero-badge badge-warning';
+    badge.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor"></span> ZORAN: ' + z.system_state.toUpperCase();
+  }
+}
+
+// ===== STATIONS =====
+function renderStations() {
+  const stationMeta = {
+    forager: { role: 'Garde Manger', handles: 'URL ingestion & extraction', icon: '' },
+    analyst: { role: 'Saucier', handles: 'Domain analysis & classification', icon: '' },
+    sentinel: { role: 'Poissonnier', handles: 'Health monitoring & SLA', icon: '' },
+    plongeur: { role: 'Plongeur', handles: 'Cleanup & deduplication', icon: '' },
+    librarian: { role: 'Patissier', handles: 'Dossier generation', icon: '' },
+    cartographer: { role: 'Rotisseur', handles: 'Graph intelligence & topology', icon: '' },
+    auditor: { role: 'Auditor', handles: 'Data integrity & verification', icon: '' }
+  };
+
+  const stationCounts = {};
+  DATA.entities.forEach(e => {
+    stationCounts[e.station] = (stationCounts[e.station] || 0) + 1;
+  });
+
+  const grid = document.getElementById('stationsGrid');
+  grid.innerHTML = DATA.stations.map(s => {
+    const sid = s.station_id;
+    const meta = stationMeta[sid] || { role: 'Specialist', handles: 'Processing' };
+    const count = stationCounts[sid] || 0;
+    const types = s.handles_types ? JSON.parse(s.handles_types).join(', ') : 'all';
+    return `<div class="station-card">
+      <div class="station-badge"></div>
+      <div class="station-name">${s.name}</div>
+      <div class="station-role">${meta.role}</div>
+      <div class="station-metric">${count}</div>
+      <div class="station-metric-label">Entities Processed</div>
+      <div class="station-handles">Handles: ${types}</div>
+    </div>`;
+  }).join('');
+}
+
+// ===== METRICS =====
+function renderMetrics() {
+  const ent = DATA.entities;
+  const urlCount = ent.filter(e => e.type === 'url').length;
+  const domCount = ent.filter(e => e.type === 'domain').length;
+  const dosCount = ent.filter(e => e.type === '_dossier').length;
+  const totalEnt = ent.length;
+  const totalEdges = DATA.edges.length;
+  const inferredEdges = DATA.topology.new_inferred_edges;
+  const directEdges = totalEdges - inferredEdges;
+  const clusters = DATA.topology.clusters.count;
+  const bridges = DATA.topology.bridges.length;
+  const auditScore = DATA.audit.overall.integrity_score;
+  const scoreColor = auditScore >= 0.95 ? 'var(--green-bright)' : auditScore >= 0.8 ? 'var(--amber)' : 'var(--red)';
+
+  const grid = document.getElementById('metricsGrid');
+  grid.innerHTML = `
+    <div class="metric-card">
+      <div class="metric-label">Total Entities</div>
+      <div class="metric-value">${totalEnt}</div>
+      <div class="metric-sub">${urlCount} URLs / ${domCount} domains / ${dosCount} dossiers</div>
+      <div class="metric-bar">
+        <div class="metric-bar-fill" style="width:${(urlCount/totalEnt*100).toFixed(1)}%;background:var(--green-bright)"></div>
+        <div class="metric-bar-fill" style="width:${(domCount/totalEnt*100).toFixed(1)}%;background:var(--green-dim)"></div>
+        <div class="metric-bar-fill" style="width:${(dosCount/totalEnt*100).toFixed(1)}%;background:var(--amber)"></div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total Edges</div>
+      <div class="metric-value">${totalEdges}</div>
+      <div class="metric-sub">${directEdges} direct / ${inferredEdges} inferred</div>
+      <div class="metric-bar">
+        <div class="metric-bar-fill" style="width:${(directEdges/totalEdges*100).toFixed(1)}%;background:var(--green)"></div>
+        <div class="metric-bar-fill" style="width:${(inferredEdges/totalEdges*100).toFixed(1)}%;background:var(--green-dim)"></div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Clusters Detected</div>
+      <div class="metric-value">${clusters}</div>
+      <div class="metric-sub">Largest: ${DATA.topology.clusters.largest} nodes / Smallest: ${DATA.topology.clusters.smallest}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Bridge Nodes</div>
+      <div class="metric-value">${bridges}</div>
+      <div class="metric-sub">Critical cross-cluster connectors</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Audit Score</div>
+      <div class="metric-value" style="color:${scoreColor}">${(auditScore*100).toFixed(1)}%</div>
+      <div class="metric-sub">${DATA.audit.overall.all_checks_passed ? 'All checks passed' : 'Some checks flagged'}</div>
+      <div class="metric-bar">
+        <div class="metric-bar-fill" style="width:${(auditScore*100).toFixed(1)}%;background:${scoreColor}"></div>
+      </div>
+    </div>
+  `;
+}
+
+// ===== NETWORK GRAPH =====
+function renderGraph() {
+  const container = document.getElementById('graphContainer');
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+
+  // Build node set
+  const nodeMap = new Map();
+  const bridgeSet = new Set(DATA.topology.bridges.map(b => b.node));
+  const hubMap = new Map(DATA.topology.hubs.map(h => [h.node, h.edges]));
+
+  DATA.entities.forEach(e => {
+    if (e.type === '_dossier') return; // skip dossier entities for cleaner graph
+    const key = e.value;
+    nodeMap.set(key, {
+      id: key,
+      type: e.type,
+      status: e.status,
+      confidence: e.confidence,
+      station: e.station,
+      signature: e.aboyeur_signature,
+      isBridge: bridgeSet.has(key),
+      hubEdges: hubMap.get(key) || 0
+    });
+  });
+
+  // Edges - only use edges where both nodes exist
+  const links = [];
+  DATA.edges.forEach(e => {
+    if (e.relationship === 'has_dossier') return;
+    if (nodeMap.has(e.source) && nodeMap.has(e.target)) {
+      links.push({ source: e.source, target: e.target, relationship: e.relationship });
     }
+  });
+
+  const nodes = Array.from(nodeMap.values());
+
+  // SVG
+  const svg = d3.select(container).append('svg')
+    .attr('width', width)
+    .attr('height', height)
+    .style('position', 'absolute')
+    .style('top', 0)
+    .style('left', 0);
+
+  const g = svg.append('g');
+
+  svgZoom = d3.zoom()
+    .scaleExtent([0.2, 5])
+    .on('zoom', (event) => g.attr('transform', event.transform));
+  svg.call(svgZoom);
+
+  // Defs for glow
+  const defs = svg.append('defs');
+  const filter = defs.append('filter').attr('id', 'glow');
+  filter.append('feGaussianBlur').attr('stdDeviation', '3').attr('result', 'coloredBlur');
+  const feMerge = filter.append('feMerge');
+  feMerge.append('feMergeNode').attr('in', 'coloredBlur');
+  feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+
+  // Links
+  const link = g.append('g').selectAll('line')
+    .data(links).enter().append('line')
+    .attr('stroke', d => {
+      if (d.relationship === 'links_to') return '#22c55e';
+      if (d.relationship === 'subdomain_of') return '#eab308';
+      return '#484f58';
+    })
+    .attr('stroke-width', d => d.relationship === 'links_to' ? 1.2 : 0.8)
+    .attr('stroke-dasharray', d => {
+      if (d.relationship === 'subdomain_of') return '4,3';
+      if (d.relationship === 'indirect_connection') return '2,3';
+      return 'none';
+    })
+    .attr('stroke-opacity', d => d.relationship === 'indirect_connection' ? 0.3 : 0.5);
+
+  // Nodes
+  const node = g.append('g').selectAll('g')
+    .data(nodes).enter().append('g')
+    .call(d3.drag()
+      .on('start', dragstarted)
+      .on('drag', dragged)
+      .on('end', dragended));
+
+  // Bridge ring
+  node.filter(d => d.isBridge)
+    .append('circle')
+    .attr('r', d => getRadius(d) + 4)
+    .attr('fill', 'none')
+    .attr('stroke', '#22c55e')
+    .attr('stroke-width', 1)
+    .attr('stroke-opacity', 0.4)
+    .style('filter', 'url(#glow)');
+
+  node.append('circle')
+    .attr('r', d => getRadius(d))
+    .attr('fill', d => {
+      if (d.type === 'url') return '#4ade80';
+      return '#166534';
+    })
+    .attr('stroke', d => d.isBridge ? '#4ade80' : 'none')
+    .attr('stroke-width', d => d.isBridge ? 1.5 : 0)
+    .style('cursor', 'pointer');
+
+  // Labels for seeds
+  node.filter(d => d.type === 'url')
+    .append('text')
+    .text(d => {
+      try { return new URL(d.id).hostname.replace('www.',''); } catch { return d.id.slice(0,20); }
+    })
+    .attr('dx', d => getRadius(d) + 4)
+    .attr('dy', 3)
+    .attr('font-family', 'JetBrains Mono, monospace')
+    .attr('font-size', 9)
+    .attr('fill', '#7d8590')
+    .style('pointer-events', 'none');
+
+  function getRadius(d) {
+    if (d.type === 'url') return 7 + (d.hubEdges > 0 ? 2 : 0);
+    return 3.5 + (d.hubEdges > 15 ? 2 : d.hubEdges > 10 ? 1 : 0);
   }
 
-  function renderAll() {
-    renderHeader();
-    renderMetrics();
-    renderGraph();
-    renderStations();
-    renderSpazzmatic();
-    renderEntityTable();
-    renderTimeline();
-  }
+  // Tooltip
+  const tooltip = document.getElementById('graphTooltip');
+  node.on('mouseover', (event, d) => {
+    tooltip.style.display = 'block';
+    tooltip.innerHTML = `
+      <div class="tt-label">Value</div><div class="tt-value">${d.id}</div>
+      <div class="tt-label" style="margin-top:6px">Type</div><div>${d.type}</div>
+      <div class="tt-label" style="margin-top:6px">Status</div><div>${d.status}</div>
+      <div class="tt-label" style="margin-top:6px">Confidence</div><div>${d.confidence}</div>
+      <div class="tt-label" style="margin-top:6px">Station</div><div>${d.station}</div>
+      ${d.signature ? `<div class="tt-label" style="margin-top:6px">Signature</div><div style="font-size:9px">${d.signature}</div>` : ''}
+      ${d.isBridge ? '<div style="margin-top:6px;color:#4ade80;font-weight:600">BRIDGE NODE</div>' : ''}
+    `;
+  }).on('mousemove', (event) => {
+    const rect = container.getBoundingClientRect();
+    tooltip.style.left = (event.clientX - rect.left + 12) + 'px';
+    tooltip.style.top = (event.clientY - rect.top - 10) + 'px';
+  }).on('mouseout', () => {
+    tooltip.style.display = 'none';
+  });
 
-  // ==========================================
-  // HEADER
-  // ==========================================
-  function renderHeader() {
-    const meta = DATA.meta;
-    const zl = DATA.zorans_latest;
-
-    document.getElementById('protocol-version').textContent = `${meta.protocol} v${meta.version}`;
-
-    const dt = new Date(meta.exported_at);
-    document.getElementById('last-updated').textContent = dt.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
-
-    // Zoran's badge
-    const S = zl.stability_quotient;
-    const PRO = zl.primary_role_occupancy;
-    const state = zl.system_state;
-
-    let badgeClass = 'status-badge--healthy';
-    let dotClass = 'status-dot--green';
-    if (state === 'debt' || S < 0.8) {
-      badgeClass = 'status-badge--debt';
-      dotClass = 'status-dot--amber';
-    }
-    if (state === 'distress' || S < 0.5) {
-      badgeClass = 'status-badge--distress';
-      dotClass = 'status-dot--red';
-    }
-
-    const badge = document.getElementById('zoran-badge');
-    badge.className = 'status-badge ' + badgeClass;
-    badge.querySelector('.status-dot').className = 'status-dot ' + dotClass;
-    document.getElementById('zoran-badge-text').textContent =
-      `S=${S.toFixed(2)} | PRO=${(PRO * 100).toFixed(0)}% | ${state.toUpperCase()}`;
-  }
-
-  // ==========================================
-  // METRICS
-  // ==========================================
-  function renderMetrics() {
-    const entities = DATA.entities;
-    const edges = DATA.edges;
-    const zl = DATA.zorans_latest;
-
-    // Count by status
-    const statusCounts = {};
-    entities.forEach(e => { statusCounts[e.status] = (statusCounts[e.status] || 0) + 1; });
-
-    // Count by type
-    const typeCounts = {};
-    entities.forEach(e => { typeCounts[e.type] = (typeCounts[e.type] || 0) + 1; });
-
-    // ENTITIES
-    document.getElementById('metric-entities').textContent = entities.length;
-    const typeStr = Object.entries(typeCounts).map(([k,v]) => `${v} ${k}s`).join(' / ');
-    document.getElementById('metric-entities-detail').textContent = typeStr;
-
-    const bar = document.getElementById('entity-status-bar');
-    bar.innerHTML = '';
-    const colors = { completed: '#00e676', pending: '#ffab00', failed: '#ff1744', queued: '#448aff' };
-    Object.entries(statusCounts).forEach(([status, count]) => {
-      const seg = document.createElement('div');
-      seg.className = 'mini-bar__segment';
-      seg.style.width = (count / entities.length * 100) + '%';
-      seg.style.background = colors[status] || '#4a5e78';
-      seg.title = `${status}: ${count}`;
-      bar.appendChild(seg);
-    });
-
-    // EDGES
-    const relCounts = {};
-    edges.forEach(e => { relCounts[e.relationship] = (relCounts[e.relationship] || 0) + 1; });
-    document.getElementById('metric-edges').textContent = edges.length;
-    const relStr = Object.entries(relCounts).map(([k,v]) => `${v} ${k}`).join(' / ');
-    document.getElementById('metric-edges-detail').textContent = relStr;
-
-    // ABOYEUR
-    const aby = DATA.summary.aboyeur;
-    // Derive from events
-    const aboyeurApprovals = DATA.events.filter(e => e.event_type === 'aboyeur_approval').length;
-    const aboyeurRejections = DATA.events.filter(e => e.event_type === 'aboyeur_rejection').length;
-    const totalVerif = aboyeurApprovals + aboyeurRejections;
-    const approvalRate = totalVerif > 0 ? (aboyeurApprovals / totalVerif * 100) : (aby.verifications > 0 ? aby.approval_rate * 100 : 100);
-
-    document.getElementById('metric-aboyeur').textContent = approvalRate.toFixed(0) + '%';
-    document.getElementById('metric-aboyeur-detail').textContent =
-      `${aboyeurApprovals || aby.approvals} approved / ${aboyeurRejections || aby.rejections} rejected of ${totalVerif || aby.verifications} total`;
-
-    // SYSTEM STATE
-    const stateEl = document.getElementById('metric-state');
-    stateEl.textContent = zl.system_state.toUpperCase();
-    if (zl.system_state === 'equilibrium') stateEl.classList.add('metric-value--green');
-    else if (zl.system_state === 'debt') stateEl.classList.add('metric-value--amber');
-    else stateEl.classList.add('metric-value--red');
-
-    document.getElementById('metric-state-detail').textContent =
-      `S=${zl.stability_quotient.toFixed(2)} | PRO=${(zl.primary_role_occupancy * 100).toFixed(0)}% | ${zl.active_stations}/${zl.primary_stations} stations | ${zl.tasks_completed}/${zl.tasks_ingested} tasks`;
-  }
-
-  // ==========================================
-  // D3 NETWORK GRAPH
-  // ==========================================
-  function renderGraph() {
-    const container = document.getElementById('graph-container');
-    const svg = d3.select('#graph-svg');
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-
-    svg.selectAll('*').remove();
-
-    // Build nodes and links from data
-    const entityMap = {};
-    DATA.entities.forEach(e => {
-      entityMap[e.value] = e;
-    });
-
-    const nodeIds = new Set();
-    const nodes = [];
-    const links = [];
-
-    DATA.entities.forEach(e => {
-      if (!nodeIds.has(e.value)) {
-        nodeIds.add(e.value);
-        // Count edges for this entity
-        const edgeCount = DATA.edges.filter(edge => edge.source === e.value || edge.target === e.value).length;
-        nodes.push({
-          id: e.value,
-          type: e.type,
-          status: e.status,
-          station: e.station,
-          confidence: e.confidence,
-          aboyeur_signature: e.aboyeur_signature,
-          notes: e.notes,
-          edgeCount: edgeCount,
-          isSeed: e.type === 'url'
-        });
-      }
-    });
-
-    DATA.edges.forEach(e => {
-      // Make sure both source and target exist
-      if (nodeIds.has(e.source) && nodeIds.has(e.target)) {
-        links.push({
-          source: e.source,
-          target: e.target,
-          relationship: e.relationship
-        });
-      }
-    });
-
-    // Defs for arrows
-    const defs = svg.append('defs');
-
-    defs.append('marker')
-      .attr('id', 'arrow-links_to')
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 20)
-      .attr('refY', 0)
-      .attr('markerWidth', 6)
-      .attr('markerHeight', 6)
-      .attr('orient', 'auto')
-      .append('path')
-      .attr('d', 'M0,-4L10,0L0,4')
-      .attr('class', 'arrow-head')
-      .style('fill', '#4a5e78');
-
-    defs.append('marker')
-      .attr('id', 'arrow-subdomain_of')
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 20)
-      .attr('refY', 0)
-      .attr('markerWidth', 6)
-      .attr('markerHeight', 6)
-      .attr('orient', 'auto')
-      .append('path')
-      .attr('d', 'M0,-4L10,0L0,4')
-      .attr('class', 'arrow-head')
-      .style('fill', '#ffab0099');
-
-    // Radial gradient for glow effect
-    defs.append('radialGradient')
-      .attr('id', 'glow-cyan')
-      .selectAll('stop')
-      .data([
-        {offset: '0%', color: 'rgba(0,229,255,0.3)'},
-        {offset: '100%', color: 'rgba(0,229,255,0)'}
-      ])
-      .enter().append('stop')
-      .attr('offset', d => d.offset)
-      .attr('stop-color', d => d.color);
-
-    const g = svg.append('g');
-
-    // Zoom behavior
-    const zoom = d3.zoom()
-      .scaleExtent([0.3, 4])
-      .on('zoom', (event) => g.attr('transform', event.transform));
-
-    svg.call(zoom);
-
-    // Zoom controls
-    document.getElementById('zoom-in').addEventListener('click', () => svg.transition().call(zoom.scaleBy, 1.4));
-    document.getElementById('zoom-out').addEventListener('click', () => svg.transition().call(zoom.scaleBy, 0.7));
-    document.getElementById('zoom-reset').addEventListener('click', () => svg.transition().call(zoom.transform, d3.zoomIdentity));
-
-    // Draw links
-    const link = g.append('g')
-      .selectAll('line')
-      .data(links)
-      .enter().append('line')
-      .attr('class', 'link-line')
-      .attr('stroke', d => d.relationship === 'subdomain_of' ? 'rgba(255,171,0,0.3)' : 'rgba(30,41,64,0.8)')
-      .attr('stroke-width', d => d.relationship === 'subdomain_of' ? 1 : 1.5)
-      .attr('stroke-dasharray', d => d.relationship === 'subdomain_of' ? '3,3' : 'none')
-      .attr('marker-end', d => `url(#arrow-${d.relationship})`);
-
-    // Edge labels
-    const linkLabel = g.append('g')
-      .selectAll('text')
-      .data(links)
-      .enter().append('text')
-      .attr('class', 'link-label')
-      .text(d => d.relationship)
-      .style('font-size', '7px');
-
-    // Draw node glow for seeds
-    const nodeGlow = g.append('g')
-      .selectAll('circle')
-      .data(nodes.filter(n => n.isSeed))
-      .enter().append('circle')
-      .attr('r', 24)
-      .attr('fill', 'url(#glow-cyan)')
-      .attr('pointer-events', 'none');
-
-    // Draw nodes
-    const nodeColor = d => d.type === 'url' ? '#00e5ff' : '#b388ff';
-    const nodeRadius = d => {
-      if (d.isSeed) return Math.max(10, 6 + d.edgeCount * 1.5);
-      return Math.max(5, 3 + d.edgeCount * 1.2);
-    };
-
-    const node = g.append('g')
-      .selectAll('circle')
-      .data(nodes)
-      .enter().append('circle')
-      .attr('class', 'node-circle')
-      .attr('r', nodeRadius)
-      .attr('fill', d => d.isSeed ? '#00e5ff' : 'rgba(179,136,255,0.7)')
-      .attr('stroke', d => d.isSeed ? '#00e5ff' : '#b388ff')
-      .attr('stroke-opacity', d => d.isSeed ? 0.6 : 0.4)
-      .call(d3.drag()
-        .on('start', dragStart)
-        .on('drag', dragging)
-        .on('end', dragEnd));
-
-    // Node labels (always visible for seeds, hidden for others)
-    const nodeLabel = g.append('g')
-      .selectAll('text')
-      .data(nodes)
-      .enter().append('text')
-      .attr('class', 'node-label')
-      .text(d => {
-        const val = d.id;
-        if (d.isSeed) {
-          try { return new URL(val).hostname; } catch(e) { return val.slice(0,25); }
-        }
-        return val.length > 22 ? val.slice(0,22) + '..' : val;
-      })
-      .attr('dy', d => nodeRadius(d) + 12)
-      .style('font-size', d => d.isSeed ? '10px' : '8px')
-      .style('fill', d => d.isSeed ? 'rgba(0,229,255,0.8)' : 'rgba(136,153,176,0.7)');
-
-    // Tooltip
-    const tooltip = document.getElementById('node-tooltip');
-
-    node.on('mouseover', (event, d) => {
-      tooltip.innerHTML = `
-        <div class="tooltip-row"><span class="tooltip-key">Value</span><span class="tooltip-val">${d.id}</span></div>
-        <div class="tooltip-row"><span class="tooltip-key">Type</span><span class="tooltip-val">${d.type}</span></div>
-        <div class="tooltip-row"><span class="tooltip-key">Status</span><span class="tooltip-val">${d.status}</span></div>
-        <div class="tooltip-row"><span class="tooltip-key">Station</span><span class="tooltip-val">${d.station}</span></div>
-        <div class="tooltip-row"><span class="tooltip-key">Confidence</span><span class="tooltip-val">${(d.confidence * 100).toFixed(0)}%</span></div>
-        <div class="tooltip-row"><span class="tooltip-key">Aboyeur</span><span class="tooltip-val">${d.aboyeur_signature || 'N/A'}</span></div>
-        ${d.notes ? `<div class="tooltip-row"><span class="tooltip-key">Notes</span><span class="tooltip-val">${d.notes}</span></div>` : ''}
-      `;
-      tooltip.classList.add('visible');
-    }).on('mousemove', (event) => {
-      const rect = container.getBoundingClientRect();
-      let x = event.clientX - rect.left + 15;
-      let y = event.clientY - rect.top - 10;
-      if (x + 300 > width) x = x - 330;
-      tooltip.style.left = x + 'px';
-      tooltip.style.top = y + 'px';
-    }).on('mouseout', () => {
-      tooltip.classList.remove('visible');
-    });
-
-    // Force simulation
-    const simulation = d3.forceSimulation(nodes)
-      .force('link', d3.forceLink(links).id(d => d.id).distance(d => d.relationship === 'subdomain_of' ? 70 : 120))
-      .force('charge', d3.forceManyBody().strength(d => d.isSeed ? -350 : -120))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(d => nodeRadius(d) + 8))
-      .force('x', d3.forceX(width / 2).strength(0.05))
-      .force('y', d3.forceY(height / 2).strength(0.05));
-
-    simulation.on('tick', () => {
+  // Simulation
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(45))
+    .force('charge', d3.forceManyBody().strength(-60))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('x', d3.forceX(width / 2).strength(0.06))
+    .force('y', d3.forceY(height / 2).strength(0.06))
+    .force('collision', d3.forceCollide().radius(d => getRadius(d) + 2))
+    .on('tick', () => {
       link
         .attr('x1', d => d.source.x)
         .attr('y1', d => d.source.y)
         .attr('x2', d => d.target.x)
         .attr('y2', d => d.target.y);
-
-      linkLabel
-        .attr('x', d => (d.source.x + d.target.x) / 2)
-        .attr('y', d => (d.source.y + d.target.y) / 2 - 4);
-
-      node
-        .attr('cx', d => d.x)
-        .attr('cy', d => d.y);
-
-      nodeGlow
-        .attr('cx', d => d.x)
-        .attr('cy', d => d.y);
-
-      nodeLabel
-        .attr('x', d => d.x)
-        .attr('y', d => d.y);
+      node.attr('transform', d => `translate(${d.x},${d.y})`);
     });
 
-    function dragStart(event, d) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      d.fx = d.x;
-      d.fy = d.y;
-    }
-
-    function dragging(event, d) {
-      d.fx = event.x;
-      d.fy = event.y;
-    }
-
-    function dragEnd(event, d) {
-      if (!event.active) simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
-    }
+  function dragstarted(event, d) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x; d.fy = d.y;
   }
+  function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
+  function dragended(event, d) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null; d.fy = null;
+  }
+}
 
-  // ==========================================
-  // STATIONS
-  // ==========================================
-  function renderStations() {
-    const container = document.getElementById('stations-row');
-    const stations = DATA.stations;
+function zoomGraph(factor) {
+  const svg = d3.select('#graphContainer svg');
+  svg.transition().duration(300).call(svgZoom.scaleBy, factor);
+}
+function resetGraph() {
+  const svg = d3.select('#graphContainer svg');
+  const w = document.getElementById('graphContainer').clientWidth;
+  const h = document.getElementById('graphContainer').clientHeight;
+  svg.transition().duration(500).call(svgZoom.transform, d3.zoomIdentity.translate(0,0).scale(1));
+}
 
-    // Count entities per station
-    const entityByStation = {};
-    DATA.entities.forEach(e => {
-      entityByStation[e.station] = (entityByStation[e.station] || 0) + 1;
-    });
+// ===== DOSSIERS =====
+function renderDossiers() {
+  const grid = document.getElementById('dossiersGrid');
+  grid.innerHTML = DATA.dossiers.map((d, i) => {
+    const ecosystemTags = Object.entries(d.ecosystem_breakdown)
+      .map(([k, v]) => `<span class="tag">${k}: ${v}</span>`).join('');
+    const gapTags = [];
+    if (d.intelligence_gaps.low_confidence_count > 0) gapTags.push(`<span class="tag tag-amber">Low confidence: ${d.intelligence_gaps.low_confidence_count}</span>`);
+    if (d.intelligence_gaps.unsigned_count > 0) gapTags.push(`<span class="tag tag-amber">Unsigned: ${d.intelligence_gaps.unsigned_count}</span>`);
+    if (gapTags.length === 0) gapTags.push('<span class="tag">No gaps detected</span>');
+    const topConns = (d.top_connections || []).slice(0, 6).map(c =>
+      `<li><span>${c.value}</span><span class="conn-rel">${c.relationship}</span></li>`
+    ).join('');
 
-    container.innerHTML = stations.map(s => {
-      let types;
-      try { types = JSON.parse(s.handles_types); } catch(e) { types = [s.handles_types]; }
-      const count = entityByStation[s.station_id] || 0;
-      const isActive = s.status === 'active';
+    const seedDisplay = d.seed_url.replace(/^https?:\/\//, '');
+    const confPercent = (d.confidence * 100).toFixed(0);
+    const confColor = d.confidence >= 0.7 ? 'var(--green)' : d.confidence >= 0.4 ? 'var(--amber)' : 'var(--red)';
 
-      return `
-        <div class="station-card">
-          <div class="station-header">
-            <span class="station-name">${s.name}</span>
-            <span class="station-badge ${isActive ? 'station-badge--active' : 'station-badge--inactive'}">
-              ${isActive ? 'ACTIVE' : 'INACTIVE'}
-            </span>
-          </div>
-          <div class="station-meta">
-            <div class="station-meta-row">
-              <span class="station-meta-label">Station ID</span>
-              <span class="station-meta-value">${s.station_id}</span>
-            </div>
-            <div class="station-meta-row">
-              <span class="station-meta-label">Handles</span>
-              <span class="station-meta-value">${types.join(', ')}</span>
-            </div>
-            <div class="station-meta-row">
-              <span class="station-meta-label">Entities Processed</span>
-              <span class="station-meta-value" style="color:${count > 0 ? 'var(--cyan)' : 'var(--text-dim)'}">${count}</span>
-            </div>
-            <div class="station-meta-row">
-              <span class="station-meta-label">Primary</span>
-              <span class="station-meta-value">${s.is_primary ? 'Yes' : 'No'}</span>
-            </div>
-          </div>
+    return `<div class="dossier-card">
+      <div class="dossier-header" onclick="toggleDossier(${i})">
+        <span class="dossier-seed">${seedDisplay}</span>
+        <span class="dossier-toggle" id="dossierToggle${i}">&#9660;</span>
+      </div>
+      <div class="dossier-body" id="dossierBody${i}">
+        <div class="dossier-stats">
+          <div><div class="dossier-stat-label">Direct</div><div class="dossier-stat-value">${d.direct_connections}</div></div>
+          <div><div class="dossier-stat-label">2nd Degree</div><div class="dossier-stat-value">${d.second_degree_connections}</div></div>
+          <div><div class="dossier-stat-label">Total Reach</div><div class="dossier-stat-value">${d.total_reach}</div></div>
         </div>
-      `;
-    }).join('');
-  }
-
-  // ==========================================
-  // SPAZZMATIC PANEL
-  // ==========================================
-  function renderSpazzmatic() {
-    const panel = document.getElementById('spazz-panel');
-    const findings = DATA.findings;
-
-    if (!findings || findings.length === 0) {
-      panel.innerHTML = `
-        <div class="spazz-nominal">
-          <span class="status-dot status-dot--green" style="animation:none;opacity:1"></span>
-          System Nominal &mdash; No anomalies detected
+        <div class="dossier-section">
+          <div class="dossier-section-title">Confidence</div>
+          <div style="font-family:var(--mono);font-size:13px;color:${confColor}">${confPercent}%</div>
+          <div class="confidence-bar"><div class="confidence-fill" style="width:${confPercent}%;background:${confColor}"></div></div>
         </div>
-      `;
-    } else {
-      panel.innerHTML = findings.map(f => {
-        const severity = f.severity || 'warning';
-        const cls = severity === 'critical' ? 'spazz-finding--critical' : 'spazz-finding--warning';
-        return `
-          <div class="spazz-finding ${cls}">
-            <div style="font-weight:600;margin-bottom:4px;color:${severity === 'critical' ? 'var(--red)' : 'var(--amber)'}">${f.message || f.title || 'Finding'}</div>
-            <div style="font-size:11px;color:var(--text-secondary)">${f.detail || ''}</div>
-          </div>
-        `;
-      }).join('');
+        <div class="dossier-section">
+          <div class="dossier-section-title">Ecosystem Breakdown</div>
+          <div>${ecosystemTags}</div>
+        </div>
+        <div class="dossier-section">
+          <div class="dossier-section-title">Intelligence Gaps</div>
+          <div>${gapTags.join('')}</div>
+        </div>
+        <div class="dossier-section">
+          <div class="dossier-section-title">Top Connections</div>
+          <ul class="connection-list">${topConns}</ul>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleDossier(i) {
+  const body = document.getElementById('dossierBody' + i);
+  const toggle = document.getElementById('dossierToggle' + i);
+  body.classList.toggle('open');
+  toggle.classList.toggle('open');
+}
+
+// ===== AUDIT =====
+function renderAudit() {
+  const a = DATA.audit;
+  const score = (a.overall.integrity_score * 100).toFixed(1);
+  const scoreColor = a.overall.integrity_score >= 0.95 ? 'var(--green-bright)' : a.overall.integrity_score >= 0.8 ? 'var(--amber)' : 'var(--red)';
+
+  document.getElementById('auditHero').innerHTML = `
+    <div class="audit-score" style="color:${scoreColor}">${score}%</div>
+    <div class="audit-score-label">Integrity Score</div>
+    ${a.zero_drop.zero_drop_verified ?
+      '<div class="zero-drop-badge"><span style="width:8px;height:8px;border-radius:50%;background:currentColor"></span> ZERO-DROP VERIFIED</div>' :
+      '<div class="zero-drop-badge" style="border-color:var(--red-dim);color:var(--red);background:rgba(220,38,38,0.1)"><span style="width:8px;height:8px;border-radius:50%;background:currentColor"></span> DROP DETECTED</div>'
     }
-  }
+  `;
 
-  // ==========================================
-  // ENTITY TABLE
-  // ==========================================
-  let sortCol = 'id';
-  let sortDir = 1; // 1 = asc, -1 = desc
+  const checks = [
+    { label: 'Hash Integrity', data: a.hash_integrity, detail: `${a.hash_integrity.valid}/${a.hash_integrity.total} valid` },
+    { label: 'Signature Integrity', data: a.signature_integrity, detail: `${a.signature_integrity.signed}/${a.signature_integrity.total_completed} signed` },
+    { label: 'Transition Legality', data: a.transition_legality, detail: `${a.transition_legality.total_transitions} transitions, ${a.transition_legality.violations} violations` },
+    { label: 'Edge Consistency', data: a.edge_consistency, detail: `${a.edge_consistency.valid}/${a.edge_consistency.total_edges} valid` },
+    { label: 'Completeness', data: a.completeness, detail: `${a.completeness.complete}/${a.completeness.total} complete` },
+    { label: 'Zero Drop', data: a.zero_drop, detail: `${a.zero_drop.terminal} terminal, ${a.zero_drop.unaccounted} unaccounted` }
+  ];
 
-  function renderEntityTable() {
-    const tbody = document.getElementById('entity-tbody');
-    const entities = [...DATA.entities];
+  document.getElementById('auditChecks').innerHTML = checks.map(c => {
+    const pct = (c.data.pass_rate * 100).toFixed(1);
+    const cls = c.data.passed ? 'pass' : 'fail';
+    return `<div class="audit-check">
+      <div class="audit-check-label">${c.label}</div>
+      <div class="audit-check-value ${cls}">${pct}%</div>
+      <div class="audit-check-detail">${c.detail}</div>
+    </div>`;
+  }).join('');
+}
 
-    // Sort
-    entities.sort((a, b) => {
-      let va = a[sortCol], vb = b[sortCol];
-      if (typeof va === 'string') va = va.toLowerCase();
-      if (typeof vb === 'string') vb = vb.toLowerCase();
-      if (va < vb) return -1 * sortDir;
-      if (va > vb) return 1 * sortDir;
-      return 0;
-    });
+// ===== USE CASES =====
+function renderUseCases() {
+  const cases = [
+    { icon: '\u2693', name: 'Supply Chain Intelligence', desc: 'Map vendor networks, track dependencies, identify single points of failure across procurement chains.' },
+    { icon: '\u2261', name: 'Academic Research Graphs', desc: 'Build citation networks, discover co-authorship clusters, and surface hidden interdisciplinary links.' },
+    { icon: '\u2694', name: 'Competitive Intelligence', desc: 'Track competitor ecosystems, technology stacks, partnership networks, and market positioning.' },
+    { icon: '\u2622', name: 'Vulnerability Management', desc: 'Map CVE propagation paths, track patch dependencies, and model exploit chain topologies.' },
+    { icon: '\u2696', name: 'Financial Due Diligence', desc: 'Trace corporate ownership structures, beneficial interests, and cross-entity financial relationships.' },
+    { icon: '\u2611', name: 'Compliance Monitoring', desc: 'Monitor regulatory exposure, map compliance dependencies, and track policy propagation.' },
+    { icon: '\u2699', name: 'API Ecosystem Mapping', desc: 'Discover service dependencies, track API version chains, and map integration topologies.' },
+    { icon: '\u2637', name: 'Content Curation Networks', desc: 'Build knowledge graphs from content sources, track syndication paths, and surface origination.' },
+    { icon: '\u25CE', name: 'Brand Monitoring', desc: 'Track brand mentions across web ecosystems, map sentiment propagation, and detect impersonation.' },
+    { icon: '\u2606', name: 'Talent Intelligence', desc: 'Map professional networks, track expertise clusters, and identify key knowledge holders.' }
+  ];
 
-    tbody.innerHTML = entities.map(e => {
-      const confPct = (e.confidence * 100).toFixed(0);
-      const confColor = e.confidence >= 0.8 ? 'var(--green)' : e.confidence >= 0.5 ? 'var(--amber)' : 'var(--red)';
-      const sig = e.aboyeur_signature || 'N/A';
-      const sigShort = sig.length > 18 ? sig.slice(0, 18) + '..' : sig;
+  document.getElementById('usecasesGrid').innerHTML = cases.map(c =>
+    `<div class="usecase-card">
+      <div class="usecase-icon">${c.icon}</div>
+      <div class="usecase-name">${c.name}</div>
+      <div class="usecase-desc">${c.desc}</div>
+    </div>`
+  ).join('');
+}
 
-      return `<tr>
-        <td><span class="status-indicator status-indicator--${e.status}" title="${e.status}"></span></td>
-        <td><span class="type-badge type-badge--${e.type}">${e.type}</span></td>
-        <td title="${e.value}" style="max-width:280px">${e.value}</td>
-        <td>${e.station}</td>
-        <td>
-          <div class="confidence-bar-cell">
-            <div class="confidence-bar"><div class="confidence-bar__fill" style="width:${confPct}%;background:${confColor}"></div></div>
-            <span style="color:${confColor}">${confPct}%</span>
-          </div>
-        </td>
-        <td title="${sig}" style="font-size:10px;color:var(--text-dim)">${sigShort}</td>
-        <td title="${e.notes || ''}" style="max-width:240px;color:var(--text-dim)">${e.notes || '--'}</td>
-      </tr>`;
-    }).join('');
+// ===== SPAZZMATIC =====
+function renderFindings() {
+  const findings = DATA.findings.slice().reverse();
+  const container = document.getElementById('findingsContainer');
+  container.innerHTML = `<div class="findings-list">${findings.map(f => {
+    const sevClass = f.severity === 'critical' ? 'sev-critical' : f.severity === 'warning' ? 'sev-warning' : 'sev-info';
+    return `<div class="finding-row">
+      <span class="finding-severity ${sevClass}">${f.severity}</span>
+      <span class="finding-source">${f.source}</span>
+      <span class="finding-msg">${escapeHtml(f.message)}</span>
+    </div>`;
+  }).join('')}</div>`;
+}
 
-    // Sort headers
-    document.querySelectorAll('.entity-table th').forEach(th => {
-      th.classList.toggle('sorted', th.dataset.sort === sortCol);
-      th.querySelector('.sort-arrow').textContent = (th.dataset.sort === sortCol && sortDir === -1) ? '\u25BC' : '\u25B2';
-    });
-  }
+// ===== ENTITY TABLE =====
+let tableState = { sortCol: 'id', sortAsc: true, page: 0, perPage: 25 };
 
-  document.querySelectorAll('.entity-table th').forEach(th => {
-    th.addEventListener('click', () => {
-      const col = th.dataset.sort;
-      if (sortCol === col) sortDir *= -1;
-      else { sortCol = col; sortDir = 1; }
-      renderEntityTable();
-    });
+function renderEntityTable() {
+  const entities = [...DATA.entities];
+  entities.sort((a, b) => {
+    let va = a[tableState.sortCol], vb = b[tableState.sortCol];
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return tableState.sortAsc ? -1 : 1;
+    if (va > vb) return tableState.sortAsc ? 1 : -1;
+    return 0;
   });
 
-  // ==========================================
-  // EVENT TIMELINE
-  // ==========================================
-  let visibleEvents = 50;
+  const start = tableState.page * tableState.perPage;
+  const page = entities.slice(start, start + tableState.perPage);
+  const totalPages = Math.ceil(entities.length / tableState.perPage);
 
-  function renderTimeline() {
-    const container = document.getElementById('timeline-scroll');
-    // Reverse chronological
-    const events = [...DATA.events].reverse();
-    const visible = events.slice(0, visibleEvents);
+  const cols = [
+    { key: 'id', label: 'ID' },
+    { key: 'type', label: 'Type' },
+    { key: 'value', label: 'Value' },
+    { key: 'status', label: 'Status' },
+    { key: 'station', label: 'Station' },
+    { key: 'confidence', label: 'Confidence' }
+  ];
 
-    let html = visible.map(e => {
-      const dt = new Date(e.created_at);
-      const time = dt.toTimeString().slice(0, 8);
-      return `
-        <div class="timeline-item">
-          <span class="timeline-time">${time}</span>
-          <span class="timeline-source">
-            <span class="timeline-event-badge evt-${e.event_type}">${e.event_type.replace(/_/g,' ')}</span>
-          </span>
-          <span class="timeline-message" title="${e.message}">${e.message}</span>
-        </div>
-      `;
-    }).join('');
-
-    if (events.length > visibleEvents) {
-      html += `<button class="timeline-show-more" id="show-more-btn">Show more (${events.length - visibleEvents} remaining)</button>`;
-    }
-
-    container.innerHTML = html;
-
-    const btn = document.getElementById('show-more-btn');
-    if (btn) {
-      btn.addEventListener('click', () => {
-        visibleEvents += 50;
-        renderTimeline();
-      });
-    }
+  function arrow(col) {
+    if (tableState.sortCol !== col) return '<span class="sort-arrow">\u2195</span>';
+    return `<span class="sort-arrow">${tableState.sortAsc ? '\u2191' : '\u2193'}</span>`;
   }
 
-  // ==========================================
-  // INIT
-  // ==========================================
-  init();
-})();
+  document.getElementById('entityTableContainer').innerHTML = `
+    <div class="table-wrap">
+      <table class="entity-table">
+        <thead><tr>
+          ${cols.map(c => `<th class="${tableState.sortCol === c.key ? 'sorted' : ''}" onclick="sortTable('${c.key}')">${c.label} ${arrow(c.key)}</th>`).join('')}
+        </tr></thead>
+        <tbody>
+          ${page.map(e => {
+            const typeClass = e.type === 'url' ? 'type-url' : e.type === 'domain' ? 'type-domain' : 'type-dossier';
+            const confPct = (e.confidence * 100).toFixed(0);
+            const confColor = e.confidence >= 0.7 ? 'var(--green)' : e.confidence >= 0.4 ? 'var(--amber)' : 'var(--red)';
+            return `<tr>
+              <td>${e.id}</td>
+              <td><span class="type-dot ${typeClass}"></span>${e.type}</td>
+              <td title="${escapeHtml(e.value)}">${escapeHtml(e.value)}</td>
+              <td><span class="status-dot"></span>${e.status}</td>
+              <td>${e.station}</td>
+              <td><span class="conf-bar"><span class="conf-bar-fill" style="width:${confPct}%;background:${confColor}"></span></span>${confPct}%</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      <div class="table-footer">
+        <span>Showing ${start + 1}-${Math.min(start + tableState.perPage, entities.length)} of ${entities.length}</span>
+        <span>
+          <button class="table-page-btn" onclick="changePage(-1)" ${tableState.page === 0 ? 'disabled' : ''}>&laquo; Prev</button>
+          <button class="table-page-btn" onclick="changePage(1)" ${tableState.page >= totalPages - 1 ? 'disabled' : ''}>Next &raquo;</button>
+        </span>
+      </div>
+    </div>
+  `;
+}
+
+function sortTable(col) {
+  if (tableState.sortCol === col) {
+    tableState.sortAsc = !tableState.sortAsc;
+  } else {
+    tableState.sortCol = col;
+    tableState.sortAsc = true;
+  }
+  tableState.page = 0;
+  renderEntityTable();
+}
+
+function changePage(dir) {
+  tableState.page += dir;
+  renderEntityTable();
+}
+
+// ===== TIMELINE =====
+let timelineFilter = 'all';
+
+function renderTimeline() {
+  const events = DATA.events.slice().reverse();
+  const types = [...new Set(events.map(e => e.event_type))];
+
+  const filterContainer = document.getElementById('timelineFilter');
+  filterContainer.innerHTML = `
+    <button class="timeline-filter-btn ${timelineFilter === 'all' ? 'active' : ''}" onclick="setTimelineFilter('all')">All</button>
+    ${types.map(t => `<button class="timeline-filter-btn ${timelineFilter === t ? 'active' : ''}" onclick="setTimelineFilter('${t}')">${t.replace(/_/g,' ')}</button>`).join('')}
+  `;
+
+  const filtered = timelineFilter === 'all' ? events : events.filter(e => e.event_type === timelineFilter);
+  const shown = filtered.slice(0, 200);
+
+  document.getElementById('timelineContainer').innerHTML = shown.map(e => {
+    const time = e.created_at ? e.created_at.split(' ')[1] || e.created_at.split('T')[1]?.slice(0,8) || '' : '';
+    return `<div class="timeline-row">
+      <span class="timeline-time">${time}</span>
+      <span class="timeline-type evt-${e.event_type}">${e.event_type.replace(/_/g,' ')}</span>
+      <span class="timeline-source">${e.source || ''}</span>
+      <span class="timeline-msg">${escapeHtml(e.message || '')}</span>
+    </div>`;
+  }).join('');
+}
+
+function setTimelineFilter(t) {
+  timelineFilter = t;
+  renderTimeline();
+}
+
+// ===== UTILS =====
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ===== SCROLL SPY =====
+const sections = ['stations','metrics','network','dossiers','audit','usecases','spazzmatic','entities','timeline'];
+window.addEventListener('scroll', () => {
+  const scrollY = window.scrollY + 120;
+  let current = '';
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.offsetTop <= scrollY) current = id;
+  });
+  document.querySelectorAll('.nav-pill').forEach(p => {
+    p.classList.toggle('active', p.getAttribute('onclick')?.includes(current));
+  });
+}, { passive: true });
 </script>
 </body>
 </html>
