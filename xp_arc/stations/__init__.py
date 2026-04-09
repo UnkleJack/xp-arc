@@ -5,3 +5,8 @@ from .plongeur import ThePlongeur
 from .librarian import TheLibrarian
 from .cartographer import TheCartographer
 from .auditor import TheAuditor
+from .warden import TheWarden
+from .amphithere import TheAmphithere
+from .hydra import TheHydra
+from .salamander import TheSalamander
+from .herald import TheHerald
