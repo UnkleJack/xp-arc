@@ -14,7 +14,7 @@ Inspired by Escoffier's kitchen brigade system, XP-Arc orchestrates AI agents th
 xp-arc/
 ├── xp_arc/                    # Core Python package
 │   ├── core/
-│   │   ├── pool.py            # Intelligence Pool — SQLite state machine
+│   │   ├── pool.py            # Intelligence Pool — DuckDB state machine
 │   │   ├── executive.py       # Routing loop — reads raw, dispatches by type
 │   │   ├── station.py         # Base station class — all agents inherit this
 │   │   └── aboyeur.py         # QA enforcement — validates every station output
@@ -25,7 +25,7 @@ xp-arc/
 │   │   └── plongeur.py        # Cleanup — orphan recovery, GC sweeps
 │   └── monitoring/
 │       ├── zorans_law.py      # Stability metrics — S quotient + PRO
-│       └── spazzmatic.py      # Adversarial review — rule-based QA authority
+│       └── spazzmatic.py      # Adversarial review — Gemini-backed QA authority
 ├── dragon/                    # DRAGON web dashboard
 │   ├── index.html             # Live visualization of Intelligence Pool
 │   └── pool_state.json        # Exported pipeline state
@@ -52,13 +52,19 @@ python run_kitchen.py --db myrun.db https://example.com
 python run_kitchen.py --export-only --db myrun.db
 ```
 
-**Zero external dependencies.** Python 3.10+ standard library only.
+## Dependencies
+
+| Tier | Scope | Requirements |
+|------|-------|-------------|
+| Orchestration core | `pool.py`, `station.py`, `executive.py`, `fracture.py` | Python 3.12 stdlib only — zero pip dependencies |
+| Full deployment | Production runtime | DuckDB · Redis (HA write broker) |
+| Visualization | DRAGON dashboard | React · Node.js · NPM |
 
 ## The Six Coordination Primitives
 
 | # | Primitive | Implementation | Status |
 |---|---|---|---|
-| 1 | Shared Pool State | `pool.py` — SQLite state machine, constitutional schema | ✓ |
+| 1 | Shared Pool State | `pool.py` — DuckDB state machine, constitutional schema | ✓ |
 | 2 | Typed Routing | `executive.py` — dispatches by entity type to registered stations | ✓ |
 | 3 | QA Enforcement | `aboyeur.py` — validates every output, signs approved entities | ✓ |
 | 4 | Graceful Degradation | Brigade Compression fallback roles | Spec'd |
@@ -71,9 +77,9 @@ DRAGON (Dynamic Relational Asset Graph & Operations Network) visualizes the Inte
 
 - Interactive entity network graph
 - Station health cards
-- Zoran's Law stability metrics
-- SpaZzMatiC adversarial findings
-- Full event timeline
+- Zoran's Law stability metrics (S quotient + PRO)
+- SpaZzMatiC adversarial findings and safe halt alerts
+- Full event timeline and Snowball cascade DAGs
 
 Open `dragon/index.html` in a browser after running the pipeline.
 
@@ -95,15 +101,26 @@ Every station output must pass QA before propagating downstream:
     "confidence": "float 0.0–1.0",
     "notes": "string"
   },
+  "fallback_activated": "boolean",
   "aboyeur_signature": "ABOY-{hash}"
 }
 ```
 
+Full schema: [`docs/aboyeur-protocol-v1.json`](./docs/aboyeur-protocol-v1.json)
+
+## Positioning
+
+XP-Arc is not a communication protocol (that's A2A). It is not a tool-access protocol (that's MCP). It is the orchestration layer above them both — the shared Intelligence Pool that any agent writes to, the QA gate that validates what they produce, and the stability signal that tells operators when the system is drifting.
+
+An A2A-compliant agent can be registered as an XP-Arc station. An MCP server can be wrapped as a Forager. The pool doesn't care what protocol the station uses internally.
+
+See [WHITEPAPER.md §2](./WHITEPAPER.md) for the full positioning argument.
+
 ## Documentation
 
-- [WHITEPAPER.md](./WHITEPAPER.md) — Full protocol specification
-- [CONSTITUTION.MD](./CONSTITUTION.MD) — Operational law, v1.4
-- [LEGAL.md](./LEGAL.md) — Legal framework
+- [WHITEPAPER.md](./WHITEPAPER.md) — Full protocol specification (v0.2)
+- [CONSTITUTION.MD](./CONSTITUTION.MD) — Operational law (v1.4)
+- [LEGAL.md](./LEGAL.md) — Legal framework and operator responsibilities
 
 ## License
 

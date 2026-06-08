@@ -1,34 +1,38 @@
 # XP-Arc: A Unified Protocol for Resilient Multi-Agent Intelligence Systems
 
-**Version:** 0.1  
-**Authors:** Jack (unklejack), Claude (Anthropic), Zo.Computer, Gemini (Google)  
-**Repository:** github.com/unklejack/xp-arc  
-**License:** MIT  
+**Version:** 0.2
+**Authors:** Jack (unklejack), Claude (Anthropic), Zo.Computer, Gemini (Google)
+**Repository:** github.com/unklejack/xp-arc
+**License:** Business Source License 1.1
+**Changelog:** See Section 12
 
 ---
 
 ## Abstract
 
-Multi-agent AI systems have proliferated faster than the protocols governing them.
-Teams building agent pipelines today solve the same coordination problems
-independently: how do agents hand off work without losing state? How does a
-system degrade without crashing silently? How do you verify that an agent's
-output is trustworthy before it propagates downstream?
+The 2026 multi-agent AI landscape has produced strong standards at two layers.
+At the communication layer, Google's A2A protocol standardizes how agents discover
+and delegate tasks to each other. At the tool-access layer, Anthropic's MCP
+standardizes how agents reach external resources — databases, APIs, filesystems.
 
-XP-Arc — Exponential Architecture — is a unified open protocol for resilient
-multi-agent intelligence systems. It does not invent new agent capabilities. It
-defines the contract between them: a shared state surface, a QA enforcement
-layer, a graceful degradation model, a task fracturing protocol for primary
-agent failure, and a stability metric that tells operators whether their system
-is coherent or drifting.
+Neither layer specifies what happens between those two points: where agents write
+their outputs, how those outputs are validated before they propagate downstream,
+what the system does when one agent fails mid-pipeline, and how an operator knows
+whether the pipeline is running coherently or quietly drifting.
 
-The protocol is named after the author's daughters, X and P. Its public meaning
-is Exponential Architecture. Its private meaning is that it should outlast
-everything built on top of it.
+XP-Arc — Exponential Architecture — is that missing layer. It defines the
+orchestration contract above the communication and tool-access layers: a shared
+Intelligence Pool that any agent writes to and reads from; a QA enforcement layer
+that validates every output before downstream propagation; a graceful degradation
+model; a task fracturing protocol for primary agent failure; and a stability metric
+that tells operators whether their system is coherent or drifting.
 
-XP-Arc v0.1 is released as an open specification. The reference implementation
-is written in Python 3.12 with zero external dependencies. The codebase is
-operational. The brigade has run.
+XP-Arc gives A2A and MCP a shared pool to write into and a QA layer to validate
+what they produce. Drop it into an existing multi-agent stack. Keep your agents.
+
+The reference implementation is written in Python 3.12. The orchestration core has
+zero pip dependencies. Full deployment requires DuckDB, a Redis-buffered write
+broker, and React/Node for the DRAGON visualization layer. The brigade has run.
 
 ---
 
@@ -57,7 +61,91 @@ XP-Arc addresses all three failure modes by design, not by patch.
 
 ---
 
-## Section 2 — Originality
+## Section 2 — Positioning: The Orchestration Layer
+
+*This section was Section 7 in v0.1. It has been promoted to Section 2 because
+it is the most important thing to understand about XP-Arc before reading the rest
+of this whitepaper.*
+
+### 2.1 The Three Layers of Multi-Agent Infrastructure
+
+The 2026 multi-agent protocol landscape has produced strong solutions at two
+distinct layers.
+
+**The communication layer** handles agent-to-agent discovery and task delegation.
+Google's A2A protocol (2025) standardizes this: agents publish capability cards
+at well-known URLs, client agents discover remote agents, and tasks flow between
+them over JSON-RPC with Server-Sent Events for real-time streaming. ACP provides
+a REST-based alternative with agent registries. ANP extends this to internet-wide
+federation using decentralized identifiers.
+
+**The tool-access layer** handles agent-to-resource connectivity. Anthropic's
+Model Context Protocol (MCP) standardizes how agents access external systems.
+MCP servers expose tools, resources, and prompts through a common interface.
+Agents discover capabilities and invoke them without writing custom integrations
+for every data source.
+
+**The coordination layer** — what happens between communication and tool use —
+has no standard. Teams building agent pipelines today solve the same coordination
+problems independently: shared state management, output validation, degradation
+handling, stability measurement. XP-Arc defines this layer.
+
+### 2.2 What XP-Arc Is Not
+
+XP-Arc is not a communication protocol. It does not specify how agents discover
+each other, how they authenticate, or how they pass messages peer-to-peer.
+A2A already does this well.
+
+XP-Arc is not a tool-access protocol. It does not specify how agents invoke
+external resources or how capability descriptions are structured. MCP already
+does this well.
+
+XP-Arc is not a governance or compliance framework. It does not specify
+cross-domain federation, regulatory audit trails, or enterprise identity
+management. OpenEAGO and similar enterprise specifications address these concerns.
+
+### 2.3 What XP-Arc Is
+
+XP-Arc is the shared operational surface that existing protocols assume exists
+but do not specify. Specifically:
+
+- **The Intelligence Pool** is where agents write their outputs and read their
+  inputs. All state flows through a single authenticated, auditable surface.
+  No agent talks directly to another. The pool is the message bus, event queue,
+  and audit log simultaneously.
+
+- **The Aboyeur Protocol** is how outputs are validated before they propagate.
+  Every station output must pass QA — payload hash verification, schema
+  conformance, confidence scoring — before it is marked `completed` and allowed
+  to trigger downstream work.
+
+- **Brigade Compression** is how the system degrades gracefully when a station
+  fails. Fallback role matrices, checkpoint-based task handoff, and the Minimum
+  Viable Brigade definition keep the pipeline running without halting or requiring
+  human intervention.
+
+- **Zoran's Law** is how operators know whether the system is healthy. A
+  SLA-weighted stability quotient (S > 1.0) and primary role occupancy (PRO ≥ 70%)
+  measured on a rolling window give real-time system state in two numbers.
+
+### 2.4 Integration Path
+
+An A2A-compliant agent can be registered as an XP-Arc station. The agent declares
+XP-Arc station roles in its capability card. It receives its task specification
+via the pool, executes, and returns an Aboyeur-schema-compliant payload. The
+pool doesn't care what protocol the station uses internally.
+
+An MCP server maps directly to the Forager station role. The Forager wrapper
+calls the MCP tool, extracts entities, and writes them to the pool. The rest of
+the brigade processes MCP-sourced intelligence identically to intelligence sourced
+by any other means.
+
+XP-Arc is additive to the existing protocol ecosystem. It is the kitchen that
+A2A and MCP cook in.
+
+---
+
+## Section 3 — Originality
 
 XP-Arc does not claim to have invented multi-agent systems, message queues,
 state machines, or QA validation layers. All of these exist. The originality
@@ -81,20 +169,30 @@ precision, onto multi-agent AI architecture.
 
 The mapping is not metaphor. It is specification.
 
+The originality claim is defended by two vectors: publication date and the
+specific combination of primitives. The six coordination primitives listed above
+appear individually across prior art. No prior work — including the 2026
+entrants addressed in Section 4 — combines all six into a unified runtime
+contract with a single shared state surface at its center.
+
 ---
 
-## Section 3 — Prior Art
+## Section 4 — Prior Art
 
-The following systems and frameworks inform XP-Arc's design. None of them
-constitute prior art for the unified protocol claim.
+The following systems and frameworks inform XP-Arc's design or operate in
+adjacent problem spaces. This section distinguishes each from XP-Arc's
+specific contribution.
+
+### 4.1 Agent Frameworks
 
 **LangChain / LangGraph** — agent chaining and graph-based orchestration.
 Addresses sequencing but does not specify shared pool state, typed entity
-routing, or QA enforcement between agents.
+routing, or QA enforcement between agents. Agents can be registered as
+XP-Arc stations.
 
 **AutoGen (Microsoft)** — conversational multi-agent framework. Agents
 communicate peer-to-peer rather than through a shared auditable state surface.
-No formal degradation protocol.
+No formal degradation protocol. Compatible as XP-Arc stations.
 
 **CrewAI** — role-based agent teams. Closest in spirit to the brigade model but
 without a formal QA layer, stability metric, or task fracturing protocol.
@@ -102,33 +200,101 @@ without a formal QA layer, stability metric, or task fracturing protocol.
 **Semantic Kernel** — plugin-based agent orchestration. Strong tool integration,
 weak inter-agent state management.
 
-**Google A2A Protocol** — agent-to-agent communication standard. Defines how
-agents talk to each other. Does not define what they write to, how outputs are
-validated, or how the system behaves when agents fail. XP-Arc is compatible with
-A2A by design.
+### 4.2 Communication Protocols
 
-**Anthropic MCP** — Model Context Protocol for tool access. Defines how agents
-access external resources. XP-Arc wraps MCP servers as Forager stations
-transparently.
+**Google A2A Protocol** (2025) — agent-to-agent communication standard. Defines
+how agents discover each other via capability cards and how tasks flow between
+them. Does not define what agents write to, how outputs are validated before
+downstream propagation, or how the system behaves when agents fail. XP-Arc
+is compatible with A2A by design (Section 2.4).
+
+**Agent Communication Platform (ACP)** — REST-based agent registry and
+communication standard. Client-server architecture with agent registries. Focuses
+on cross-platform integration and stateful messaging. Does not address the
+shared-state, QA, or degradation layers that XP-Arc specifies.
+
+**AgentMesh Protocol** (2026) — open standard for agent identity, trust, and
+message passing. Defines a Semantic Message Bus and Agent Identity & Trust
+Protocol. AgentMesh and XP-Arc are potentially complementary: AgentMesh handles
+identity and trust establishment, XP-Arc handles coordination once agents are
+working together. XP-Arc does not specify its own identity protocol; AgentMesh
+could serve that role in a combined deployment.
+
+### 4.3 Orchestration and Governance Standards
+
+**Open Agent Protocol (OAP) v1.0.0** (May 2026) — the broadest-scope standard
+currently in the field. OAP specifies identity, capability description, structured
+invocation, monetization, multi-agent coordination, confidentiality enforcement,
+and tamper-evident auditing. Its stated goal is "the default interoperability
+layer for autonomous agents, comparable in scope to what HTTP, OAuth, and TLS
+represent for the human web." OAP has 26 RFCs and adapters for MCP, A2A, OpenAI
+function calling, and LangGraph. It is community-governed with no controlling
+entity.
+
+*XP-Arc vs. OAP*: OAP specifies the agent economy — how agents transact,
+establish trust, monetize services, and audit their actions. XP-Arc specifies
+the agent kitchen — how agents coordinate shared state, validate each other's
+outputs, degrade gracefully, and measure system stability. These are different
+layers. OAP has no Intelligence Pool model; it does not specify what all agents
+write to in a shared orchestration context. XP-Arc has no policy stack or
+monetization layer; it does not specify how agents charge for their services.
+An XP-Arc deployment that needs commercial governance could run OAP's policy
+stack above its coordination layer. XP-Arc's Aboyeur is not equivalent to OAP's
+audit log — the Aboyeur is a runtime QA gate, not a financial receipt chain.
+
+**Oracle Open Agent Specification** (October 2025) — a framework-agnostic
+declarative language for defining agents and workflows. Inspired by ONNX:
+portable agent definitions that run on any compliant runtime. Focuses on the
+configuration and portability layer, not the runtime coordination layer. An
+agent defined in Oracle Agent Spec could be instantiated as an XP-Arc station.
+
+**OpenEAGO (FINOS)** (March 2026) — Enterprise Agent Governance and
+Orchestration specification from Citi engineers. Addresses regulatory compliance
+(GDPR, HIPAA, PCI-DSS), enterprise authentication (OAuth2, mTLS), and
+cross-domain federation for regulated industries. The target deployer is an
+enterprise compliance team, not an agent developer. Different buyer, different
+use case. XP-Arc's DRAGON observability layer and Aboyeur audit trail could
+complement OpenEAGO's compliance requirements in a hybrid deployment.
+
+### 4.4 Standards Track
+
+**IETF MACP (Multi-Agent Collaboration Protocol)** (IETF DMSC Working Group,
+May 2026) — an IETF Standards Track draft defining trusted agent onboarding,
+capability-based discovery, distributed capability synchronization, and
+cross-domain multi-agent federation. MACP operates at the network and identity
+layer: how agents register with Agent Gateways, how capability directories
+synchronize across administrative domains, how agents discover collaboration
+partners across organizational boundaries.
+
+*XP-Arc vs. MACP*: MACP answers "how do agents find each other across the
+internet?" XP-Arc answers "how do agents coordinate once they are working
+together in a shared pipeline?" These are sequential concerns, not competing
+ones. A deployment using MACP for cross-domain agent discovery could use
+XP-Arc as the runtime coordination layer once agents are instantiated. The
+IETF standardization track matters: if MACP reaches RFC status, it will likely
+become the federation standard. XP-Arc's design is compatible with that outcome.
+
+### 4.5 Reference Frameworks
 
 **OODA Loop (Boyd)** — observe, orient, decide, act. The temporal rhythm of the
 XP-Arc Executive maps to this loop. The Intelligence Pool is the observation
 surface. The Aboyeur is the orientation gate.
 
-XP-Arc synthesizes these prior contributions into a unified contract. The
-synthesis is the contribution.
+XP-Arc synthesizes the above prior contributions into a unified runtime contract.
+The synthesis is the contribution.
 
 ---
 
-## Section 4 — The Framework: The Kitchen That Thinks
+## Section 5 — The Framework: The Kitchen That Thinks
 
 Before the formal specification, a demonstration.
 
-On the day this section was written, a five-target spread was run live against
-public URLs — Hacker News, a GitHub profile, zo.computer, Lobsters, and HTTPBin.
-No configuration beyond the seed list. No human intervention between start and
-finish. This is the raw output from the Intelligence Pool after one execution
-cycle:
+On the day the v0.1 whitepaper was written, a five-target spread was run live
+against public URLs — Hacker News, a GitHub profile, zo.computer, Lobsters, and
+HTTPBin. No configuration beyond the seed list. No human intervention between
+start and finish. This is the raw output from the Intelligence Pool after one
+execution cycle:
+
 ```
 [POOL] + Added new url: https://news.ycombinator.com
 [POOL] + Added new url: https://github.com/unklejack
@@ -178,7 +344,7 @@ stopped rather than guessing. That behavior is designed.
 What follows is the formal specification of the architecture that produced
 this output.
 
-### 4.1 The Intelligence Pool — The Pass
+### 5.1 The Intelligence Pool — The Pass
 
 In Escoffier's kitchen, the pass is the long counter between the kitchen and the
 dining room. Every dish moves through it. Nothing reaches the guest without
@@ -186,41 +352,72 @@ crossing it.
 
 In XP-Arc, the Intelligence Pool is that counter.
 
-Implemented as a SQLite state machine, the Pool is the only shared data structure
+Implemented as a DuckDB state machine, the Pool is the only shared data structure
 in the system. Every agent reads from it and writes back to it. No station talks
 directly to another. No agent passes data peer-to-peer. The Pool is the message
 bus, the event queue, the audit log, and the ground truth — simultaneously.
 
 Every entity enters the Pool with status `raw`. The Executive reads `raw` entities
 and routes them by type to the appropriate station. When a station completes its
-work, the entity is marked `mapped`. When no station can handle an entity type,
-it becomes `unhandled` — logged, visible, and available for future routing if new
-station types are registered.
+work and the Aboyeur validates its output, the entity is marked `completed`.
+When no station can handle an entity type, it becomes `unhandled` — logged,
+visible, and available for future routing if new station types are registered.
+
+All Pool writes are atomic. Timestamps (`assigned_at`, `completed_at`) are
+generated by the DuckDB engine, never by the calling agent. This prevents clock
+drift across containers from producing unreliable SLA calculations or phantom
+safe-halt triggers. Agent-supplied timestamps are constitutionally prohibited.
 
 This single design decision — all state flows through one authenticated, auditable
-surface — is what separates XP-Arc from ad-hoc pipelines that route data through
-function calls or shared memory that leaves no trail.
+surface with database-enforced integrity — is what separates XP-Arc from ad-hoc
+pipelines that route data through function calls or shared memory that leaves
+no trail.
 
-### 4.2 The Exponential Snowball
+### 5.2 The Pool Substrate and Write Architecture
 
-When a new entity is written to the Pool, the Executive wakes. It reads the new
-`raw` entity, identifies its type, routes it to the appropriate station, and the
-station produces new entities — which are written back to the Pool — which wakes
-the Executive again.
+The Pool is implemented on DuckDB with a Redis-buffered HA Write Broker.
+
+DuckDB locks the database file during writes. Under high Snowball concurrency,
+this produces lock contention. The Write Broker buffers all Pool writes via a
+Redis queue before committing to DuckDB, decoupling write throughput from
+DuckDB's file lock. The Write Broker must be deployed with a hot standby to
+eliminate the single point of failure introduced by a single-threaded broker.
+
+DRAGON (Section 8) polls an in-memory materialized view maintained by the Write
+Broker, updated on every committed write. DRAGON never queries the primary DuckDB
+file directly, eliminating read-heavy I/O contention under Snowball load.
+
+The core orchestration layer (`pool.py`, `station.py`, `executive.py`,
+`fracture.py`) uses Python 3.12 standard library only — zero pip dependencies.
+This claim is scoped to the orchestration core. Full deployment additionally
+requires: DuckDB, the Redis-buffered Write Broker, and React/Node.js for DRAGON.
+
+### 5.3 The Exponential Snowball
+
+When a new entity is written to the Pool with status `completed` and a valid
+Aboyeur signature, its output payload may contain spawn directives — instructions
+to create new downstream tasks. The Executive processes these directives, creating
+new `raw` entities, which trigger new station processing, which produce new
+outputs, which may spawn further directives.
 
 One seed URL doesn't trigger one extraction. It triggers a cascade. The Forager
 pulls domains. The domains trigger analyst processing. The analyst output triggers
 relationship mapping. The whole intelligence picture assembles itself,
 automatically, from a single starting point.
 
-This is the Exponential Snowball: each entity written to the pool auto-triggers
-the next station, compounding outputs without compounding operator effort.
+Spawn directives fire only from `completed` status with a valid `aboyeur_signature`.
+The `pending_qa` gate prevents the Snowball from triggering on unvalidated outputs
+— a critical safety property that prevents cascade corruption.
 
-The Snowball is also the primary self-inflicted DoS vector if unconstrained.
-The Executive enforces `max_entities=500` as a configurable default and a
-crawl depth limit per seed. See Section 5.5 for the full threat model.
+Cascade depth is enforced by the Write Broker, not declared by the agent.
+When a spawn directive is submitted, the Write Broker queries the actual database
+lineage of the `parent_task_id` to calculate real cascade depth before inserting
+the new task. An agent that submits a spawn directive with a null or spoofed
+`parent_task_id` will have its depth calculated from scratch. The default maximum
+cascade depth is 5 levels. The Snowball is also the primary self-inflicted DoS
+vector if unconstrained; `max_entities=500` is the configurable default.
 
-### 4.3 The Fracture Protocol — Cognitive Sharding
+### 5.4 The Fracture Protocol — Cognitive Sharding
 
 Brigade Compression handles station failure gracefully. But graceful degradation
 has a ceiling: if the fallback station produces low-confidence output, the
@@ -228,11 +425,11 @@ intelligence map is compromised at that node.
 
 The Fracture Protocol is the answer to that ceiling.
 
-When a primary station is blocked or returns output below confidence threshold
-(default: 0.6), XP-Arc does not route the same task to a lesser agent. It
-fractures the task — decomposing a complex intelligence target into atomic
-micro-tasks, each assigned to a separate lightweight agent operating within a
-narrow, precisely-specified scope.
+When a primary station returns output below confidence threshold (default: 0.6),
+XP-Arc does not route the same task to a lesser agent. It fractures the task —
+decomposing a complex intelligence target into atomic micro-tasks, each assigned
+to a separate lightweight agent operating within a narrow, precisely-specified
+scope.
 
 The insight is empirical: small open-source models have low reasoning ceilings
 when asked to perform multi-dimensional tasks simultaneously. But given a single,
@@ -240,30 +437,22 @@ precisely-scoped micro-task — one question, one data source, one output format
 the same model performs with near-primary precision. Shard the load and you shard
 the requirement for expensive inference.
 
-**The mechanics:**
-
-1. **The Block** — Primary station fails or returns confidence below threshold.
-   Entity status → `failed`.
-2. **The Fracture** — Executive invokes Fracture Protocol. Entity decomposed into
-   N atomic micro-entities, each tagged `fractured`, each carrying a narrow
-   `task_spec`.
-3. **The Swarm** — Each micro-entity routed to a lightweight Commis agent
-   (Llama 3 8B, Mistral 7B). Each agent handles exactly one micro-task.
-4. **The Stitch** — Micro-agents return `stitchable` outputs. Stitcher aggregates
-   siblings into composite entity with confidence scoring.
-5. **The Result** — Single clean `mapped` entity. Fracture invisible to downstream
-   consumers.
-
 **Pool status flow under Cognitive Sharding:**
 ```
-raw → processing → failed → fractured → stitchable → mapped
+raw → processing → pending_qa → failed → fractured → stitchable → mapped → completed
 ```
 
-### 4.4 The Seven Stations
+Shards may only be stitched when all shards carry status `completed` with valid
+`aboyeur_signature`s. Partial stitching is constitutionally prohibited.
+Fracture depth is limited to one level — Commis agents do not have fracture
+authorization.
+
+### 5.5 The Seven Stations
 
 **1. The Forager** *(Garde Manger)*
 Raw intelligence acquisition. Seeds → DOM extraction → entity writes.
-Fallback: passive pool reader, surfaces unhandled entities for human review.
+Wraps MCP servers transparently. Fallback: passive pool reader, surfaces
+unhandled entities for human review.
 
 **2. The Analyst** *(Saucier)*
 Relationship inference. Builds edge graph from entity pool.
@@ -279,21 +468,29 @@ Fallback: append-only log mode.
 
 **5. The Sentinel** *(Poissonnier)*
 Anomaly detection. Monitors pool for unexpected patterns, high-cardinality
-floods, status transition anomalies.
+floods, status transition anomalies. Monitors Zoran's Law thresholds in
+real time.
 Fallback: alert-only mode, no automated response.
 
 **6. The Aboyeur** *(Expeditor — QA Enforcement Node)*
 Nothing propagates downstream without Aboyeur clearance. Validates station
 outputs against protocol schema: payload hash, station identity, timestamp
-integrity, output format. Failed validation → `unhandled` with rejection reason
-logged. Cannot be bypassed. Cannot be configured away. Structural.
+integrity, output format. Failed validation → task status `pending_qa` resolved
+to `failed`, rejection reason logged. Cannot be bypassed. Cannot be configured
+away. Structural.
+
+Aboyeur rejection circuit breaker: if `rejection_count` reaches `max_rejections`
+(default: 3), the task transitions immediately to `failed` and escalates to the
+Chef de Cuisine with SLA suspended. This prevents an Aboyeur hallucination from
+generating an infinite reject-regenerate loop that exhausts API token budgets
+before Zoran's Law detects the problem.
 
 **7. The Lateral Mesh** *(R&D)*
 Operates outside the active brigade. Stress-tests assumptions, runs experimental
 routing logic, surfaces novel patterns upstream. Prevents the system from
 optimizing into a local maximum.
 
-### 4.5 The Aboyeur Protocol — Formal Schema
+### 5.6 The Aboyeur Protocol — Formal Schema
 
 Every station output must conform to this schema:
 ```json
@@ -315,22 +512,41 @@ Every station output must conform to this schema:
 }
 ```
 
-The `payload_hash` field is the provenance mechanism. Mismatch between write
-and read means corrupted or tampered payload — entity rejected, logged, flagged.
+The `payload_hash` field is the provenance mechanism. At the moment a task
+enters the Pool with status `raw`, its hash (SHA-256 of the serialized payload)
+is sealed. This hash is immutable — no downstream station may alter the payload
+after sealing. Mismatch between write and read means corrupted or tampered payload.
 
 The `aboyeur_signature` is the QA clearance token. Only the Aboyeur generates
 it. Downstream stations check for its presence before consuming any entity.
+Spawn directives cannot fire until a valid `aboyeur_signature` is present and
+the task has reached `completed` status — the `pending_qa` gate enforces this
+at the Pool write layer.
 
-### 4.6 Zoran's Law — The Stability Threshold
+### 5.7 Zoran's Law — The Stability Threshold
 
 Every complex adaptive system has a phase transition point. For XP-Arc:
 
 > *S > 1: When the system's correction rate outpaces its informational decay
 > rate, the system self-heals.*
 
-When more than 70% of active stations operate within their primary roles, the
-system achieves coherent intelligence output — the Zoran Threshold. Below 70%,
-the brigade runs on fallbacks. The Sentinel monitors this ratio in real time.
+Zoran's Law uses a SLA-weighted formula:
+
+```
+S   = Σ(sla_seconds for completed tasks) / Σ(sla_seconds for ingested tasks)
+PRO = agents_operating_in_primary_role / total_active_agents
+```
+
+The weighting by `sla_seconds` (not raw task count) prevents high-volume
+micro-tasks from masking degraded heavy-reasoning tasks. An unweighted ratio
+would allow a healthy Plongeur running thousands of short GC sweeps to produce
+a falsely high S reading while Saucier reasoning tasks — carrying 300-second
+SLAs — quietly fail. The weighted formula ensures each task contributes to S
+in proportion to its cognitive labor expectation.
+
+When S > 1.0 and PRO ≥ 70%, the brigade is healthy. Below 70% PRO, Brigade
+Compression is triggered. Below S = 0.5 for more than two measurement intervals,
+SpaZzMatiC issues a Safe Halt Recommendation with a 60-second veto window.
 
 Zoran's Law is a health signal, not a hard cutoff. The system tells you where
 it is and keeps running within its degraded capability. That transparency is
@@ -338,145 +554,125 @@ the feature.
 
 ---
 
-## Section 5 — Implementation
+## Section 6 — Implementation
 
-### 5.1 Reference Codebase
+### 6.1 Reference Codebase
+
 ```
 xp-arc/
-├── pool.py          # Intelligence Pool — SQLite state machine
-├── station.py       # Base station class — all agents inherit this
-├── executive.py     # Routing loop — reads raw, dispatches by type
-├── forager.py       # DOM scraping — seed URLs → entity extraction
-├── dragon.py        # Visualization — pool edges → D2 graph output
-├── fracture.py      # Fracture Protocol — cognitive sharding engine
-└── run_kitchen.py   # Entry point — seeds pool, starts brigade
+├── xp_arc/
+│   ├── core/
+│   │   ├── pool.py          # Intelligence Pool — DuckDB state machine
+│   │   ├── executive.py     # Routing loop — reads raw, dispatches by type
+│   │   ├── station.py       # Base station class — all agents inherit this
+│   │   └── aboyeur.py       # QA enforcement — validates every station output
+│   ├── stations/
+│   │   ├── forager.py       # DOM scraping — seed URLs → entity extraction
+│   │   ├── analyst.py       # Relationship inference — domain classification + edges
+│   │   ├── sentinel.py      # Anomaly detection — pool health monitoring
+│   │   └── plongeur.py      # Cleanup — orphan recovery, GC sweeps
+│   └── monitoring/
+│       ├── zorans_law.py    # Stability metrics — S quotient + PRO
+│       └── spazzmatic.py    # Adversarial review — Gemini-backed QA authority
+├── dragon/                  # DRAGON web dashboard
+│   ├── index.html           # Live visualization of Intelligence Pool
+│   └── pool_state.json      # Exported pipeline state
+├── run_kitchen.py           # CLI entry point
+├── WHITEPAPER.md            # This document
+├── CONSTITUTION.MD          # Operational law (v1.4)
+└── docs/
+    └── aboyeur-protocol-v1.json
 ```
 
-**Stack:** Python 3.12. Zero external dependencies. Standard library only.
-Architecture is synchronous loop with asyncio-ready scaffolding.
+**Dependency tiers:**
 
-### 5.2 Verified Execution — The Five-Target Spread
+| Tier | Scope | Dependencies |
+|------|-------|-------------|
+| Core orchestration | `pool.py`, `station.py`, `executive.py`, `fracture.py` | Python 3.12 stdlib only |
+| Full deployment | Production runtime | DuckDB, Redis (Write Broker) |
+| Visualization | DRAGON dashboard | React, Node.js, NPM |
 
-The reference implementation was validated against five live public targets.
-Log annotations explain what each line demonstrates:
+The "zero pip dependencies" claim is scoped to the orchestration core only.
 
-`[POOL] + Added new url:` — Operator writes seeds. Pool accepts as `raw`.
-Executive not yet invoked.
+### 6.2 Verified Execution — The Five-Target Spread
 
-`[EXECUTIVE] Raw ingredient on the pass:` — Executive detects `raw` entity,
-reads type, routes to registered handler. Automatic.
+*(Unchanged from v0.1 — see Section 5 demo output above.)*
 
-`[The Forager] Scraping target DOM:` / `[POOL] + Added new domain:` — Forager
-extracts, writes new entity. This write re-triggers Executive. Snowball started.
-
-`[DOMAIN] www.apple.com (unhandled)` — No station registered for domain
-processing beyond extraction. Executive logs honestly. Brigade Compression: the
-system knows its own capability boundary.
-
-`https://news.ycombinator.com --(links_to)--> www.apple.com` — Pool infers
-relationship. DRAGON can render without additional operator input.
-
-**What this run proves:** recursive loop executes and terminates cleanly;
+What this run proves: recursive loop executes and terminates cleanly;
 pool correctly tracks entity status across multiple types; Executive routes by
 type without hardcoded logic; unhandled entities surface visibly; edges generate
 automatically; Snowball scales linearly with seed count.
 
-**What this run does not yet prove:** Aboyeur validation; Brigade Compression
-failover; Zoran's Law threshold behavior; production-scale performance.
+What this run does not yet prove: full Aboyeur validation; Brigade Compression
+failover; Zoran's Law threshold behavior; production-scale performance under the
+Redis Write Broker architecture.
 
 The honest accounting of what is and isn't proven is itself an architectural
 statement.
 
-### 5.3 Reference Deployment — The Zo.Computer Substrate
+### 6.3 Reference Deployment
 
-The XP-Arc reference implementation runs on Zo.computer — a programmable
-personal mainframe operating simultaneously as execution runtime, web server,
-API host, filesystem, and database layer.
+The reference implementation runs on Zo.computer — a programmable personal
+mainframe serving as execution runtime, web server, API host, filesystem, and
+database layer.
 
-**Persistent daemons — the kitchen never closes.**
+The `unklejack.zo.space` domain runs a Hono + Bun backend sharing the exact
+same filesystem as the XP-Arc workspace. The `/api/dragon` route queries the
+Write Broker's materialized view — not the primary DuckDB file — eliminating
+read-heavy I/O contention. DRAGON polls every 500 milliseconds.
 
-The Executive and all station agents are registered as persistent background
-services using Zo's native `register_user_service` capability. They sit in
-memory continuously, watching the Intelligence Pool. When a new entity is written,
-the Executive responds with zero spin-up latency.
-
-**The native glass wall — no middleware required.**
-
-The `unklejack.zo.space` domain runs a Hono + Bun backend sharing the exact same
-filesystem as the XP-Arc workspace. The `/api/dragon` route queries `xp_arc.db`
-directly — no ORM, no network hop, no serialization layer between pool and API
-consumer.
-
-**DRAGON as a live interface — the boardroom demo.**
-
-A React page at `/dragon` polls `/api/dragon` every 500 milliseconds. As the
-Forager extracts entities and stations mark them `mapped`, every state change
-reflects in the visualization within half a second.
-
-The operator experience: drop a seed URL into an input box. Watch the graph
-build itself. Nodes appear as entities are extracted. Edges draw as relationships
-are inferred. The shadow infrastructure of any target maps itself live, on screen,
-without the operator touching the pipeline after the seed.
-
-That is the demo. A browser tab. A URL input. A graph that grows.
+XP-Arc is not Zo-specific. The orchestration core and the Intelligence Pool
+substrate are deployable on any Python 3.12 + DuckDB environment. The
+Zo.computer deployment is one reference implementation, not a requirement.
 
 ---
 
-## Section 5.5 — Security Architecture and Threat Model
+## Section 7 — Security Architecture and Threat Model
 
 *A system that doesn't know its own attack surface doesn't deserve to be trusted
 with yours.*
 
-### 5.5.1 Pool Has No Authentication (Production Severity: High)
+### 7.1 Pool Has No Authentication (Production Severity: High)
 
-Any process on the same machine can read and write to `xp_arc.db` directly.
+Any process on the same machine can read and write to the DuckDB file directly.
 Acceptable in single-operator PoC. Critical in production multi-agent deployment.
 A compromised station can inject synthetic entities, corrupt edge data, or flood
 the entity table.
 
 **Fix:** Pool access layer with signed writes. Stations authenticate before any
-write is accepted. Not yet implemented in v0.1 — first production gate before
-live deployment.
+write is accepted. Targeted for v0.3.
 
-### 5.5.2 Forager Is a Blind Trust Machine (Production Severity: Critical)
+### 7.2 Forager Is a Blind Trust Machine (Production Severity: Critical)
 
 The Forager writes whatever it extracts from the DOM to the pool as fact. The
 attack class is known: prompt injection via environment. A target site serves a
 malicious payload — SQL injection syntax, script tags, path traversal strings.
 The Forager writes it raw. The Snowball propagates it.
 
-**Fix:** Input sanitization inside `add_entity()`. One regex check per entity
-type. Domains must match domain patterns. URLs must match URL patterns.
-Ships before v0.2.
+**Fix:** Input sanitization inside `add_entity()`. Domains must match domain
+patterns. URLs must match URL patterns. **Shipped in v0.2.**
 
-### 5.5.3 Executive Has No Rate Limiting (Severity: Medium)
+### 7.3 Executive Has No Rate Limiting (Severity: Medium)
 
-A target returning 10,000 outbound links produces 10,000 `raw` entities. The
-Executive loops 10,000 times. No throttle. No circuit breaker. Sufficient
-complexity turns the system into a self-inflicted denial of service.
+A target returning 10,000 outbound links produces 10,000 `raw` entities without
+a throttle. `max_entities=500` configurable default and crawl depth limit per
+seed are the mitigations. The Write Broker's Redis queue provides additional
+backpressure at the database write layer.
 
-**Fix:** `max_entities=500` configurable default. Crawl depth limit per seed.
+### 7.4 No Provenance Verification Between Stations (Severity: Medium)
 
-### 5.5.4 No Provenance Verification Between Stations (Severity: Medium)
+The `payload_hash` field exists in the Aboyeur schema. Full validation logic
+is specified in CONSTITUTION §4. Not yet fully implemented — targeted for the
+Aboyeur v1 implementation milestone.
 
-The Executive trusts any `raw` entity in the pool. No signature, no hash
-comparison, no tamper detection. The `payload_hash` field exists in the Aboyeur
-schema. The validation logic is specified. Not yet implemented.
-
-**Status:** Aboyeur node is the next major implementation milestone. Until it
-ships, XP-Arc operates without provenance verification. This whitepaper says
-so explicitly.
-
-### 5.5.5 DRAGON Output Injection (Severity: Low → Medium)
+### 7.5 DRAGON Output Injection (Severity: Low → Medium)
 
 `dragon.breathe_fire()` takes entity values directly from pool and writes to
-`.d2` file. Crafted entity values can produce malformed graph renders. Severity
-escalates when DRAGON becomes interactive.
+graph output. Crafted entity values can produce malformed graph renders.
+**Fix:** Sanitize all entity values before graph output. Severity escalates
+when DRAGON becomes interactive.
 
-**Fix:** Sanitize all entity values before writing to D2 output. One-hour
-implementation task.
-
-### 5.5.6 The Legal Surface (Severity: Existential)
+### 7.6 The Legal Surface (Severity: Existential)
 
 XP-Arc is an OSINT intelligence system. Pointed at real targets, it scrapes
 domains, extracts relationships, and maps structures automatically.
@@ -488,81 +684,69 @@ during a scrape, regardless of public accessibility.
 
 **This system needs a lawyer before it needs a pen tester.**
 
-XP-Arc v0.1 is published as an open research framework. The authors make no
+XP-Arc v0.2 is published as an open research framework. The authors make no
 representation that any specific deployment against any specific target is lawful
 in any specific jurisdiction. Operators assume full legal responsibility.
 
-### 5.5.7 Pre-Production Pen Test Checklist
+### 7.7 Pre-Production Pen Test Checklist
+
 ```
 □ SQL injection via malicious entity values
-□ Pool poisoning via direct DB write
+□ Pool poisoning via direct DuckDB file write
 □ Snowball DoS via high-cardinality target
 □ Prompt injection via DOM payload
 □ DRAGON output injection via crafted entity value
 □ Station bypass — can an agent write directly, skipping the pool?
 □ Provenance chain spoofing
-□ Rate limit evasion
+□ Rate limit evasion at Write Broker
 □ Auth bypass on pool write access
+□ Write Broker hot standby failover under concurrent load
 ```
 
 ---
 
-## Section 6 — DRAGON: The Visualization Layer
+## Section 8 — DRAGON: The Visualization Layer
 
 *Dynamic Relational Asset Graph & Operations Network*
 
 DRAGON was born from a mistake. During an early design session, Zo Computer
 misread a nickname in the system as an instruction. The output was unexpected.
-The name stuck. And in the way that the best accidents do, it turned out to be
-exactly right.
+The name stuck.
 
-DRAGON reads the edge relationships written to the Intelligence Pool by the
-Analyst station and renders them as a live node graph — entities as nodes,
-relationships as directed edges, status as color. Every `links_to` relationship
-becomes an arrow. Every `mapped` entity becomes a confirmed node. Every
-`unhandled` entity renders visibly — present, honest about its own incompleteness.
+DRAGON is the XP-Arc observability layer — a React dashboard polling the
+Intelligence Pool's materialized view (via the Write Broker) at 500ms intervals.
+It renders entities as nodes, relationships as directed edges, and status as
+color. Every `links_to` relationship becomes an arrow. Every `completed` entity
+becomes a confirmed node. Every `unhandled` entity renders visibly — present,
+honest about its own incompleteness.
 
-The current implementation writes `.d2` graph definition files to disk. The next
-evolution — already deployed on the Zo substrate — emits pool events over
-WebSocket, renders in a live browser UI, and redraws the graph in real time as
-the brigade runs. The operator watches the intelligence map assemble itself,
-node by node.
+DRAGON is not a reporting tool. It is the Glass Wall principle made visible:
+full observability, bounded mutability. The operator watches the intelligence
+map assemble itself, node by node, in real time.
 
-DRAGON is not a reporting tool. It is the system made visible.
+DRAGON is constitutionally mandatory. A deployment without a functioning
+DRAGON layer is constitutionally incomplete.
 
----
+**DRAGON must surface:**
+- Live pool state — all tasks, current status, station assignment
+- Zoran's Law metrics — S and PRO in real time
+- Brigade Compression events and active fallback role assignments
+- Aboyeur activity — verifications, rejections, circuit breaker triggers
+- Snowball chains — active cascade DAGs with depth indicators
+- Fracture groups — shard progress, stitching readiness
+- Cognitive debt — per-station backpressure
+- SpaZzMatiC findings — active alerts and safe halt recommendations
 
-## Section 7 — A2A and MCP Compatibility
-
-XP-Arc was designed before Google's Agent-to-Agent protocol and Anthropic's
-Model Context Protocol reached current adoption levels. It is compatible with
-both by architecture, not by retrofit.
-
-The Intelligence Pool is a message bus. Any agent that can read from and write
-to a shared state surface — regardless of framework — can participate in the
-brigade. An A2A-compliant agent can be registered as a station. An MCP server
-can be wrapped as a Forager. The pool doesn't care what runs the station. It
-cares about the Aboyeur Protocol schema the station returns.
-
-**A2A integration path:** An A2A agent card declares XP-Arc station roles in its
-capability manifest. The Executive reads station registrations from the pool's
-config layer at startup. The agent receives its task spec via the pool, executes,
-and returns an Aboyeur-schema-compliant payload.
-
-**MCP integration path:** An MCP server exposing tools maps directly to the
-Forager role. The Forager wrapper calls the MCP tool, extracts entities, and
-writes them to the pool. The rest of the brigade processes MCP-sourced
-intelligence identically to DOM-scraped intelligence.
-
-XP-Arc doesn't compete with A2A or MCP. It gives them a shared pool to write
-into and a QA layer to validate what they produce.
+DRAGON is read-only. Exception: SpaZzMatiC Safe Halt Recommendations surface
+as actionable alerts with a 60-second veto countdown.
 
 ---
 
-## Section 8 — The Open Specification
+## Section 9 — The Open Specification
 
 XP-Arc is open. The specification, the protocol schema, the reference
-implementation, and this whitepaper are published without restriction.
+implementation, and this whitepaper are published without restriction under
+the Business Source License 1.1.
 
 The history of infrastructure software is a history of open specifications
 winning. TCP/IP. HTTP. Git. Linux. The pattern is consistent: when the protocol
@@ -572,21 +756,24 @@ concentrates in what's built around the protocol — not in the protocol itself.
 XP-Arc follows the Red Hat model explicitly. The spec is the commons. The
 monetizable surface is everything built on it: managed deployments, enterprise
 integrations, certified station implementations, the DRAGON dashboard, the
-Aboyeur validation service, and the consulting layer that helps organizations
-point the brigade at their actual problems.
+Aboyeur validation service, CPP prompt packs, and the consulting layer that
+helps organizations point the brigade at their actual problems.
 
 Open-sourcing the spec also serves the originality claim. Prior art is
 established by publication date, not patent filing. This whitepaper, the GitHub
 repository, and the Aboyeur Protocol JSON schema constitute a dated, public,
-citable record of XP-Arc's architecture as of its v0.1 release.
+citable record of XP-Arc's architecture as of its v0.1 release (March 16, 2026).
+v0.2 extends that record.
 
-The Fracture Protocol, the Aboyeur node, Brigade Compression, the Intelligence
-Pool state machine, Zoran's Law — these are the contributions. They are given
-to the field. What comes back is worth more than what was given.
+The BSL 1.1 allows free use for non-production and non-commercial purposes.
+Commercial production use requires a commercial license from David J. Riedl.
+After four years from release date, the code converts to MIT. This structure
+protects the Red Hat consulting and certification revenue model while preserving
+long-term open-source intent.
 
 ---
 
-## Section 9 — The Recipe Book and Emergent Synthesis
+## Section 10 — The Recipe Book and Emergent Synthesis
 
 The most powerful outputs of XP-Arc will not be the ones its authors designed.
 
@@ -607,14 +794,12 @@ Bitcoin station writes a wallet address. The aviation station writes a tail
 number. The corporate station writes a director's name. The Analyst station,
 doing its job, draws the edge: same entity, three data sources, one relationship.
 
-Nobody wrote an agent to find that. The architecture synthesized it. The
-Intelligence Pool is the particle accelerator. The community's recipes are the
-particles. The collisions are emergent.
+Nobody wrote an agent to find that. The architecture synthesized it.
 
-This is not a feature of XP-Arc that can be designed in advance. It is a
-property of shared-pool multi-agent architecture operating at community scale.
-The more recipes the community writes, the more unexpected the synthesis. The
-more specialized the agents, the more surprising the collisions.
+The Intelligence Pool is the particle accelerator. The community's recipes are
+the particles. The collisions are emergent. This is not a feature that can be
+designed in advance. It is a property of shared-pool multi-agent architecture
+operating at community scale.
 
 The operator running the master instance accumulates every unintentional
 zero-day discovery the global contributor base accidentally cooks up. Not by
@@ -664,6 +849,51 @@ and outputs none of them could have produced alone.
 
 ---
 
-*XP-Arc v0.1 — Published March 16, 2026*  
-*github.com/unklejack/xp-arc*  
+## Section 12 — Changelog: v0.2 from v0.1
+
+**Structural changes:**
+
+- Section 7 (A2A and MCP Compatibility) promoted to Section 2 (Positioning:
+  The Orchestration Layer) and substantially expanded. This is now the second
+  thing a reader encounters, not the second-to-last.
+
+**Updated Prior Art (Section 4):**
+
+- Added: Open Agent Protocol (OAP) v1.0.0 with explicit differentiation
+- Added: IETF MACP (DMSC Working Group) with explicit differentiation
+- Added: AgentMesh Protocol with complementary positioning
+- Added: Oracle Open Agent Specification
+- Added: OpenEAGO (FINOS) with explicit differentiation
+
+**Architecture corrections:**
+
+- Pool substrate corrected from SQLite to DuckDB throughout
+- Redis-buffered HA Write Broker added to architecture description (§5.2)
+- DRAGON materialized view architecture described (§5.2, §8)
+- Dependency claim corrected: "zero pip dependencies" scoped to orchestration
+  core only; full dependency tiers documented in §6.1 table
+- DB-generated timestamps described and rationale explained (§5.1)
+
+**Specification updates (from CONSTITUTION v1.4):**
+
+- Zoran's Law formula updated to SLA-weighted (§5.7): S = Σ(sla_seconds for
+  completed) / Σ(sla_seconds for ingested). Rationale: prevents micro-task
+  volume from masking degraded heavy-reasoning tasks.
+- Aboyeur rejection circuit breaker described (§5.5): max_rejections=3 default,
+  then failed + Chef escalation. Prevents infinite hallucination loops.
+- `pending_qa` gate and its relationship to Snowball spawn mechanics described
+  (§5.3, §5.6)
+- Cascade depth enforcement by Write Broker (not agent-declared) described (§5.3)
+- Fracture depth limit of one level documented (§5.4)
+
+**Security updates:**
+
+- §7.2: Forager input sanitization noted as shipped in v0.2
+- §7.3: Write Broker backpressure noted as additional mitigation
+- §7.7: Pen test checklist updated for Write Broker architecture
+
+---
+
+*XP-Arc v0.2 — June 2026*
+*github.com/unklejack/xp-arc*
 *unklejack.zo.space/dragon*

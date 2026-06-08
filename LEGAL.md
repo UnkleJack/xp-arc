@@ -6,4 +6,14 @@ In the United States, the Computer Fraud and Abuse Act makes unauthorized scrapi
 
 **This system needs a lawyer before it needs a pen tester.**
 
-XP-Arc v0.1 is published as an open research framework. The authors make no representation that any specific deployment against any specific target is lawful in any specific jurisdiction. Operators assume full legal responsibility.
+XP-Arc v0.2 is published as an open research framework. The authors make no representation that any specific deployment against any specific target is lawful in any specific jurisdiction. Operators assume full legal responsibility.
+
+## License
+
+XP-Arc is released under the **Business Source License (BSL) 1.1**.
+
+- Free to use for non-production and non-commercial purposes.
+- Commercial production use requires a commercial license from David J. Riedl.
+- Converts to MIT license 4 years from the release date of each version.
+
+See the `LICENSE` file for the full BSL 1.1 text.
