@@ -85,6 +85,9 @@ class IntelligencePool:
                     sla_suspended INTEGER DEFAULT 0,
                     crawl_depth INTEGER DEFAULT 0,
                     max_crawl_depth INTEGER DEFAULT 3,
+                    root_task_id INTEGER,
+                    cascade_depth INTEGER DEFAULT 0,
+                    spawn_chain TEXT,
                     UNIQUE(type, value)
                 )
             """)
@@ -95,6 +98,14 @@ class IntelligencePool:
             except sqlite3.OperationalError:
                 self.conn.execute("ALTER TABLE entities ADD COLUMN crawl_depth INTEGER DEFAULT 0")
                 self.conn.execute("ALTER TABLE entities ADD COLUMN max_crawl_depth INTEGER DEFAULT 3")
+
+            # Add cascade lineage columns if they don't exist (migration)
+            try:
+                self.conn.execute("SELECT root_task_id FROM entities LIMIT 1")
+            except sqlite3.OperationalError:
+                self.conn.execute("ALTER TABLE entities ADD COLUMN root_task_id INTEGER")
+                self.conn.execute("ALTER TABLE entities ADD COLUMN cascade_depth INTEGER DEFAULT 0")
+                self.conn.execute("ALTER TABLE entities ADD COLUMN spawn_chain TEXT")
 
             # Edges — relationship graph
             self.conn.execute("""
@@ -164,20 +175,26 @@ class IntelligencePool:
     def add_entity(self, ent_type: str, value: str, sla_seconds: int = 60,
                    parent_task_id: int = None,
                    crawl_depth: int = 0,
-                   max_crawl_depth: int = 3) -> int | None:
+                   max_crawl_depth: int = 3,
+                   root_task_id: int = None,
+                   cascade_depth: int = 0,
+                   spawn_chain: str = None) -> int | None:
         """Write a new raw entity to the pool. Returns entity ID or None if duplicate.
 
-        crawl_depth: how many hops from the original seed this entity was discovered at.
-        max_crawl_depth: depth limit for this entity's subtree — entities discovered
-            from this one that exceed this depth are rejected.
+        Lineage params (CONSTITUTION Article VII, Section 7.4):
+        - root_task_id: the original seed entity that started this Snowball chain
+        - cascade_depth: number of spawn levels from root (seed=0, its children=1, etc.)
+        - spawn_chain: JSON list of ancestor entity IDs tracing back to root
         """
         payload_hash = compute_payload_hash(ent_type, value)
         try:
             with self.conn:
                 cur = self.conn.execute("""
-                    INSERT INTO entities (type, value, status, payload_hash, sla_seconds, parent_task_id, crawl_depth, max_crawl_depth)
-                    VALUES (?, ?, 'raw', ?, ?, ?, ?, ?)
-                """, (ent_type, value, payload_hash, sla_seconds, parent_task_id, crawl_depth, max_crawl_depth))
+                    INSERT INTO entities (type, value, status, payload_hash, sla_seconds, parent_task_id, crawl_depth, max_crawl_depth, root_task_id, cascade_depth, spawn_chain)
+                    VALUES (?, ?, 'raw', ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (ent_type, value, payload_hash, sla_seconds, parent_task_id,
+                       crawl_depth, max_crawl_depth, root_task_id,
+                       cascade_depth, spawn_chain))
                 eid = cur.lastrowid
                 self._log_event('entity_added', 'pool', f"New {ent_type}: {value}", f"id={eid}, depth={crawl_depth}")
                 return eid
@@ -380,6 +397,64 @@ class IntelligencePool:
             AND sla_suspended = 0
             AND (julianday('now') - julianday(assigned_at)) * 86400 > sla_seconds
         """).fetchall()
+
+
+    # ─── Spawn / Cascade Lineage ─────────────────────────────────────────────────
+
+    def get_lineage_depth(self, entity_id: int) -> int:
+        """Trace parent_task_id chain to root. Returns number of levels (0 = root)."""
+        depth = 0
+        current = entity_id
+        visited = set()
+        while True:
+            if current in visited:
+                break  # cycle guard
+            visited.add(current)
+            row = self.conn.execute(
+                "SELECT parent_task_id FROM entities WHERE id = ?", (current,)
+            ).fetchone()
+            if not row or row['parent_task_id'] is None:
+                break
+            depth += 1
+            current = row['parent_task_id']
+        return depth
+
+    def get_root_task_id(self, entity_id: int) -> int | None:
+        """Trace parent_task_id chain to root. Returns root entity ID."""
+        current = entity_id
+        visited = set()
+        while True:
+            if current in visited:
+                break
+            visited.add(current)
+            row = self.conn.execute(
+                "SELECT parent_task_id FROM entities WHERE id = ?", (current,)
+            ).fetchone()
+            if not row or row['parent_task_id'] is None:
+                return current  # current is the root
+            current = row['parent_task_id']
+        return None  # cycle
+
+    def get_spawn_chain(self, entity_id: int) -> list[int]:
+        """Return the full ancestor chain from root to this entity as a list of IDs."""
+        chain = []
+        current = entity_id
+        visited = set()
+        while True:
+            if current in visited:
+                break
+            visited.add(current)
+            row = self.conn.execute(
+                "SELECT parent_task_id FROM entities WHERE id = ?", (current,)
+            ).fetchone()
+            if not row:
+                break
+            chain.append(current)
+            if row['parent_task_id'] is None:
+                break
+            current = row['parent_task_id']
+        chain.reverse()
+        return chain
 
     # ─── Stats for Zoran's Law ───
 

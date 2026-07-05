@@ -5,7 +5,7 @@ Reads raw entities from the pool, dispatches by type to
 registered stations, enforces Aboyeur QA on every output,
 and manages the Exponential Snowball with rate limiting.
 
-Constitution Article II + Article VII.
+CONSTITUTION Article II + Article VII.
 """
 
 import time
@@ -20,6 +20,9 @@ class ExecutiveChef:
     The Executive does not process. It orchestrates.
     """
 
+    # Cascade depth limit (CONSTITUTION Article VII, Section 7.3)
+    MAX_CASCADE_DEPTH = 5
+
     def __init__(self, pool, max_entities: int = 500, verbose: bool = True):
         self.pool = pool
         self.stations = []
@@ -29,13 +32,15 @@ class ExecutiveChef:
         self._cycles = 0
         self._routed = 0
         self._unhandled = 0
+        self._spawn_blocked = 0
+        self._spawn_created = 0
 
     def register_station(self, station):
         """Register a station with the brigade."""
         self.stations.append(station)
         if self.verbose:
             types_str = ", ".join(station.handles_types)
-            print(f"[EXECUTIVE] Registered: {station.name} → [{types_str}]")
+            print(f"[EXECUTIVE] Registered: {station.name} -> [{types_str}]")
 
     def run_service(self):
         """
@@ -45,7 +50,7 @@ class ExecutiveChef:
         Returns summary dict.
         """
         print("\n" + "=" * 60)
-        print("  KITCHEN OPEN — Executive Chef on the pass")
+        print("  KITCHEN OPEN - Executive Chef on the pass")
         print("=" * 60 + "\n")
 
         self.pool._log_event('kitchen_open', 'executive',
@@ -77,15 +82,14 @@ class ExecutiveChef:
 
             if not handler:
                 if self.verbose:
-                    print(f"  [!] No station available for [{ent_type}] — marking unhandled")
+                    print(f"  [!] No station available for [{ent_type}] - marking unhandled")
                 self._unhandled += 1
-                # Can't go raw → unhandled directly, so raw → processing → failed
                 self.pool.transition_status(entity_id, 'processing', station='none')
                 self.pool.transition_status(entity_id, 'failed',
                                             notes=f"No station registered for type: {ent_type}")
                 continue
 
-            # ─── Route to Station ───
+            # Route to Station
             self.pool.transition_status(entity_id, 'processing', station=handler.station_id)
 
             try:
@@ -93,7 +97,7 @@ class ExecutiveChef:
                 handler._tasks_processed += 1
                 self._routed += 1
 
-                # ─── Aboyeur QA Gate ───
+                # Aboyeur QA Gate
                 self.pool.transition_status(entity_id, 'pending_qa')
                 result = self.aboyeur.validate_and_sign(
                     entity_id, handler.station_id, output,
@@ -109,8 +113,8 @@ class ExecutiveChef:
                     )
                     if self.verbose:
                         print(f"  [✓] Aboyeur approved. Signature: {result['signature'][:20]}...")
-                    
-                    # ─── Shard Stitching Check ───
+
+                    # Shard Stitching Check
                     entity = self.pool.get_entity(entity_id)
                     if entity and entity['parent_task_id'] is not None and entity['fracture_id'] is not None:
                         from xp_arc.core.fracture import FractureProtocol
@@ -122,6 +126,13 @@ class ExecutiveChef:
                             mapped_id = fracture.stitch_shards(entity['fracture_id'])
                             if mapped_id and self.verbose:
                                 print(f"  [✓] Shards stitched successfully. Stitched entity ID: {mapped_id}")
+
+                    # Spawn directives — Snowball expansion
+                    spawn_targets = output.get('spawn_targets', [])
+                    if spawn_targets:
+                        new_ids = self._process_spawns(entity_id, spawn_targets)
+                        if self.verbose and new_ids:
+                            print(f"  [i] Snowball: spawned {len(new_ids)} child entities")
                 else:
                     # Rejected — check if circuit breaker tripped
                     entity_check = self.pool.get_entity(entity_id)
@@ -149,26 +160,99 @@ class ExecutiveChef:
                 handler._tasks_failed += 1
                 if self.verbose:
                     print(f"  [!] {handler.name} dropped the pan: {e}")
-                # processing → failed
                 self.pool.transition_status(entity_id, 'failed',
                                             notes=f"Station error: {str(e)}")
 
-        # ─── Kitchen Closed ───
+        # Kitchen Closed
         print("\n" + "=" * 60)
-        print("  KITCHEN CLOSED — The Corkboard")
+        print("  KITCHEN CLOSED - The Corkboard")
         print("=" * 60)
 
         self.pool._log_event('kitchen_closed', 'executive',
                              f"Processed {processed} entities. "
-                             f"Routed: {self._routed}. Unhandled: {self._unhandled}.")
+                             f"Routed: {self._routed}. Unhandled: {self._unhandled}. "
+                             f"Spawn created: {self._spawn_created}. Spawn blocked: {self._spawn_blocked}.")
 
         return self.summary()
 
+    def _process_spawns(self, parent_id: int, spawn_targets: list[dict]) -> list[int]:
+        """
+        Process spawn directives from a completed entity.
+
+        Each dict in spawn_targets:
+            ent_type: str   — entity type for the new entity
+            value: str      — entity value
+            sla_seconds: int (optional, default 60)
+
+        Cascade depth is calculated by tracing parent_task_id chain,
+        NOT declared by the agent. (CONSTITUTION Article VII, Section 7.3)
+
+        Returns list of new entity IDs created.
+        """
+        import json
+        created = []
+        parent = self.pool.get_entity(parent_id)
+
+        # Inherit lineage from parent
+        parent_depth = parent['cascade_depth'] if parent else 0
+        parent_root = parent['root_task_id'] if parent else parent_id
+        parent_chain_raw = parent['spawn_chain'] if parent else None
+        if parent_chain_raw:
+            try:
+                parent_chain = json.loads(parent_chain_raw)
+            except (json.JSONDecodeError, TypeError):
+                parent_chain = []
+        else:
+            parent_chain = []
+
+        for target in spawn_targets:
+            ent_type = target.get('ent_type') or target.get('type') or 'url'
+            value = target.get('value') or target.get('ent_value')
+            if not value:
+                continue
+
+            # Broker-enforced cascade depth
+            if parent_depth >= self.MAX_CASCADE_DEPTH:
+                self._spawn_blocked += 1
+                self.pool._log_event(
+                    'spawn_blocked_depth_limit',
+                    'executive',
+                    f"spawn_blocked_depth_limit: {ent_type}:{value} at depth {parent_depth} >= {self.MAX_CASCADE_DEPTH}",
+                    f"parent_id={parent_id}, root_task_id={parent_root}"
+                )
+                continue
+
+            # Build new spawn chain: parent chain + parent_id
+            new_chain = parent_chain + [parent_id]
+
+            eid = self.pool.add_entity(
+                ent_type=ent_type,
+                value=value,
+                sla_seconds=target.get('sla_seconds', 60),
+                parent_task_id=parent_id,
+                root_task_id=parent_root,
+                cascade_depth=parent_depth + 1,
+                spawn_chain=json.dumps(new_chain)
+            )
+            if eid:
+                created.append(eid)
+                self._spawn_created += 1
+                if self.verbose:
+                    print(f"    [SPAWN] + {ent_type}: {value[:60]} (depth={parent_depth+1}, chain={len(new_chain)})")
+            else:
+                # Duplicate — entity already exists in pool
+                pass
+
+        return created
+
     def summary(self) -> dict:
-        return {
+        s = {
             'cycles': self._cycles,
             'routed': self._routed,
             'unhandled': self._unhandled,
+            'spawn_created': self._spawn_created,
+            'spawn_blocked': self._spawn_blocked,
             'stations': [s.stats for s in self.stations],
             'aboyeur': self.aboyeur.stats,
         }
+        return s

@@ -88,12 +88,18 @@ def run_kitchen(targets: list, db_path: str = "xp_arc.db",
     sentinel = TheSentinel(pool)
     plongeur = ThePlongeur(pool)
 
+    # ─── Seed Pool ───
     print(f"\n[KITCHEN] Seeding {len(targets)} targets...\n")
 
-    # ─── Seed Pool ───
     for url in targets:
-        eid = pool.add_entity('url', url)
+        eid = pool.add_entity('url', url, root_task_id=None, cascade_depth=0)
         if eid:
+            # Seed entities ARE the root of their own Snowball chain
+            with pool.conn:
+                pool.conn.execute(
+                    "UPDATE entities SET root_task_id = ? WHERE id = ?",
+                    (eid, eid)
+                )
             print(f"  [POOL] + Seed: {url}")
         else:
             print(f"  [POOL] ~ Already in pool: {url}")
