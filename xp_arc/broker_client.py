@@ -88,13 +88,17 @@ class StationClient:
     # ─── Write Operations ────────────────────────────────────────────────────
 
     def add_entity(self, ent_type: str, value: str,
-                     sla_seconds: int = 60,
-                     parent_task_id: int = None) -> str:
+                   sla_seconds: int = 60,
+                   parent_task_id: int = None,
+                   crawl_depth: int = 0,
+                   max_crawl_depth: int = 3) -> str:
         """Enqueue add_entity. Returns request_id."""
         return self._enqueue("add_entity", {
             "type": ent_type, "value": value,
             "sla_seconds": sla_seconds,
             "parent_task_id": parent_task_id,
+            "crawl_depth": crawl_depth,
+            "max_crawl_depth": max_crawl_depth,
         })
 
     def transition_status(self, entity_id: int, new_status: str,

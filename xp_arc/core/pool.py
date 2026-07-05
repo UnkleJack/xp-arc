@@ -83,9 +83,18 @@ class IntelligencePool:
                     rejection_count INTEGER DEFAULT 0,
                     max_rejections INTEGER DEFAULT 3,
                     sla_suspended INTEGER DEFAULT 0,
+                    crawl_depth INTEGER DEFAULT 0,
+                    max_crawl_depth INTEGER DEFAULT 3,
                     UNIQUE(type, value)
                 )
             """)
+
+            # Add crawl_depth/max_crawl_depth columns if they don't exist (migration)
+            try:
+                self.conn.execute("SELECT crawl_depth FROM entities LIMIT 1")
+            except sqlite3.OperationalError:
+                self.conn.execute("ALTER TABLE entities ADD COLUMN crawl_depth INTEGER DEFAULT 0")
+                self.conn.execute("ALTER TABLE entities ADD COLUMN max_crawl_depth INTEGER DEFAULT 3")
 
             # Edges — relationship graph
             self.conn.execute("""
@@ -153,17 +162,24 @@ class IntelligencePool:
     # ─── Entity Operations ───
 
     def add_entity(self, ent_type: str, value: str, sla_seconds: int = 60,
-                   parent_task_id: int = None) -> int | None:
-        """Write a new raw entity to the pool. Returns entity ID or None if duplicate."""
+                   parent_task_id: int = None,
+                   crawl_depth: int = 0,
+                   max_crawl_depth: int = 3) -> int | None:
+        """Write a new raw entity to the pool. Returns entity ID or None if duplicate.
+
+        crawl_depth: how many hops from the original seed this entity was discovered at.
+        max_crawl_depth: depth limit for this entity's subtree — entities discovered
+            from this one that exceed this depth are rejected.
+        """
         payload_hash = compute_payload_hash(ent_type, value)
         try:
             with self.conn:
                 cur = self.conn.execute("""
-                    INSERT INTO entities (type, value, status, payload_hash, sla_seconds, parent_task_id)
-                    VALUES (?, ?, 'raw', ?, ?, ?)
-                """, (ent_type, value, payload_hash, sla_seconds, parent_task_id))
+                    INSERT INTO entities (type, value, status, payload_hash, sla_seconds, parent_task_id, crawl_depth, max_crawl_depth)
+                    VALUES (?, ?, 'raw', ?, ?, ?, ?, ?)
+                """, (ent_type, value, payload_hash, sla_seconds, parent_task_id, crawl_depth, max_crawl_depth))
                 eid = cur.lastrowid
-                self._log_event('entity_added', 'pool', f"New {ent_type}: {value}", f"id={eid}")
+                self._log_event('entity_added', 'pool', f"New {ent_type}: {value}", f"id={eid}, depth={crawl_depth}")
                 return eid
         except sqlite3.IntegrityError:
             return None
@@ -232,8 +248,16 @@ class IntelligencePool:
         ).fetchone()
         return row['rejection_count'] if row else 0
 
-    def get_next_raw(self):
-        """Get next unprocessed entity."""
+    def get_next_raw(self, max_depth: int = None):
+        """Get next unprocessed entity. If max_depth is set, only return entities whose
+        crawl_depth is strictly below max_crawl_depth (depth-gated entities)."""
+        if max_depth is not None:
+            return self.conn.execute("""
+                SELECT * FROM entities
+                WHERE status = 'raw'
+                  AND crawl_depth < max_crawl_depth
+                ORDER BY id LIMIT 1
+            """).fetchone()
         return self.conn.execute(
             "SELECT * FROM entities WHERE status = 'raw' ORDER BY id LIMIT 1"
         ).fetchone()

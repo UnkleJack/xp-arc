@@ -154,8 +154,6 @@ class TheForager(StationChef):
             self.log(f"Foraging target DOM: {entity_value}")
 
             # ─── Sanitize the input URL before use (WHITEPAPER 5.5.2) ───────────
-            # This is the primary defense against prompt injection via DOM payload.
-            # If sanitization fails, fail the task rather than passing raw input downstream.
             safe_url = _sanitize_url(entity_value)
             if not safe_url:
                 self.log(f"  [!] URL sanitization failed — possible injection attempt: {entity_value[:100]}")
@@ -171,6 +169,25 @@ class TheForager(StationChef):
                     'confidence': 0.0,
                     'notes': f"Sanitization failed: URL format invalid.",
                 }
+
+            # ─── Crawl depth gate (WHITEPAPER 5.5.3) ───────────────────────────
+            # Per-seed crawl depth limit: reject if we have hit max depth for this subtree.
+            parent = self.pool.get_entity(entity_id)
+            parent_depth = dict(parent)['crawl_depth'] if parent else 0
+            parent_max = dict(parent)['max_crawl_depth'] if parent else 3
+
+            if parent and parent_depth >= parent_max:
+                self.log(f"  [!] Depth limit reached ({parent_depth}/{parent_max}) — skipping extraction for {safe_url}")
+                return {
+                    'entity_type': 'url',
+                    'entity_value': safe_url,
+                    'relationships': [],
+                    'confidence': 0.3,
+                    'notes': f"Depth limit reached ({parent_depth}/{parent_max}). No further extraction.",
+                }
+
+            child_depth = parent_depth + 1  # children are one level deeper
+            child_max = parent_max           # inherit max_depth from parent unless configured otherwise
 
             extracted_domains = []
 
@@ -206,7 +223,7 @@ class TheForager(StationChef):
                     if count >= self.max_domains_per_target:
                         break
 
-                    new_id = self.pool.add_entity('domain', safe_domain)  # ← sanitized
+                    new_id = self.pool.add_entity('domain', safe_domain, crawl_depth=child_depth, max_crawl_depth=child_max)
                     if new_id:
                         self.pool.add_edge(safe_url, 'links_to', safe_domain)  # ← sanitized
                         self.log(f"  + Extracted domain: {safe_domain}")

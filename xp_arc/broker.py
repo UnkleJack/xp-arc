@@ -294,6 +294,8 @@ class SQLiteBrokerExecutor:
         value = req.payload["value"]
         sla_seconds = req.payload.get("sla_seconds", 60)
         parent_task_id = req.payload.get("parent_task_id")
+        crawl_depth = req.payload.get("crawl_depth", 0)
+        max_crawl_depth = req.payload.get("max_crawl_depth", 3)
 
         payload_hash = hashlib.sha256(
             _json.dumps({"type": ent_type, "value": value}, sort_keys=True).encode()
@@ -302,9 +304,9 @@ class SQLiteBrokerExecutor:
         with self._lock:
             with self.conn:
                 cur = self.conn.execute("""
-                    INSERT INTO entities (type, value, status, payload_hash, sla_seconds, parent_task_id)
-                    VALUES (?, ?, 'raw', ?, ?, ?)
-                """, (ent_type, value, payload_hash, sla_seconds, parent_task_id))
+                    INSERT INTO entities (type, value, status, payload_hash, sla_seconds, parent_task_id, crawl_depth, max_crawl_depth)
+                    VALUES (?, ?, 'raw', ?, ?, ?, ?, ?)
+                """, (ent_type, value, payload_hash, sla_seconds, parent_task_id, crawl_depth, max_crawl_depth))
                 eid = cur.lastrowid
                 self.conn.execute("""
                     INSERT INTO events (event_type, source, message, detail)
@@ -522,6 +524,52 @@ class LeaderElection:
         self.is_leader = False
 
 
+# ─── Token Bucket Rate Limiter ────────────────────────────────────────────────
+
+class TokenBucket:
+    """
+    Per-station rate limiter for the Write Broker.
+
+    Prevents any single station from flooding the Redis queue or
+    overwhelming DuckDB writes. Each station gets a bucket of N tokens,
+    refilling at one token per second. Writes cost one token; if the
+    bucket is empty, the request is slowed down (not rejected).
+    """
+
+    def __init__(self, writes_per_second: float = 10.0, burst: int = 20):
+        self.writes_per_second = writes_per_second
+        self.burst = burst
+        self._buckets: dict[str, tuple[float, float]] = {}  # station_id → (tokens, last_refill_ts)
+
+    def _refill(self, station_id: str) -> float:
+        """Refill tokens for station_id based on elapsed time. Returns current tokens."""
+        now = time.monotonic()
+        tokens, last_ts = self._buckets.get(station_id, (float(self.burst), now))
+        elapsed = now - last_ts
+        tokens = min(self.burst, tokens + elapsed * self.writes_per_second)
+        self._buckets[station_id] = (tokens, now)
+        return tokens
+
+    def try_write(self, station_id: str) -> bool:
+        """
+        Attempt to consume one token for station_id.
+        Returns True if the write is allowed (token was available),
+        False if the station must wait for refill.
+        """
+        tokens = self._refill(station_id)
+        if tokens >= 1.0:
+            self._buckets[station_id] = (tokens - 1.0, time.monotonic())
+            return True
+        return False
+
+    def wait_time(self, station_id: str) -> float:
+        """Return seconds to wait until one token is available. 0 if available now."""
+        tokens = self._refill(station_id)
+        if tokens >= 1.0:
+            return 0.0
+        return (1.0 - tokens) / self.writes_per_second
+
+
 # ─── Write Broker Core ────────────────────────────────────────────────────────
 
 class WriteBroker:
@@ -552,6 +600,7 @@ class WriteBroker:
         self.view = MaterializedView()
         self.station_registry = station_registry or StationKeyRegistry(None)
         self.db: SQLiteBrokerExecutor | None = None
+        self.rate_limiter = TokenBucket(writes_per_second=10.0, burst=20)
 
         self._running = False
         self._stats = {
@@ -560,6 +609,7 @@ class WriteBroker:
             "writes_failed": 0,
             "writes_by_op": {},
             "signatures_rejected": 0,
+            "rate_limited": 0,
             "start_time": None,
         }
 
@@ -686,6 +736,15 @@ class WriteBroker:
                                 f"req={req.request_id}")
                     self._enqueue_ack(req, False, "invalid signature")
                     continue
+
+                # ─── Rate limit per station (WHITEPAPER 8: Rate limit evasion at Write Broker) ───
+                # If station has exhausted its token bucket, slow down (not reject).
+                # This provides backpressure without losing writes.
+                wait = self.rate_limiter.wait_time(req.station_id)
+                if wait > 0:
+                    self._stats["rate_limited"] += 1
+                    log.debug(f"[RATE] {req.station_id} rate-limited, waiting {wait:.2f}s")
+                    time.sleep(wait)
 
                 # Execute write
                 try:
