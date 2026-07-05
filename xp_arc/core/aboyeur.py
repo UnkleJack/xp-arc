@@ -152,6 +152,34 @@ class Aboyeur:
 
         return f"ABOY-{sig}"
 
+    def validate_fracture(self, entity_id: int, station_id: str, complexity_notes: str) -> bool:
+        """
+        Validate if a station is authorized to fracture the given entity.
+        Rules:
+        - Parent task cannot already be a shard (depth limit = 1).
+        - Station cannot be a Commis agent (e.g. 'hydra').
+        """
+        entity = self.pool.get_entity(entity_id)
+        if not entity:
+            return False
+            
+        entity = dict(entity)
+        # Shards have parent_task_id or fracture_id set
+        if entity.get('parent_task_id') is not None or entity.get('fracture_id') is not None:
+            self.pool._log_event('fracture_rejected', 'aboyeur',
+                                 f"Fracture rejected for entity {entity_id}: already a shard/fractured (depth limit)")
+            return False
+            
+        # Reject Commis agents
+        if station_id == 'hydra':
+            self.pool._log_event('fracture_rejected', 'aboyeur',
+                                 f"Fracture rejected for entity {entity_id}: station {station_id} is a Commis agent")
+            return False
+            
+        self.pool._log_event('fracture_approved', 'aboyeur',
+                             f"Fracture approved for entity {entity_id} by station {station_id}")
+        return True
+
     def _compute_hash(self, entity_type: str, entity_value: str) -> str:
         payload = json.dumps({'type': entity_type, 'value': entity_value}, sort_keys=True)
         return hashlib.sha256(payload.encode()).hexdigest()

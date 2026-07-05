@@ -10,6 +10,7 @@ Constitution Article II + Article VII.
 
 import time
 from .aboyeur import Aboyeur
+from .fracture import FractureRequest
 
 
 class ExecutiveChef:
@@ -108,6 +109,19 @@ class ExecutiveChef:
                     )
                     if self.verbose:
                         print(f"  [✓] Aboyeur approved. Signature: {result['signature'][:20]}...")
+                    
+                    # ─── Shard Stitching Check ───
+                    entity = self.pool.get_entity(entity_id)
+                    if entity and entity['parent_task_id'] is not None and entity['fracture_id'] is not None:
+                        from xp_arc.core.fracture import FractureProtocol
+                        fracture = FractureProtocol(self.pool)
+                        comp = fracture.check_shard_completion(entity['fracture_id'])
+                        if comp['all_complete']:
+                            if self.verbose:
+                                print(f"  [i] All shards for fracture {entity['fracture_id']} completed. Stitching...")
+                            mapped_id = fracture.stitch_shards(entity['fracture_id'])
+                            if mapped_id and self.verbose:
+                                print(f"  [✓] Shards stitched successfully. Stitched entity ID: {mapped_id}")
                 else:
                     # Rejected — check if circuit breaker tripped
                     entity_check = self.pool.get_entity(entity_id)
@@ -116,6 +130,20 @@ class ExecutiveChef:
                                                     notes=result['rejection_reason'])
                     if self.verbose:
                         print(f"  [✗] Aboyeur rejected: {result['rejection_reason']}")
+
+            except FractureRequest as fr:
+                if self.verbose:
+                    print(f"  [i] {handler.name} requested fracture: {fr.complexity_notes}")
+                if self.aboyeur.validate_fracture(entity_id, handler.station_id, fr.complexity_notes):
+                    from xp_arc.core.fracture import FractureProtocol
+                    fracture = FractureProtocol(self.pool)
+                    shard_ids = fracture.create_shards(entity_id, ent_type, ent_value, fr.shard_count, fr.shard_type)
+                    if self.verbose:
+                        print(f"  [✓] Fracture authorized. Spawned {len(shard_ids)} shards.")
+                else:
+                    if self.verbose:
+                        print(f"  [✗] Fracture unauthorized by Aboyeur. Marking failed.")
+                    self.pool.transition_status(entity_id, 'failed', notes="Fracture unauthorized by Aboyeur")
 
             except Exception as e:
                 handler._tasks_failed += 1

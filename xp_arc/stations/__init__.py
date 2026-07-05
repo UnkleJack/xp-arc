@@ -10,3 +10,4 @@ from .amphithere import TheAmphithere
 from .hydra import TheHydra
 from .salamander import TheSalamander
 from .herald import TheHerald
+from .dossier import TheDossier

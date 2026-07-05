@@ -10,6 +10,12 @@ Whitepaper Section 4.4, Station #2.
 
 import re
 import urllib.request
+import ssl
+try:
+    import certifi
+    _CERTIFI_AVAILABLE = True
+except ImportError:
+    _CERTIFI_AVAILABLE = False
 from ..core.station import StationChef
 
 
@@ -113,17 +119,24 @@ class TheAnalyst(StationChef):
     def _probe_domain(self, domain: str) -> dict:
         """Lightweight HTTP probe. No deep scraping."""
         result = {'reachable': False, 'redirect': None, 'server': None}
+        
+        # Configure SSL context (Article IV, 4.3)
+        if _CERTIFI_AVAILABLE:
+            context = ssl.create_default_context(cafile=certifi.where())
+        else:
+            context = ssl.create_default_context()
+
         try:
             req = urllib.request.Request(
                 f"https://{domain}",
                 method='HEAD',
                 headers={'User-Agent': 'Mozilla/5.0 (XP-Arc Analyst/0.2)'}
             )
-            resp = urllib.request.urlopen(req, timeout=4)
-            result['reachable'] = True
-            result['server'] = resp.headers.get('Server', 'unknown')
-            if resp.url != f"https://{domain}" and resp.url != f"https://{domain}/":
-                result['redirect'] = resp.url
+            with urllib.request.urlopen(req, timeout=4, context=context) as resp:
+                result['reachable'] = True
+                result['server'] = resp.headers.get('Server', 'unknown')
+                if resp.url != f"https://{domain}" and resp.url != f"https://{domain}/":
+                    result['redirect'] = resp.url
         except Exception:
             # Try HTTP as fallback
             try:
@@ -132,9 +145,9 @@ class TheAnalyst(StationChef):
                     method='HEAD',
                     headers={'User-Agent': 'Mozilla/5.0 (XP-Arc Analyst/0.2)'}
                 )
-                resp = urllib.request.urlopen(req, timeout=3)
-                result['reachable'] = True
-                result['server'] = resp.headers.get('Server', 'unknown')
+                with urllib.request.urlopen(req, timeout=3) as resp:
+                    result['reachable'] = True
+                    result['server'] = resp.headers.get('Server', 'unknown')
             except Exception:
                 pass
         return result

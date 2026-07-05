@@ -23,10 +23,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from xp_arc.core.pool import IntelligencePool
 from xp_arc.core.executive import ExecutiveChef
-from xp_arc.stations.forager import TheForager
-from xp_arc.stations.analyst import TheAnalyst
-from xp_arc.stations.sentinel import TheSentinel
-from xp_arc.stations.plongeur import ThePlongeur
+from xp_arc.stations import (
+    TheForager, TheAnalyst, TheSentinel, ThePlongeur,
+    TheLibrarian, TheCartographer, TheAuditor, TheWarden,
+    TheAmphithere, TheHydra, TheSalamander, TheHerald, TheDossier
+)
 from xp_arc.monitoring.zorans_law import ZoransLaw
 from xp_arc.monitoring.spazzmatic import SpaZzMatiC
 
@@ -71,13 +72,21 @@ def run_kitchen(targets: list, db_path: str = "xp_arc.db",
     spazz = SpaZzMatiC(pool, zorans)
 
     # ─── Register Stations ───
-    forager = TheForager(pool, max_domains_per_target=5)
-    analyst = TheAnalyst(pool)
+    executive.register_station(TheForager(pool, max_domains_per_target=5))
+    executive.register_station(TheAnalyst(pool))
+    executive.register_station(TheLibrarian(pool))
+    executive.register_station(TheCartographer(pool))
+    executive.register_station(TheHydra(pool))
+    executive.register_station(TheWarden(pool))
+    executive.register_station(TheAuditor(pool))
+    executive.register_station(TheAmphithere(pool))
+    executive.register_station(TheSalamander(pool))
+    executive.register_station(TheHerald(pool))
+    executive.register_station(TheDossier(pool))
+    
+    # Utilities
     sentinel = TheSentinel(pool)
     plongeur = ThePlongeur(pool)
-
-    executive.register_station(forager)
-    executive.register_station(analyst)
 
     print(f"\n[KITCHEN] Seeding {len(targets)} targets...\n")
 

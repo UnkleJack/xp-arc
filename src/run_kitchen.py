@@ -3,9 +3,13 @@ sys.path.append('/home/workspace/TheKitchen')
 from orchestrator.pool import IntelligencePool
 from orchestrator.executive import ExecutiveChef
 from agents.forager import TheForager
+from fracture import FractureStation
 
 pool = IntelligencePool(":memory:")
 exec_chef = ExecutiveChef(pool)
+# Register fracture station first; fallback to TheForager
+exec_chef.register_station(FractureStation(pool), fallback=[TheForager(pool)])
+# Also register the regular forager (fallback chain already includes it)
 exec_chef.register_station(TheForager(pool))
 
 # 5 TARGETS. LIVE.
