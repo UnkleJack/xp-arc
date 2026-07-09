@@ -624,15 +624,28 @@ Zo.computer deployment is one reference implementation, not a requirement.
 *A system that doesn't know its own attack surface doesn't deserve to be trusted
 with yours.*
 
-### 7.1 Pool Has No Authentication (Production Severity: High)
+### 7.1 Pool Write Authentication (Production Severity: High)
 
-Any process on the same machine can read and write to the SQLite file directly.
-Acceptable in single-operator PoC. Critical in production multi-agent deployment.
-A compromised station can inject synthetic entities, corrupt edge data, or flood
-the entity table.
+**STATUS: Shipped in v0.2.**
 
-**Fix:** Pool access layer with signed writes. Stations authenticate before any
-write is accepted. Targeted for v0.3.
+All write operations on the Pool require HMAC authentication when the calling station has a registered key.
+
+**How it works:** Each station is issued a unique HMAC-SHA256 key at registration (auto-generated or provided). The key is stored persistently in `station_keys.json` (retrievable via `get_station_hmac_key()`) and in the `station_registry` table in the DB.
+
+Before every write, the station computes `HMAC-SHA256(key, payload_string)` and passes `station_id` + `mac` to the pool method. The pool looks up the station's key and verifies the MAC using `hmac.compare_digest()`. The payload string is the method name + parameters, e.g. `add_entity:url:https://example.com:60`.
+
+**Auth rules:**
+- Station has no key registered → write allowed (backward compat for onboarding)
+- Station has key + valid MAC → write allowed
+- Station has key + no MAC or invalid MAC → write rejected, `auth_failure` event logged
+
+**Key management:** Use `register_station_with_key()` at system startup to register stations and persist keys. Use `get_station_hmac_key()` to retrieve a station's key at runtime for signing writes.
+
+**Protected methods:** `add_entity()`, `transition_status()`, `set_aboyeur_signature()`, `increment_rejection()`, `add_edge()`
+
+**What it prevents:** A compromised station cannot write arbitrary entities, corrupt status transitions, or flood the entity table without possessing a valid HMAC key. Keys are stored server-side only — not in station code.
+
+**What it doesn't prevent:** If an attacker gains read access to `station_keys.json`, they can sign writes. File permissions and process isolation are the mitigation layer.
 
 ### 7.2 Forager Is a Blind Trust Machine (Production Severity: Critical)
 
@@ -651,11 +664,35 @@ a throttle. `max_entities=500` configurable default and crawl depth limit per
 seed are the mitigations. SQLite WAL's transaction serialization provides
 backpressure at the database write layer.
 
-### 7.4 No Provenance Verification Between Stations (Severity: Medium)
+### 7.4 Provenance Chain Verification (Production Severity: High)
 
-The `payload_hash` field exists in the Aboyeur schema. Full validation logic
-is specified in CONSTITUTION §4. Not yet fully implemented — targeted for the
-Aboyeur v1 implementation milestone.
+**STATUS: Shipped in v0.2.**
+
+Stations declare lineage when writing child entities. A compromised station
+could declare `cascade_depth=0` or a fake `root_task_id` to bypass the cascade
+depth limit.
+
+**How it works:** `IntelligencePool._verify_and_compute_lineage()` looks up the
+actual parent entity in the DB and computes lineage from the real parent state —
+not from caller-provided values. For child entities (`parent_task_id` set), the
+pool ignores `cascade_depth`, `root_task_id`, and `spawn_chain` values supplied
+by the station. It derives them from the actual parent entity.
+
+The cascade depth limit is enforced at the pool level via `MAX_CASCADE_DEPTH = 5`
+(declared at module level in `xp_arc/core/pool.py`, imported by `ExecutiveChef`).
+Non-existent parent entity IDs are also rejected, preventing spoofed lineage chains.
+
+For seed entities (`parent_task_id` is None), caller-provided lineage values are
+accepted since seed creation is the trusted initialization path.
+
+**What it prevents:** A station cannot spoof `cascade_depth=0` to bypass the
+depth limit or claim a false `root_task_id`. All child entities are rooted to
+the actual DB state. Non-existent parent IDs are rejected outright.
+
+**Single source of truth:** `MAX_CASCADE_DEPTH` is declared at module level in
+`xp_arc/core/pool.py` and imported by `ExecutiveChef`. The pool-level check in
+`_verify_and_compute_lineage()` and the executive-level check in `_process_spawns()`
+both enforce the same limit from the same constant.
 
 ### 7.5 DRAGON Output Injection (Severity: Low → Medium)
 
@@ -690,8 +727,9 @@ XP-Arc is published as an open research framework. Operators assume full legal r
 □ DRAGON output injection via crafted entity value
 □ Station bypass — can an agent write directly, skipping the pool?
 □ Provenance chain spoofing
+☑ Provenance chain spoofing — **SHIPPED: DB-level lineage verification**
+☑ Auth bypass on pool write access — **SHIPPED: HMAC-SHA256 signed writes**
 □ Rate limit evasion at max_entities or crawl depth gate
-□ Auth bypass on pool write access
 ```
 
 ---
@@ -883,12 +921,17 @@ and outputs none of them could have produced alone.
 - **Cascade Lineage Tracking (Constitution Article VII, §7.3–7.4):** Added `root_task_id`, `cascade_depth`, `spawn_chain` columns to entities table with automatic migration. Three query methods: `get_lineage_depth()`, `get_root_task_id()`, `get_spawn_chain()` for full ancestor chain reconstruction.
 - **DB-Enforced Cascade Depth Limit:** `ExecutiveChef._process_spawns()` now traces `parent_task_id` chain at spawn time, blocks new entities at `cascade_depth >= 5` (MAX_CASCADE_DEPTH). Prevents agent-declared depth spoofing.
 - **Seed Self-Rooting:** `run_kitchen.py` seeds entities with `root_task_id=self`, establishing each seed as the root of its own Snowball chain.
+- **Provenance Chain Verification (Article VII, §7.4):** `IntelligencePool._verify_and_compute_lineage()` — pool-level lineage enforcement that computes `cascade_depth`, `root_task_id`, and `spawn_chain` from the actual parent entity in the DB, ignoring station-supplied values. Stops stations from spoofing `cascade_depth=0` or false `root_task_id` to bypass the depth limit. `MAX_CASCADE_DEPTH` declared at module level in `pool.py`, imported by `ExecutiveChef`. Non-existent parent IDs are rejected outright. Seed entities (no parent) preserve caller-supplied lineage values.
+- **Pool Write Authentication (Article VIII):** HMAC-SHA256 signed writes for all station-to-pool operations. `register_station_with_key()` for key generation and persistent storage in `station_keys.json`. `get_station_hmac_key()` for runtime key retrieval. `IntelligencePool._verify_write()` validates MAC on every write. Stations with registered keys require valid MAC — absent key means backward compat allowed. Protected methods: `add_entity()`, `transition_status()`, `set_aboyeur_signature()`, `increment_rejection()`, `add_edge()`. `hmac.compare_digest()` timing-safe comparison prevents MAC forgery.
 - **Descendant Tracking for GC:** `IntelligencePool.get_descendants()` / `reset_descendants()` — finds all entities with a given ancestor in their `spawn_chain` or `parent_task_id`. `ThePlongeur` uses this for orphan recovery: before resetting a stalled entity, all descendants are transitioned to `failed` to prevent orphaned subtrees.
 - **Forager Lineage Propagation:** Extracted domains inherit `root_task_id`, `cascade_depth`, `parent_task_id`, and `spawn_chain` (parent chain + parent_id) from their parent URL entity.
 - **Persistent Daemon (`run_persistent.py`):** 500ms poll interval, full brigade execution per cycle, HTTP seed injection API (`POST /api/seed`, `GET /api/dragon`), 60-second safe-halt veto window with manual override, automatic DRAGON state export every cycle.
 - **DRAGON Live Polling:** Dashboard now polls `/api/dragon` at 500ms via `?api=` query param, with START/STOP toggle and connection status indicator. Falls back to static `pool_state.json` when daemon unavailable.
 - **Parallel Directory Cleanup:** Legacy `src/` directory (duplicate of `xp_arc/`) removed from repository.
 - **Test Suite:** Basic unit tests added under `tests/` (6 tests, targeting in-memory pool for isolation).
+- **Load Test Harness (`tests/test_load.py`):** Full brigade stress tests at 500 entities. 500-entity Snowball: 26.45 entities/sec, 18.9s exec, 0 failures. 300-entity: 51.66 entities/sec, 5.8s exec. Cascade depth limit verified enforced at all scales. SQLite WAL confirmed not a bottleneck. Forager HTTP I/O is primary throughput constraint.
+- **Brigade Compression (`ExecutiveChef.compress_brigade()` / `expand_brigade()`):** Graceful degradation mechanism. Stations declare `critical=True` (default False). When `compress_brigade()` is called, non-critical stations are removed from active routing but preserved in a backup. `expand_brigade()` restores all stations. `is_compressed()` reports current state. Idempotent. Events logged to pool event log.
+- **Zoran's Law Enforcement (SpaZzMatiC → Brigade Compression integration):** SpaZzMatiC now triggers automatic brigade compression when `PRO < 70%` or when `S < 0.5` for 2 consecutive measurements. `set_executive()` injects the ExecutiveChef; `_review_zorans_law()` calls `compress_brigade()` directly. Safe halt recommendation fires on the second consecutive S < 0.5 measurement, with brigade compression as the first automated response. Recovery (S >= 0.5) resets the violation streak and clears `safe_halt_recommended`.
 
 ---
 

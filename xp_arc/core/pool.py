@@ -2,15 +2,61 @@
 Intelligence Pool — The constitutional ground of XP-Arc.
 
 Single shared state surface. All entities flow through here.
-SQLite state machine with full constitutional schema (v1.4).
+SQLite state machine with full constitutional schema (v1.5).
 """
 
 import sqlite3
 import hashlib
+import hmac
 import json
-import time
+import secrets
 from datetime import datetime, timezone
 
+
+# ─── Module-level HMAC Key Store ─────────────────────────────────────────────
+
+HMAC_KEY_FILE = "station_keys.json"
+
+def _load_station_keys(path: str = HMAC_KEY_FILE) -> dict:
+    """Load station HMAC keys from JSON file. Returns {} if not present."""
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+def _save_station_keys(keys: dict, path: str = HMAC_KEY_FILE):
+    """Persist station HMAC keys to JSON file."""
+    with open(path, 'w') as f:
+        json.dump(keys, f, indent=2)
+
+def get_station_hmac_key(station_id: str, key_file: str = HMAC_KEY_FILE) -> str | None:
+    """Retrieve a station's HMAC key from the key store file.
+
+    Stations call this at startup to retrieve their persistent key.
+    Returns None if the station has not been registered yet.
+    """
+    return _load_station_keys(key_file).get(station_id)
+
+def register_station_with_key(station_id: str, name: str, handles_types: list,
+                               is_primary: bool = True,
+                               hmac_key: str = None,
+                               key_file: str = HMAC_KEY_FILE) -> str:
+    """Register a station and persist its HMAC key to key_file.
+
+    Call this at system startup to get the station's key, then pass it
+    to pool.register_station() for DB registration.
+    Returns the HMAC key (generated or provided).
+    """
+    keys = _load_station_keys(key_file)
+    if hmac_key is None:
+        hmac_key = keys.get(station_id) or secrets.token_hex(32)
+    keys[station_id] = hmac_key
+    _save_station_keys(keys, key_file)
+    return hmac_key
+
+
+# ─── Constitutional Constants ─────────────────────────────────────────────────
 
 # Constitutional status transitions (Article III, Section 3.2)
 VALID_TRANSITIONS = {
@@ -42,12 +88,19 @@ def compute_payload_hash(entity_type: str, entity_value: str) -> str:
     return hashlib.sha256(payload.encode()).hexdigest()
 
 
+# ─── Intelligence Pool ────────────────────────────────────────────────────────
+
+# Cascade depth limit (CONSTITUTION Article VII, Section 7.3)
+# Declared here so pool-level lineage verification can enforce it directly.
+MAX_CASCADE_DEPTH = 5
+
 class IntelligencePool:
     """
     The Pass. Every dish moves through it. Nothing reaches the guest
     without crossing it.
 
     SQLite-backed state machine. Persistent. Auditable.
+    HMAC write authentication for all station writes (v0.2 hardening).
     """
 
     def __init__(self, db_path="xp_arc.db"):
@@ -92,13 +145,6 @@ class IntelligencePool:
                 )
             """)
 
-            # Add crawl_depth/max_crawl_depth columns if they don't exist (migration)
-            try:
-                self.conn.execute("SELECT crawl_depth FROM entities LIMIT 1")
-            except sqlite3.OperationalError:
-                self.conn.execute("ALTER TABLE entities ADD COLUMN crawl_depth INTEGER DEFAULT 0")
-                self.conn.execute("ALTER TABLE entities ADD COLUMN max_crawl_depth INTEGER DEFAULT 3")
-
             # Add cascade lineage columns if they don't exist (migration)
             try:
                 self.conn.execute("SELECT root_task_id FROM entities LIMIT 1")
@@ -125,6 +171,7 @@ class IntelligencePool:
                     station_id TEXT UNIQUE NOT NULL,
                     name TEXT NOT NULL,
                     handles_types TEXT NOT NULL,
+                    hmac_key TEXT,
                     status TEXT DEFAULT 'active',
                     is_primary INTEGER DEFAULT 1,
                     registered_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -170,7 +217,124 @@ class IntelligencePool:
                 )
             """)
 
-    # ─── Entity Operations ───
+    # ─── Station Registry ───────────────────────────────────────────────────────
+
+    def get_station_key(self, station_id: str) -> str | None:
+        """Return HMAC key for a station, or None if not registered."""
+        row = self.conn.execute(
+            "SELECT hmac_key FROM station_registry WHERE station_id = ?",
+            (station_id,)
+        ).fetchone()
+        return row['hmac_key'] if row else None
+
+    def register_station(self, station_id: str, name: str, handles_types: list,
+                         is_primary: bool = True, hmac_key: str = None):
+        """Register a station in the DB. Use register_station_with_key() at
+        startup to persist the key to the key file for station retrieval."""
+        types_str = json.dumps(handles_types)
+        if hmac_key is None:
+            existing = self.get_station_key(station_id)
+            hmac_key = existing or secrets.token_hex(32)
+        try:
+            with self.conn:
+                self.conn.execute("""
+                    INSERT OR REPLACE INTO station_registry
+                    (station_id, name, handles_types, is_primary, hmac_key)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (station_id, name, types_str, int(is_primary), hmac_key))
+            return hmac_key
+        except sqlite3.IntegrityError:
+            return None
+
+    def get_active_stations(self):
+        return self.conn.execute(
+            "SELECT * FROM station_registry WHERE status = 'active'"
+        ).fetchall()
+
+    def set_station_status(self, station_id: str, status: str):
+        with self.conn:
+            self.conn.execute(
+                "UPDATE station_registry SET status = ? WHERE station_id = ?",
+                (status, station_id)
+            )
+
+    def _verify_write(self, station_id: str, payload: str, provided_mac: str = None) -> bool:
+        """Verify HMAC of write payload. Returns True if valid, False otherwise.
+
+        Station with key + no MAC = reject (security enforcement).
+        Station with key + valid MAC = allow.
+        Station with no key = allow (backward compat during onboarding).
+        """
+        key = self.get_station_key(station_id)
+        if key is None:
+            return True  # no key registered — backward compat
+        if provided_mac is None:
+            return False  # station has key but provided no MAC — reject
+        expected = hmac.new(
+            key.encode(),
+            payload.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        return hmac.compare_digest(expected, provided_mac)
+
+    # ─── Entity Operations ──────────────────────────────────────────────────────
+
+    def _verify_and_compute_lineage(self, parent_task_id: int | None,
+                                     caller_cascade_depth: int,
+                                     caller_root_task_id: int | None,
+                                     caller_spawn_chain: str | None) -> tuple[int, int, str] | None:
+        """Verify and compute correct lineage for a new entity.
+
+        Returns (cascade_depth, root_task_id, spawn_chain) tuple if allowed,
+        or None if the spawn should be rejected due to depth limit exceeded.
+
+        For child entities (parent_task_id set): lineage is computed from the
+        actual parent entity in the DB, NOT from caller-provided values.
+        This prevents stations from spoofing lineage to bypass cascade limits.
+
+        For seed entities (parent_task_id is None or self-referential): caller
+        values are preserved (this is the normal seed creation path).
+        """
+        if parent_task_id is None:
+            # Seed entity — caller knows the full lineage context
+            return caller_cascade_depth, caller_root_task_id, caller_spawn_chain
+
+        # Child entity — verify against actual parent in DB
+        parent = self.get_entity(parent_task_id)
+        if parent is None:
+            # No such parent entity — reject
+            self._log_event('lineage_rejected', 'pool',
+                            f"No valid parent entity {parent_task_id} for child entity",
+                            "parent_task_id does not exist in pool")
+            return None
+
+        parent_depth = parent['cascade_depth']
+        parent_root = parent['root_task_id']
+
+        # Check cascade depth limit
+        if parent_depth >= MAX_CASCADE_DEPTH:
+            self._log_event(
+                'spawn_blocked_depth_limit', 'pool',
+                f"Lineage rejected: parent at depth {parent_depth} >= {MAX_CASCADE_DEPTH}",
+                f"parent_task_id={parent_task_id}"
+            )
+            return None
+
+        # Build spawn chain from parent's chain
+        parent_chain_raw = parent['spawn_chain']
+        if parent_chain_raw:
+            try:
+                parent_chain = json.loads(parent_chain_raw)
+            except (json.JSONDecodeError, TypeError):
+                parent_chain = []
+        else:
+            parent_chain = []
+        new_chain = parent_chain + [parent_task_id]
+
+        computed_depth = parent_depth + 1
+        computed_root = parent_root if parent_root else parent_task_id
+
+        return computed_depth, computed_root, json.dumps(new_chain)
 
     def add_entity(self, ent_type: str, value: str, sla_seconds: int = 60,
                    parent_task_id: int = None,
@@ -178,14 +342,31 @@ class IntelligencePool:
                    max_crawl_depth: int = 3,
                    root_task_id: int = None,
                    cascade_depth: int = 0,
-                   spawn_chain: str = None) -> int | None:
-        """Write a new raw entity to the pool. Returns entity ID or None if duplicate.
+                   spawn_chain: str = None,
+                   station_id: str = None,
+                   mac: str = None) -> int | None:
+        """Write a new raw entity to the pool. HMAC auth required if station has a key.
 
-        Lineage params (CONSTITUTION Article VII, Section 7.4):
-        - root_task_id: the original seed entity that started this Snowball chain
-        - cascade_depth: number of spawn levels from root (seed=0, its children=1, etc.)
-        - spawn_chain: JSON list of ancestor entity IDs tracing back to root
+        Lineage verification (CONSTITUTION Article VII, Section 7.4):
+        For child entities (parent_task_id set), lineage is computed from the
+        actual parent entity in the DB — stations cannot spoof cascade_depth
+        or root_task_id to bypass the depth limit.
         """
+        if station_id:
+            payload = f"add_entity:{ent_type}:{value}:{sla_seconds}"
+            if not self._verify_write(station_id, payload, mac):
+                self._log_event('auth_failure', station_id,
+                                f"HMAC rejected for add_entity: {ent_type}:{value}")
+                return None
+
+        # Verify and compute lineage from actual parent
+        lineage = self._verify_and_compute_lineage(
+            parent_task_id, cascade_depth, root_task_id, spawn_chain
+        )
+        if lineage is None:
+            return None
+        cascade_depth, root_task_id, spawn_chain = lineage
+
         payload_hash = compute_payload_hash(ent_type, value)
         try:
             with self.conn:
@@ -196,17 +377,23 @@ class IntelligencePool:
                        crawl_depth, max_crawl_depth, root_task_id,
                        cascade_depth, spawn_chain))
                 eid = cur.lastrowid
-                self._log_event('entity_added', 'pool', f"New {ent_type}: {value}", f"id={eid}, depth={crawl_depth}")
+                self._log_event('entity_added', station_id or 'pool',
+                                f"New {ent_type}: {value}", f"id={eid}, depth={crawl_depth}")
                 return eid
         except sqlite3.IntegrityError:
             return None
 
     def transition_status(self, entity_id: int, new_status: str, station: str = None,
-                          confidence: float = None, notes: str = None) -> bool:
-        """
-        Atomic status transition with constitutional validation.
-        Unauthorized transitions are rejected.
-        """
+                          confidence: float = None, notes: str = None,
+                          station_id: str = None, mac: str = None) -> bool:
+        """Atomic status transition with constitutional validation. HMAC auth if station has key."""
+        if station_id:
+            payload = f"transition_status:{entity_id}:{new_status}"
+            if not self._verify_write(station_id, payload, mac):
+                self._log_event('auth_failure', station_id,
+                                f"HMAC rejected for transition_status: {entity_id}→{new_status}")
+                return False
+
         row = self.conn.execute(
             "SELECT status FROM entities WHERE id = ?", (entity_id,)
         ).fetchone()
@@ -245,23 +432,45 @@ class IntelligencePool:
                         f"Entity {entity_id}: {current} → {new_status}")
         return True
 
-    def set_aboyeur_signature(self, entity_id: int, signature: str):
+    def set_aboyeur_signature(self, entity_id: int, signature: str,
+                              station_id: str = None, mac: str = None):
+        if station_id:
+            payload = f"set_aboyeur_signature:{entity_id}"
+            if not self._verify_write(station_id, payload, mac):
+                self._log_event('auth_failure', station_id,
+                                f"HMAC rejected for set_aboyeur_signature: {entity_id}")
+                return
         with self.conn:
             self.conn.execute(
                 "UPDATE entities SET aboyeur_signature = ? WHERE id = ?",
                 (signature, entity_id)
             )
 
-    def increment_rejection(self, entity_id: int) -> int:
-        """Increment rejection count. Returns new count."""
+    # ─── Backward-Compatible Aliases ──────────────────────────────────────────
+
+    def mark_status(self, entity_id: int, status: str):
+        """Alias for transition_status without HMAC auth.
+
+        DEPRECATED: Use transition_status() with station_id and mac for
+        authenticated writes. This alias exists for backward compatibility
+        with existing tests and callers that don't yet use HMAC auth.
+        """
+        return self.transition_status(entity_id, status)
+
+    def increment_rejection(self, entity_id: int, station_id: str = None, mac: str = None) -> int:
+        if station_id:
+            payload = f"increment_rejection:{entity_id}"
+            if not self._verify_write(station_id, payload, mac):
+                self._log_event('auth_failure', station_id,
+                                f"HMAC rejected for increment_rejection: {entity_id}")
+                return 0
         with self.conn:
             self.conn.execute(
                 "UPDATE entities SET rejection_count = rejection_count + 1 WHERE id = ?",
                 (entity_id,)
             )
         row = self.conn.execute(
-            "SELECT rejection_count, max_rejections FROM entities WHERE id = ?",
-            (entity_id,)
+            "SELECT rejection_count FROM entities WHERE id = ?", (entity_id,)
         ).fetchone()
         return row['rejection_count'] if row else 0
 
@@ -298,49 +507,29 @@ class IntelligencePool:
         row = self.conn.execute("SELECT COUNT(*) as cnt FROM entities").fetchone()
         return row['cnt']
 
-    # ─── Edge Operations ───
+    # ─── Edge Operations ────────────────────────────────────────────────────────
 
-    def add_edge(self, source: str, rel: str, target: str):
+    def add_edge(self, source: str, rel: str, target: str,
+                 station_id: str = None, mac: str = None):
+        if station_id:
+            payload = f"add_edge:{source}:{rel}:{target}"
+            if not self._verify_write(station_id, payload, mac):
+                self._log_event('auth_failure', station_id,
+                                f"HMAC rejected for add_edge: {source}--({rel})-->{target}")
+                return
         with self.conn:
             self.conn.execute(
                 "INSERT INTO edges (source, relationship, target) VALUES (?, ?, ?)",
                 (source, rel, target)
             )
-        self._log_event('edge_added', 'pool', f"{source} --({rel})--> {target}")
+        self._log_event('edge_added', station_id or 'pool', f"{source} --({rel})--> {target}")
 
     def get_all_edges(self):
         return self.conn.execute(
             "SELECT * FROM edges ORDER BY id"
         ).fetchall()
 
-    # ─── Station Registry ───
-
-    def register_station(self, station_id: str, name: str, handles_types: list,
-                         is_primary: bool = True):
-        types_str = json.dumps(handles_types)
-        try:
-            with self.conn:
-                self.conn.execute("""
-                    INSERT OR REPLACE INTO station_registry
-                    (station_id, name, handles_types, is_primary)
-                    VALUES (?, ?, ?, ?)
-                """, (station_id, name, types_str, int(is_primary)))
-        except sqlite3.IntegrityError:
-            pass
-
-    def get_active_stations(self):
-        return self.conn.execute(
-            "SELECT * FROM station_registry WHERE status = 'active'"
-        ).fetchall()
-
-    def set_station_status(self, station_id: str, status: str):
-        with self.conn:
-            self.conn.execute(
-                "UPDATE station_registry SET status = ? WHERE station_id = ?",
-                (status, station_id)
-            )
-
-    # ─── Findings (SpaZzMatiC) ───
+    # ─── Findings (SpaZzMatiC) ─────────────────────────────────────────────────
 
     def add_finding(self, severity: str, source: str, message: str, detail: str = None):
         with self.conn:
@@ -355,7 +544,7 @@ class IntelligencePool:
             "SELECT * FROM findings ORDER BY id DESC"
         ).fetchall()
 
-    # ─── Zoran Metrics ───
+    # ─── Zoran Metrics ────────────────────────────────────────────────────────────
 
     def record_zorans_metrics(self, s: float, pro: float, state: str,
                               active: int, primary: int, completed: int, ingested: int):
@@ -372,7 +561,7 @@ class IntelligencePool:
             "SELECT * FROM zorans_metrics ORDER BY id"
         ).fetchall()
 
-    # ─── Events ───
+    # ─── Events ─────────────────────────────────────────────────────────────────
 
     def _log_event(self, event_type: str, source: str, message: str, detail: str = None):
         with self.conn:
@@ -415,7 +604,7 @@ class IntelligencePool:
                         f"Reset {len(desc_ids)} descendants of entity {entity_id} to {status}")
         return len(descendants)
 
-    # ─── Orphan Detection (for Plongeur) ───
+    # ─── Orphan Detection (for Plongeur) ───────────────────────────────────────
 
     def get_orphaned_entities(self, threshold_seconds: int = 300):
         """Entities stuck in processing beyond their SLA."""
@@ -427,8 +616,7 @@ class IntelligencePool:
             AND (julianday('now') - julianday(assigned_at)) * 86400 > sla_seconds
         """).fetchall()
 
-
-    # ─── Spawn / Cascade Lineage ─────────────────────────────────────────────────
+    # ─── Spawn / Cascade Lineage ───────────────────────────────────────────────
 
     def get_lineage_depth(self, entity_id: int) -> int:
         """Trace parent_task_id chain to root. Returns number of levels (0 = root)."""
@@ -485,7 +673,7 @@ class IntelligencePool:
         chain.reverse()
         return chain
 
-    # ─── Stats for Zoran's Law ───
+    # ─── Stats for Zoran's Law ─────────────────────────────────────────────────
 
     def get_stats(self) -> dict:
         """Aggregate pool statistics."""
@@ -500,7 +688,7 @@ class IntelligencePool:
             stats[r['status']] = {'count': r['cnt'], 'total_sla': r['total_sla']}
         return stats
 
-    # ─── Export for DRAGON ───
+    # ─── Export for DRAGON ─────────────────────────────────────────────────────
 
     def export_state(self) -> dict:
         """Full pool state export as JSON-serializable dict."""

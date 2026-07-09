@@ -24,7 +24,8 @@ class SpaZzMatiC:
     - Safe halt conditions
 
     Issues findings with severity classifications.
-    Can recommend safe halt (60-second veto countdown).
+    Can recommend safe halt (60-second veto countdown) and
+    trigger Brigade Compression when PRO < 70% or S < 0.5.
     """
 
     # Constitutional thresholds
@@ -41,6 +42,11 @@ class SpaZzMatiC:
         self._reviews = 0
         self._safe_halt_recommended = False
         self._s_violation_streak = 0
+        self._executive = None  # Set via set_executive() if available
+
+    def set_executive(self, executive):
+        """Inject the ExecutiveChef for automatic Brigade Compression."""
+        self._executive = executive
 
     def run_review(self) -> dict:
         """
@@ -98,17 +104,23 @@ class SpaZzMatiC:
         s = measurement['stability_quotient']
         pro = measurement['primary_role_occupancy']
 
-        # S < 0.5 sustained = safe halt candidate
+        # S < 0.5 sustained = safe halt candidate + compression
         if s < self.SAFE_HALT_S_THRESHOLD:
             self._s_violation_streak += 1
             if self._s_violation_streak >= self.SAFE_HALT_SUSTAIN_COUNT:
                 self._safe_halt_recommended = True
+                # Auto-compress brigade on sustained distress
+                if self._executive and not self._executive.is_compressed():
+                    self._executive.compress_brigade()
+                    self.pool._log_event('spazzmatic_compression', 'spazzmatic',
+                                         f"Auto-compressed brigade: S={s:.3f} sustained < 0.5 for "
+                                         f"{self._s_violation_streak} measurements")
                 findings.append({
                     'severity': 'critical',
                     'message': f"SAFE HALT RECOMMENDED: S={s:.3f} sustained below "
                                f"{self.SAFE_HALT_S_THRESHOLD} for "
                                f"{self._s_violation_streak} measurements",
-                    'detail': "60-second veto window active. System should halt ingestion.",
+                    'detail': "Brigade compressed to critical stations. 60-second veto window active.",
                 })
             else:
                 findings.append({
@@ -128,11 +140,18 @@ class SpaZzMatiC:
                 'detail': "System correction rate not keeping pace with ingestion.",
             })
 
-        # PRO check
+        # PRO check — compression recommended
         if pro < 0.70:
+            # Auto-compress brigade on low primary role occupancy
+            if self._executive and not self._executive.is_compressed():
+                self._executive.compress_brigade()
+                self.pool._log_event('spazzmatic_compression', 'spazzmatic',
+                                     f"Auto-compressed brigade: PRO={pro:.1%} < 70% threshold. "
+                                     f"Active={measurement['active_stations']}, "
+                                     f"Primary={measurement['primary_stations']}")
             findings.append({
                 'severity': 'warning',
-                'message': f"PRO={pro:.1%} below 70% threshold. Compression review needed.",
+                'message': f"PRO={pro:.1%} below 70% threshold. Compression triggered.",
                 'detail': f"Active: {measurement['active_stations']}, "
                           f"Primary: {measurement['primary_stations']}",
             })

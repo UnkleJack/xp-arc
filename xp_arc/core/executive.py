@@ -11,6 +11,7 @@ CONSTITUTION Article II + Article VII.
 import time
 from .aboyeur import Aboyeur
 from .fracture import FractureRequest
+from .pool import MAX_CASCADE_DEPTH
 
 
 class ExecutiveChef:
@@ -20,12 +21,14 @@ class ExecutiveChef:
     The Executive does not process. It orchestrates.
     """
 
-    # Cascade depth limit (CONSTITUTION Article VII, Section 7.3)
-    MAX_CASCADE_DEPTH = 5
+    MAX_CASCADE_DEPTH = MAX_CASCADE_DEPTH  # class-level alias to module constant
 
     def __init__(self, pool, max_entities: int = 500, verbose: bool = True):
         self.pool = pool
         self.stations = []
+        self._critical_stations = []  # stations that survive compression
+        self._station_backup = []     # preserved copy for expansion
+        self._brigade_compressed = False
         self.aboyeur = Aboyeur(pool)
         self.max_entities = max_entities
         self.verbose = verbose
@@ -41,6 +44,51 @@ class ExecutiveChef:
         if self.verbose:
             types_str = ", ".join(station.handles_types)
             print(f"[EXECUTIVE] Registered: {station.name} -> [{types_str}]")
+
+    def compress_brigade(self):
+        """Compress the brigade into critical-only stations for degraded mode.
+
+        Saves a full backup of all stations, then removes non-critical stations.
+        Subsequent routing only dispatches to critical stations.
+        Safe to call multiple times (idempotent).
+        """
+        if not self._brigade_compressed:
+            self._station_backup = list(self.stations)
+            critical = [s for s in self.stations if getattr(s, 'critical', False)]
+            self._critical_stations = critical
+            self.stations = critical
+            self._brigade_compressed = True
+            self.pool._log_event(
+                'brigade_compressed', 'executive',
+                f"Brigade compressed: {len(self._station_backup)} stations -> {len(critical)} critical. "
+                f"Removed: {[s.name for s in self._station_backup if not getattr(s, 'critical', False)]}"
+            )
+            if self.verbose:
+                print(f"[EXECUTIVE] Brigade COMPRESSED: {len(critical)} critical stations active. "
+                      f"Backup: {len(self._station_backup)} stations preserved.")
+        return self
+
+    def expand_brigade(self):
+        """Restore the brigade from backup, restoring all non-critical stations.
+
+        Idempotent — calling when already expanded is a no-op.
+        """
+        if self._brigade_compressed and self._station_backup:
+            self.stations = list(self._station_backup)
+            self._brigade_compressed = False
+            removed = [s for s in self._station_backup if s not in self.stations]
+            self.pool._log_event(
+                'brigade_expanded', 'executive',
+                f"Brigade expanded: {len(self._station_backup)} stations restored. "
+                f"Critical: {len(self._critical_stations)}."
+            )
+            if self.verbose:
+                print(f"[EXECUTIVE] Brigade EXPANDED: all {len(self._station_backup)} stations restored.")
+        return self
+
+    def is_compressed(self) -> bool:
+        """Returns True if brigade is currently in degraded/compressed mode."""
+        return self._brigade_compressed
 
     def run_service(self):
         """
