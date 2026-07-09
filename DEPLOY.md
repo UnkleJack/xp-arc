@@ -174,6 +174,14 @@ register_user_service xp-arc-kitchen \
 | fallback_role | INTEGER | 1 if processed by fallback station |
 | rejection_count | INTEGER | Aboyeur rejection counter |
 | max_rejections | INTEGER | Circuit breaker threshold (default: 3) |
+| parent_task_id | INTEGER | Parent entity ID (for spawned tasks) |
+| fracture_id | TEXT | Fracture group ID (for sharded tasks) |
+| cascade_depth | INTEGER | Spawn cascade level (0=seed, max=5) |
+| root_task_id | INTEGER | Root entity ID of this Snowball chain |
+| spawn_chain | TEXT | JSON array of ancestor IDs tracing to root |
+| sla_suspended | INTEGER | 1 if SLA timer is paused |
+| crawl_depth | INTEGER | Web crawl depth (Forager) |
+| max_crawl_depth | INTEGER | Max crawl depth for this entity's subtree |
 
 ### edges
 | Column | Type | Description |
@@ -250,4 +258,4 @@ pool.close()
 "
 ```
 
-**Safe halt triggered**: SpaZzMatiC detected S < 0.5 for 2+ measurements. Check the findings table for details. The daemon pauses ingestion automatically.
+**Safe halt triggered**: SpaZzMatiC detected S < 0.5 for 2+ measurements. The daemon starts a 60-second veto window. If Jack does not call `kitchen.stop()` or send Ctrl+C within 60 seconds, the system halts automatically. Incoming entities are rejected (404) during safe halt state. On restart, a debt grace window is applied.

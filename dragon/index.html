@@ -369,6 +369,10 @@ section{padding:32px 0}
 let DATA = null;
 let simulation = null;
 let svgZoom = null;
+let polling = false;
+let pollInterval = null;
+const POLL_INTERVAL_MS = 500;
+const API_BASE = (new URLSearchParams(window.location.search)).get('api') || 'http://localhost:8089';
 
 function scrollTo_(sel) {
   document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth' });
@@ -376,16 +380,122 @@ function scrollTo_(sel) {
   event.target.classList.add('active');
 }
 
-// ===== DATA LOAD =====
-fetch('pool_state.json')
-  .then(r => r.json())
-  .then(data => {
+function togglePolling() {
+  const btn = document.getElementById('pollToggle');
+  if (!polling) {
+    startPolling();
+    btn.textContent = 'STOP POLLING';
+    btn.classList.add('polling-active');
+  } else {
+    stopPolling();
+    btn.textContent = 'START POLLING';
+    btn.classList.remove('polling-active');
+  }
+}
+
+function startPolling() {
+  if (polling) return;
+  polling = true;
+  fetchData(); // initial load
+  pollInterval = setInterval(fetchData, POLL_INTERVAL_MS);
+  console.log('[DRAGON] Live polling started at', POLL_INTERVAL_MS, 'ms');
+}
+
+function stopPolling() {
+  if (!polling) return;
+  polling = false;
+  if (pollInterval) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+  console.log('[DRAGON] Live polling stopped');
+}
+
+async function fetchData() {
+  try {
+    const res = await fetch(`${API_BASE}/api/dragon`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
     DATA = data;
     renderAll();
-  })
-  .catch(err => {
-    document.body.innerHTML = '<div style="padding:80px;text-align:center;color:#dc2626;font-family:monospace">Failed to load pool_state.json: ' + err.message + '</div>';
-  });
+    updateConnectionStatus(true);
+  } catch (err) {
+    console.warn('[DRAGON] Poll failed:', err.message);
+    updateConnectionStatus(false);
+    if (!polling) {
+      // If not polling, fall back to static file
+      try {
+        const res = await fetch('pool_state.json', { cache: 'no-store' });
+        if (res.ok) {
+          DATA = await res.json();
+          renderAll();
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }
+}
+
+function updateConnectionStatus(connected) {
+  const el = document.getElementById('connStatus');
+  if (!el) return;
+  if (connected) {
+    el.className = 'conn-status connected';
+    el.textContent = '● LIVE';
+  } else {
+    el.className = 'conn-status disconnected';
+    el.textContent = '● STATIC / OFFLINE';
+  }
+}
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  // Add polling toggle to hero
+  const heroBadge = document.getElementById('zoranBadge');
+  if (heroBadge) {
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'pollToggle';
+    toggleBtn.className = 'poll-toggle-btn';
+    toggleBtn.textContent = 'START POLLING';
+    toggleBtn.onclick = togglePolling;
+    toggleBtn.style.marginLeft = '12px';
+    toggleBtn.style.padding = '4px 10px';
+    toggleBtn.style.borderRadius = 'var(--radius)';
+    toggleBtn.style.border = '1px solid var(--border)';
+    toggleBtn.style.fontFamily = 'var(--mono)';
+    toggleBtn.style.fontSize = '10px';
+    toggleBtn.style.background = 'var(--bg)';
+    toggleBtn.style.color = 'var(--text-muted)';
+    toggleBtn.style.transition = 'all var(--transition)';
+    heroBadge.parentNode.insertBefore(toggleBtn, heroBadge.nextSibling);
+
+    const statusEl = document.createElement('span');
+    statusEl.id = 'connStatus';
+    statusEl.className = 'conn-status disconnected';
+    statusEl.textContent = '● STATIC';
+    statusEl.style.marginLeft = '12px';
+    statusEl.style.fontFamily = 'var(--mono)';
+    statusEl.style.fontSize = '10px';
+    heroBadge.parentNode.insertBefore(statusEl, toggleBtn.nextSibling);
+  }
+
+  // Auto-detect: if ?api= query param present, start polling
+  if (new URLSearchParams(window.location.search).has('api')) {
+    startPolling();
+  } else {
+    // Load static file as fallback
+    fetch('pool_state.json', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(data => {
+        DATA = data;
+        renderAll();
+      })
+      .catch(err => {
+        document.body.innerHTML = '<div style="padding:80px;text-align:center;color:#dc2626;font-family:monospace">Failed to load pool_state.json: ' + err.message + '</div>';
+      });
+  }
+});
 
 function renderAll() {
   renderSitrep();

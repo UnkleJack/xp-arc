@@ -14,7 +14,7 @@ Inspired by Escoffier's kitchen brigade system, XP-Arc orchestrates AI agents th
 xp-arc/
 ├── xp_arc/                    # Core Python package
 │   ├── core/
-│   │   ├── pool.py            # Intelligence Pool — DuckDB state machine
+│   │   ├── pool.py            # Intelligence Pool — SQLite WAL state machine
 │   │   ├── executive.py       # Routing loop — reads raw, dispatches by type
 │   │   ├── station.py         # Base station class — all agents inherit this
 │   │   └── aboyeur.py         # QA enforcement — validates every station output
@@ -36,7 +36,13 @@ xp-arc/
     └── aboyeur-protocol-v1.json
 ```
 
-## Quick Start
+## Recent Changes
+
+- Added GitHub Actions CI workflow (tests + Bandit security scan).
+- Fixed unit tests to use fresh in‑memory pool and correct row access.
+- Mitigated Bandit B310 by validating URL schemes in `forager` and adding `# nosec B310` comment.
+- Updated documentation (README) to reflect new CI and security improvements.
+
 
 ```bash
 # Run the default 5-target spread
@@ -56,15 +62,15 @@ python run_kitchen.py --export-only --db myrun.db
 
 | Tier | Scope | Requirements |
 |------|-------|-------------|
-| Orchestration core | `pool.py`, `station.py`, `executive.py`, `fracture.py` | Python 3.12 stdlib only — zero pip dependencies |
-| Full deployment | Production runtime | DuckDB · Redis (HA write broker) |
-| Visualization | DRAGON dashboard | React · Node.js · NPM |
+| Orchestration core | `pool.py`, `station.py`, `executive.py`, `fracture.py` | Python 3 stdlib only — SQLite built in, zero pip deps |
+| Full deployment | Production runtime | Python 3.10+, standard library `sqlite3` |
+| Visualization | DRAGON dashboard | Any modern browser (static `pool_state.json` or live via `run_persistent.py`) |
 
 ## The Six Coordination Primitives
 
 | # | Primitive | Implementation | Status |
 |---|---|---|---|
-| 1 | Shared Pool State | `pool.py` — DuckDB state machine, constitutional schema | ✓ |
+| 1 | Shared Pool State | `pool.py` — SQLite WAL state machine, constitutional schema | ✓ |
 | 2 | Typed Routing | `executive.py` — dispatches by entity type to registered stations | ✓ |
 | 3 | QA Enforcement | `aboyeur.py` — validates every output, signs approved entities | ✓ |
 | 4 | Graceful Degradation | Brigade Compression fallback roles | Spec'd |
@@ -124,9 +130,8 @@ See [WHITEPAPER.md §2](./WHITEPAPER.md) for the full positioning argument.
 
 ## License
 
-Business Source License 1.1. Commercial production use requires a license from David J. Riedl.
-
-After 4 years from release, converts to MIT.
+MIT License. Free to use for any purpose including commercial production.
+No license fee, no attribution requirement beyond the copyright notice.
 
 **Version:** 0.2.0
 **Author:** David J. Riedl (UnkleJack)

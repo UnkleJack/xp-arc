@@ -51,13 +51,15 @@ class PersistentKitchen:
     through the brigade, and runs health checks on every cycle.
     """
 
-    def __init__(self, db_path: str = "xp_arc.db", poll_interval: float = 3.0,
+    def __init__(self, db_path: str = "xp_arc.db", poll_interval: float = 0.5,
                  max_entities: int = 500):
         self.db_path = db_path
         self.poll_interval = poll_interval
         self.max_entities = max_entities
         self._running = False
         self._cycles = 0
+        self._halt_vetoed = False   # True once veto window passes without stop()
+        self._halt_countdown = 0    # seconds remaining in veto window
 
         # Initialize
         self.pool = IntelligencePool(db_path)
@@ -108,10 +110,18 @@ class PersistentKitchen:
 
     def _cycle(self):
         """One processing cycle."""
+        import math
+
         # Check for raw entities
         raw = self.pool.get_next_raw()
         if not raw:
-            return  # Nothing to do
+            # Still tick the veto window while idle
+            if self._halt_countdown > 0:
+                self._halt_countdown = max(0, self._halt_countdown - self.poll_interval)
+                if self._halt_countdown == 0 and not self._halt_vetoed:
+                    print("\n[SAFE HALT] Veto window expired. Initiating safe halt.")
+                    self._running = False
+            return
 
         self._cycles += 1
         now = datetime.now(timezone.utc).strftime('%H:%M:%S')
@@ -130,10 +140,32 @@ class PersistentKitchen:
         review = self.spazz.run_review()
 
         if review['safe_halt_recommended']:
-            print("\n[!!! SAFE HALT RECOMMENDED !!!]")
-            print("[!!! 60-second veto window active !!!]")
-            self.pool._log_event('safe_halt_warning', 'persistent',
-                                 'SpaZzMatiC recommended safe halt')
+            if not self._halt_vetoed:
+                # Start 60-second veto window
+                self._halt_countdown = 60
+                print("\n[!!! SAFE HALT RECOMMENDED !!!]")
+                print("[!!! 60-second veto window active !!!]")
+                print("[!!! Call kitchen.stop() or Ctrl+C within 60s to veto !!!]")
+                self.pool._log_event('safe_halt_warning', 'persistent',
+                                     'SpaZzMatiC recommended safe halt — veto window started')
+            else:
+                # Already vetoed, halt now
+                print("\n[SAFE HALT] Veto window expired. Initiating safe halt.")
+                self._running = False
+        elif self._halt_countdown > 0:
+            # Recommendation cleared — cancel the window
+            print("\n[SAFE HALT] Recommendation cleared. Veto window cancelled.")
+            self._halt_countdown = 0
+
+        # Decrement veto countdown if window is active
+        if self._halt_countdown > 0:
+            self._halt_countdown = max(0, self._halt_countdown - self.poll_interval)
+            if self._halt_countdown > 0:
+                print(f"[SAFE HALT] Veto window: {math.ceil(self._halt_countdown)}s remaining")
+            elif not self._halt_vetoed:
+                self._halt_vetoed = True
+                self._running = False
+                print("\n[SAFE HALT] Veto window expired. Initiating safe halt.")
 
         # Export state for DRAGON
         self._export_dragon_state()
@@ -251,7 +283,7 @@ def main():
     parser.add_argument('--db', default=os.environ.get('XP_ARC_DB', 'xp_arc.db'),
                         help='Database path')
     parser.add_argument('--poll', type=float,
-                        default=float(os.environ.get('XP_ARC_POLL', '3')),
+                        default=float(os.environ.get('XP_ARC_POLL', '0.5')),
                         help='Poll interval in seconds')
     parser.add_argument('--max-entities', type=int,
                         default=int(os.environ.get('XP_ARC_MAX', '500')),

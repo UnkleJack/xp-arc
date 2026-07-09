@@ -10,10 +10,10 @@ XP-Arc v0.2 is published as an open research framework. The authors make no repr
 
 ## License
 
-XP-Arc is released under the **Business Source License (BSL) 1.1**.
+XP-Arc is released under the **MIT License**.
 
-- Free to use for non-production and non-commercial purposes.
-- Commercial production use requires a commercial license from David J. Riedl.
-- Converts to MIT license 4 years from the release date of each version.
+- Free to use for any purpose, including commercial production.
+- No restrictions on deployment, modification, or commercial use.
+- No license fee, no attribution requirement beyond the copyright notice.
 
-See the `LICENSE` file for the full BSL 1.1 text.
+See the `LICENSE` file for the full MIT license text.
