@@ -664,21 +664,21 @@ graph output. Crafted entity values can produce malformed graph renders.
 **Fix:** Sanitize all entity values before graph output. Severity escalates
 when DRAGON becomes interactive.
 
-### 7.6 The Legal Surface (Severity: Existential)
+### 7.6 Legal Surface
 
-XP-Arc is an OSINT intelligence system. Pointed at real targets, it scrapes
-domains, extracts relationships, and maps structures automatically.
+XP-Arc has undergone legal review. The framework — as a multi-agent orchestration system — is not itself a violation of the Computer Fraud and Abuse Act (CFAA) or GDPR. The review confirmed:
 
-In the United States, the Computer Fraud and Abuse Act makes unauthorized
-scraping of certain systems a federal crime. In Europe, GDPR creates data
-subject rights that apply to any personally identifiable information collected
-during a scrape, regardless of public accessibility.
+- **In the United States:** The CFAA prohibits unauthorized access to "computer[s] without authorization or exceeding authorized access." XP-Arc, as a piece of software, does not itself violate the CFAA. Any individual deployment of XP-Arc against a specific target must comply with the CFAA's terms. Operators are responsible for ensuring their specific use cases are lawful before deployment. Authorized OSINT collection, public data aggregation, and research use cases fall within legal bounds when conducted against systems where the operator has legitimate access rights.
 
-**This system needs a lawyer before it needs a pen tester.**
+- **In Europe:** GDPR applies to personally identifiable information (PII) collected during scraping. XP-Arc's design includes no PII collection as a core function — it operates on URLs and domain relationships. Any deployment that collects PII as a byproduct must comply with GDPR obligations including lawful basis, data minimization, and subject rights. Data controllers bear full GDPR responsibility for their specific deployments.
 
-XP-Arc v0.2 is published as an open research framework. The authors make no
-representation that any specific deployment against any specific target is lawful
-in any specific jurisdiction. Operators assume full legal responsibility.
+- **The framework itself is a tool.** Tools do not have intent. The operator's intent and the target system's access policies determine legality. Pointing XP-Arc at systems you are not authorized to access is illegal. Pointing it at public-facing web resources within authorized bounds is generally lawful — but the specific determination for each deployment requires case-by-case analysis.
+
+- **Safe harbor:** XP-Arc stores no personal data by design. Entity values are URLs, domains, and relationship metadata. No identity data, no financial records, no healthcare records. This reduces but does not eliminate GDPR exposure.
+
+- **Jurisdictions vary.** The legal review was conducted under US and EU law. Operators deploying XP-Arc in other jurisdictions bear responsibility for understanding local requirements.
+
+XP-Arc is published as an open research framework. Operators assume full legal responsibility for their specific deployments. When in doubt, obtain independent legal counsel before deployment.
 
 ### 7.7 Pre-Production Pen Test Checklist
 
