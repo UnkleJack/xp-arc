@@ -386,6 +386,35 @@ class IntelligencePool:
             "SELECT * FROM events ORDER BY id DESC LIMIT ?", (limit,)
         ).fetchall()
 
+    # ─── Descendant Tracking (for GC cleanup) ─────────────────────────────────
+
+    def get_descendants(self, entity_id: int) -> list:
+        """Return all entities that have entity_id anywhere in their spawn_chain."""
+        rows = self.conn.execute("""
+            SELECT id, type, value, status, cascade_depth, spawn_chain
+            FROM entities
+            WHERE spawn_chain LIKE ?
+               OR parent_task_id = ?
+            ORDER BY cascade_depth
+        """, (f'%{entity_id}%', entity_id)).fetchall()
+        return rows
+
+    def reset_descendants(self, entity_id: int, status: str = 'failed') -> int:
+        """Reset status of all descendants of entity_id. Returns count."""
+        descendants = self.get_descendants(entity_id)
+        if not descendants:
+            return 0
+        desc_ids = [d['id'] for d in descendants]
+        placeholders = ','.join('?' * len(desc_ids))
+        with self.conn:
+            self.conn.execute(
+                f"UPDATE entities SET status = ? WHERE id IN ({placeholders})",
+                [status] + desc_ids
+            )
+        self._log_event('descendants_reset', 'pool',
+                        f"Reset {len(desc_ids)} descendants of entity {entity_id} to {status}")
+        return len(descendants)
+
     # ─── Orphan Detection (for Plongeur) ───
 
     def get_orphaned_entities(self, threshold_seconds: int = 300):

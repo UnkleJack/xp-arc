@@ -8,6 +8,7 @@ Whitepaper Section 4.4, Station #1.
 """
 
 import re
+import json
 import urllib.request
 import urllib.parse
 import ssl
@@ -213,6 +214,16 @@ class TheForager(StationChef):
                 source_domain = source_domain[0] if source_domain else ""
 
                 count = 0
+                child_root = parent['root_task_id'] if parent['root_task_id'] else entity_id
+                child_chain_raw = parent['spawn_chain'] if parent['spawn_chain'] else None
+                if child_chain_raw:
+                    try:
+                        child_chain = json.loads(child_chain_raw)
+                    except (json.JSONDecodeError, TypeError):
+                        child_chain = []
+                else:
+                    child_chain = []
+
                 for d in all_domains:
                     # Sanitize each extracted domain before writing to pool
                     safe_domain = _sanitize_domain(d)
@@ -223,9 +234,15 @@ class TheForager(StationChef):
                     if count >= self.max_domains_per_target:
                         break
 
-                    new_id = self.pool.add_entity('domain', safe_domain, crawl_depth=child_depth, max_crawl_depth=child_max)
+                    new_id = self.pool.add_entity(
+                        'domain', safe_domain,
+                        parent_task_id=entity_id,
+                        root_task_id=child_root,
+                        cascade_depth=child_depth,
+                        spawn_chain=json.dumps(child_chain + [entity_id])
+                    )
                     if new_id:
-                        self.pool.add_edge(safe_url, 'links_to', safe_domain)  # ← sanitized
+                        self.pool.add_edge(safe_url, 'links_to', safe_domain)
                         self.log(f"  + Extracted domain: {safe_domain}")
                         extracted_domains.append(safe_domain)
                         count += 1

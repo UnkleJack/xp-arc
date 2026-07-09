@@ -47,6 +47,13 @@ class ThePlongeur(StationChef):
             self.log(f"  Recovering orphan: entity {orphan['id']} "
                      f"({orphan['type']}:{orphan['value']})")
 
+            # Check and reset descendants before orphan recovery (CONSTITUTION IV 4.2)
+            descendants = self.pool.get_descendants(orphan['id'])
+            if descendants:
+                desc_ids = [d['id'] for d in descendants]
+                self.log(f"    Descendant cleanup: resetting {len(desc_ids)} child entities")
+                self.pool.reset_descendants(orphan['id'], status='failed')
+
             # processing → failed (so it can be retried)
             self.pool.transition_status(
                 orphan['id'], 'failed',
