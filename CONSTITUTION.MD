@@ -482,11 +482,11 @@ XP-Arc adopts an open-source-first monetization model: **open-source the spec, m
 
 ### Section 11.2 — Licensing and IP
 
-XP-Arc is released under the **Business Source License (BSL 1.1)**. The BSL allows free use for non-production and non-commercial purposes. Commercial production use requires a commercial license from David J. Riedl.
+XP-Arc is released under the **MIT License**. The MIT license permits unrestricted use, modification, distribution, and commercial deployment without any royalty or additional licensing requirements.
 
-After a defined period (default: 4 years from release date), the code converts to an open-source license (MIT). This structure protects the Red Hat consulting and certification revenue model while preserving long-term open-source intent.
+This aligns with the `LICENSE` file in the repository, which is the definitive legal instrument for the project.
 
-The BSL does not restrict forking, studying, or contributing. It restricts **commercial production deployment without a license**. This is the legally enforceable version of the IP protection this framework requires.
+No additional commercial licensing is required; forking, studying, and contributing are fully permitted under MIT terms.
 
 ---
 
@@ -682,7 +682,7 @@ SAFE HALT:              Suspends ingestion, debt accrual, Plongeur sweeps. Grace
 GRACE CAP:              max(300s, 2× longest station SLA). No open-ended safety blackouts.
 AGENT LAW:              Zero sycophancy. Direct positions. Productive friction.
 SPAZZMATIС LAW:         Independent. Cannot be silenced. 60s veto window on safe halt trigger.
-LICENSE:                BSL 1.1. Commercial production use requires license from David J. Riedl.
+LICENSE:                MIT. No commercial restrictions; the MIT license permits unrestricted use, modification, distribution, and commercial deployment.
 ```
 
 ---

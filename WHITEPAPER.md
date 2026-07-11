@@ -380,7 +380,7 @@ The Pool is implemented on **SQLite with WAL journal mode** — no external depe
 
 SQLite's WAL (Write-Ahead Logging) mode allows concurrent readers while a write is in progress, decoupling read throughput from write latency without requiring a separate process or server. `PRAGMA foreign_keys=ON` enforces referential integrity at the database level. The pool sets both flags at initialization.
 
-The original architecture specified DuckDB with a Redis-buffered Write Broker. That was overengineered for the actual workload. The XP-Arc brigade does high-frequency small writes (entity inserts, status transitions), concurrent reads (DRAGON polling), and real-time queries on small-to-medium data — exactly the use case SQLite WAL was designed for. DuckDB's columnar OLAP engine would add infrastructure complexity without measurable benefit.
+The original architecture specified DuckDB with a Redis-buffered Write Broker, which has been superseded. XP-Arc now uses SQLite WAL as the substrate, providing atomic writes, reader concurrency, and zero infrastructure overhead.
 
 **DRAGON polling:** DRAGON queries the SQLite file directly at 500ms intervals. Under write load, readers may occasionally see a slightly stale snapshot — acceptable for a visualization layer. The materialized view concept from the Write Broker architecture is not needed at this scale.
 
