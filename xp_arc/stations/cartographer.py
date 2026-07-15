@@ -81,7 +81,7 @@ class TheCartographer(StationChef):
         # Write inferred edges
         new_edges = 0
         for inf in inferred:
-            self.pool.add_edge(inf['source'], inf['relationship'], inf['target'])
+            self.writer.add_edge(inf['source'], inf['relationship'], inf['target'])
             new_edges += 1
 
         # Write bridge findings

@@ -8,6 +8,8 @@ Constitution Article IV.
 """
 
 import hashlib
+import hmac
+import os
 import json
 import time
 from datetime import datetime, timezone
@@ -31,9 +33,11 @@ class Aboyeur:
     MIN_CONFIDENCE = 0.0
     MAX_CONFIDENCE = 1.0
 
-    def __init__(self, pool, signing_key: str = "xp-arc-aboyeur-v1"):
+    def __init__(self, pool, signing_key: str | None = None):
         self.pool = pool
-        self._signing_key = signing_key
+        self.pool.register_station('aboyeur', 'The Aboyeur', [], is_primary=True)
+        self.writer = pool.station_writer('aboyeur')
+        self._signing_key = signing_key or os.environ.get('XP_ARC_ABOYEUR_KEY', 'development-only-change-me')
         self._verifications = 0
         self._rejections = 0
         self._approvals = 0
@@ -55,11 +59,16 @@ class Aboyeur:
         entity = self.pool.get_entity(entity_id)
         if not entity:
             return self._reject(entity_id, "Entity not found in pool")
+        if entity['status'] != 'pending_qa':
+            return self._reject(entity_id, "Entity is not pending QA")
 
         # ─── Schema Validation ───
         missing = self.REQUIRED_OUTPUT_FIELDS - set(output.keys())
         if missing:
             return self._reject(entity_id, f"Missing required fields: {missing}")
+
+        if output.get('entity_type') != entity['type'] or output.get('entity_value') != entity['value']:
+            return self._reject(entity_id, 'Output does not match input entity')
 
         # ─── Confidence Bounds ───
         conf = output.get('confidence', 0)
@@ -89,7 +98,7 @@ class Aboyeur:
 
         # ─── Approve ───
         self._approvals += 1
-        self.pool.set_aboyeur_signature(entity_id, signature)
+        self.writer.set_aboyeur_signature(entity_id, signature)
 
         self.pool._log_event('aboyeur_approval', 'aboyeur',
                              f"Entity {entity_id} approved. Station: {station_id}. "
@@ -108,7 +117,7 @@ class Aboyeur:
         self._rejections += 1
 
         # Increment rejection counter
-        new_count = self.pool.increment_rejection(entity_id)
+        new_count = self.writer.increment_rejection(entity_id)
         entity = self.pool.get_entity(entity_id)
         max_rej = entity['max_rejections'] if entity else 3
 
@@ -117,7 +126,7 @@ class Aboyeur:
 
         # Circuit breaker: max_rejections hit → fail and escalate
         if new_count >= max_rej:
-            self.pool.transition_status(entity_id, 'failed')
+            self.writer.transition_status(entity_id, 'failed')
             self.pool._log_event('aboyeur_circuit_break', 'aboyeur',
                                  f"Entity {entity_id} circuit breaker tripped. "
                                  f"Escalating to Chef de Cuisine.",
@@ -146,9 +155,9 @@ class Aboyeur:
             'timestamp': datetime.now(timezone.utc).isoformat(),
         }, sort_keys=True)
 
-        sig = hashlib.sha256(
-            (self._signing_key + payload).encode()
-        ).hexdigest()[:32]
+        sig = hmac.new(
+            self._signing_key.encode(), payload.encode(), hashlib.sha256
+        ).hexdigest()
 
         return f"ABOY-{sig}"
 

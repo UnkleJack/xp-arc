@@ -27,15 +27,11 @@ class FractureProtocol:
     def __init__(self, pool):
         self.pool = pool
     
-    def authorize_fracture(self, entity_id: int, station_id: str, 
+    def authorize_fracture(self, entity_id: int, station_id: str,
                           complexity_notes: str) -> bool:
-        """Request fracture authorization from Aboyeur."""
-        # This would interact with Aboyeur for validation
-        # For now, we'll return True to allow development
-        # In full implementation, this would call Aboyeur.validate_fracture_request()
-        self.pool._log_event('fracture_request', station_id,
-                           f"Fracture requested for entity {entity_id}: {complexity_notes}")
-        return True  # Placeholder - should validate with Aboyeur
+        """Authorize fracture using the same QA rule as the executive path."""
+        from .aboyeur import Aboyeur
+        return Aboyeur(self.pool).validate_fracture(entity_id, station_id, complexity_notes)
     
     def create_shards(self, entity_id: int, entity_type: str, 
                        entity_value: str, shard_count: int = 3,
@@ -75,7 +71,8 @@ class FractureProtocol:
             shard_id = self.pool.add_entity(
                 ent_type=shard_type,
                 value=shard_value,
-                parent_task_id=entity_id
+                parent_task_id=entity_id,
+                station_id='fracture_protocol'
             )
             
             if shard_id:
@@ -164,9 +161,11 @@ class FractureProtocol:
             'notes': f"Stitched {len(shards)} shards from fracture {fracture_id}"
         })
         
-        # Transition parent entity to stitchable
-        self.pool.transition_status(parent_id, 'stitchable',
-                                  notes=f"All {len(shards)} shards completed, ready for stitching")
+        if not self.pool.transition_status(parent_id, 'stitchable',
+                                           station='fracture_protocol',
+                                           station_id='fracture_protocol',
+                                           notes=f"All {len(shards)} shards completed, ready for stitching"):
+            return None
         
         # Create mapped entity (this represents the stitched result)
         # Get parent entity for type/value
@@ -177,7 +176,8 @@ class FractureProtocol:
         mapped_id = self.pool.add_entity(
             ent_type=parent['type'],
             value=stitched_value,
-            parent_task_id=parent_id
+            parent_task_id=parent_id,
+            station_id='fracture_protocol'
         )
         
         if mapped_id:
@@ -189,23 +189,26 @@ class FractureProtocol:
                 )
             
             # Transition mapped entity: raw -> processing -> pending_qa -> completed
-            self.pool.transition_status(mapped_id, 'processing', station='fracture_protocol')
-            self.pool.transition_status(mapped_id, 'pending_qa')
+            self.pool.transition_status(mapped_id, 'processing', station='fracture_protocol', station_id='fracture_protocol')
+            self.pool.transition_status(mapped_id, 'pending_qa', station_id='fracture_protocol')
             
             # Generate and set Aboyeur signature for stitched entity
             sig_uuid = uuid.uuid4().hex[:16]
             signature = f"ABOY-STITCH-{sig_uuid}"
-            self.pool.set_aboyeur_signature(mapped_id, signature)
+            self.pool.set_aboyeur_signature(mapped_id, signature, station_id='aboyeur')
             
             self.pool.transition_status(mapped_id, 'completed',
                                       station='fracture_protocol',
+                                      station_id='fracture_protocol',
                                       confidence=1.0,
                                       notes=f"Stitched result from fracture {fracture_id}")
             
             # Transition parent entity: stitchable -> mapped -> completed
             self.pool.transition_status(parent_id, 'mapped',
+                                      station_id='fracture_protocol',
                                       notes=f"Stitched into entity {mapped_id}")
             self.pool.transition_status(parent_id, 'completed',
+                                      station_id='fracture_protocol',
                                       notes=f"Stitched into entity {mapped_id}")
             
             self.pool._log_event('shards_stitched', 'fracture_protocol',

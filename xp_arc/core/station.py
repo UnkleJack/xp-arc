@@ -41,6 +41,7 @@ class StationChef:
             handles_types=self.handles_types,
             is_primary=self.is_primary,
         )
+        self.writer = pool.station_writer(self.station_id)
 
     def can_handle(self, ent_type: str) -> bool:
         return ent_type in self.handles_types

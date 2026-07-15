@@ -46,19 +46,19 @@ class TheDossier(StationChef):
 
         # 4. Write dossier_report back to the pool (Article III shared state)
         report_value = f"REPORT-{target}"
-        eid = self.pool.add_entity(
+        eid = self.writer.add_entity(
             'dossier_report',
             report_value,
             sla_seconds=300,
         )
         if eid:
-            self.pool.transition_status(eid, 'processing', station=self.station_id)
-            self.pool.transition_status(eid, 'pending_qa')
-            self.pool.transition_status(eid, 'completed',
+            self.writer.transition_status(eid, 'processing', station=self.station_id)
+            self.writer.transition_status(eid, 'pending_qa')
+            self.writer.transition_status(eid, 'completed',
                                         station=self.station_id,
                                         confidence=1.0,
                                         notes=dossier_md)
-            self.pool.add_edge(target, 'has_dossier', report_value)
+            self.writer.add_edge(target, 'has_dossier', report_value)
 
         return {
             'entity_type': 'dossier_report',

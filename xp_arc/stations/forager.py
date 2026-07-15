@@ -18,6 +18,7 @@ try:
 except ImportError:
     _CERTIFI_AVAILABLE = False
 from ..core.station import StationChef
+from ..core.network_guard import open_public_url
 
 # ─── Input Sanitization (WHITEPAPER 5.5.2) ───────────────────────────────────
 # Defense-in-depth: all untrusted input is validated before use.
@@ -203,7 +204,7 @@ class TheForager(StationChef):
                     safe_url,   # ← sanitized, not entity_value
                     headers={'User-Agent': 'Mozilla/5.0 (XP-Arc Forager/0.2)'}
                 )
-                with urllib.request.urlopen(req, timeout=self.timeout, context=context) as response:
+                with open_public_url(safe_url, timeout=self.timeout, context=context) as response:
                     html = response.read().decode('utf-8', errors='ignore')
 
                 # Extract domains from links
@@ -234,7 +235,7 @@ class TheForager(StationChef):
                     if count >= self.max_domains_per_target:
                         break
 
-                    new_id = self.pool.add_entity(
+                    new_id = self.writer.add_entity(
                         'domain', safe_domain,
                         parent_task_id=entity_id,
                         root_task_id=child_root,
@@ -242,7 +243,7 @@ class TheForager(StationChef):
                         spawn_chain=json.dumps(child_chain + [entity_id])
                     )
                     if new_id:
-                        self.pool.add_edge(safe_url, 'links_to', safe_domain)
+                        self.writer.add_edge(safe_url, 'links_to', safe_domain)
                         self.log(f"  + Extracted domain: {safe_domain}")
                         extracted_domains.append(safe_domain)
                         count += 1

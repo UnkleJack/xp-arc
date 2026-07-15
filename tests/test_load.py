@@ -364,7 +364,7 @@ def run_load_test(
     sla_violations = 0
     for e in all_entities:
         if e['status'] != 'completed' and e['sla_seconds']:
-            assigned = e.get('assigned_at')
+            assigned = dict(e).get('assigned_at')
             if assigned:
                 try:
                     assigned_dt = datetime.fromisoformat(assigned.replace('Z', '+00:00'))

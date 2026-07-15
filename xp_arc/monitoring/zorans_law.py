@@ -39,7 +39,7 @@ class ZoransLaw:
         Records to pool and returns the measurement.
         """
         stats = self.pool.get_stats()
-        stations = self.pool.get_active_stations()
+        stations = [s for s in self.pool.get_active_stations() if s['station_id'] != 'aboyeur']
 
         # ─── Stability Quotient (S) ───
         # Weighted by sla_seconds

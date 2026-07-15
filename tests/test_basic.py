@@ -9,7 +9,7 @@ from xp_arc.core.pool import IntelligencePool
 
 def _fresh_pool():
     """Return a new in-memory pool (no shared state between tests)."""
-    return IntelligencePool()  # defaults to :memory:
+    return IntelligencePool(":memory:")
 
 def test_intelligence_pool_add_and_get_raw():
     """An entity added as 'raw' should be returned by get_next_raw."""

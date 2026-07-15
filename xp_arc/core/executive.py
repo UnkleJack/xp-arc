@@ -25,6 +25,7 @@ class ExecutiveChef:
 
     def __init__(self, pool, max_entities: int = 500, verbose: bool = True):
         self.pool = pool
+        self.writer = pool.station_writer('executive')
         self.stations = []
         self._critical_stations = []  # stations that survive compression
         self._station_backup = []     # preserved copy for expansion
@@ -40,6 +41,8 @@ class ExecutiveChef:
 
     def register_station(self, station):
         """Register a station with the brigade."""
+        self.pool.register_station(station.station_id, station.name, station.handles_types,
+                                   is_primary=getattr(station, 'critical', getattr(station, 'is_primary', True)))
         self.stations.append(station)
         if self.verbose:
             types_str = ", ".join(station.handles_types)
@@ -132,13 +135,15 @@ class ExecutiveChef:
                 if self.verbose:
                     print(f"  [!] No station available for [{ent_type}] - marking unhandled")
                 self._unhandled += 1
-                self.pool.transition_status(entity_id, 'processing', station='none')
-                self.pool.transition_status(entity_id, 'failed',
+                self.writer.transition_status(entity_id, 'processing', station='none')
+                self.writer.transition_status(entity_id, 'failed',
                                             notes=f"No station registered for type: {ent_type}")
                 continue
 
             # Route to Station
-            self.pool.transition_status(entity_id, 'processing', station=handler.station_id)
+            claimed = self.pool.claim_entity(entity_id, handler.station_id)
+            if not claimed or claimed['id'] != entity_id:
+                continue
 
             try:
                 output = handler.process(entity_id, ent_type, ent_value)
@@ -146,14 +151,14 @@ class ExecutiveChef:
                 self._routed += 1
 
                 # Aboyeur QA Gate
-                self.pool.transition_status(entity_id, 'pending_qa')
+                self.pool.station_writer(handler.station_id).transition_status(entity_id, 'pending_qa')
                 result = self.aboyeur.validate_and_sign(
                     entity_id, handler.station_id, output,
                     is_fallback=(not handler.is_primary)
                 )
 
                 if result['approved']:
-                    self.pool.transition_status(
+                    self.pool.station_writer(handler.station_id).transition_status(
                         entity_id, 'completed',
                         station=handler.station_id,
                         confidence=output.get('confidence'),
@@ -185,7 +190,7 @@ class ExecutiveChef:
                     # Rejected — check if circuit breaker tripped
                     entity_check = self.pool.get_entity(entity_id)
                     if entity_check and entity_check['status'] != 'failed':
-                        self.pool.transition_status(entity_id, 'failed',
+                        self.pool.station_writer(handler.station_id).transition_status(entity_id, 'failed',
                                                     notes=result['rejection_reason'])
                     if self.verbose:
                         print(f"  [✗] Aboyeur rejected: {result['rejection_reason']}")
@@ -202,13 +207,13 @@ class ExecutiveChef:
                 else:
                     if self.verbose:
                         print(f"  [✗] Fracture unauthorized by Aboyeur. Marking failed.")
-                    self.pool.transition_status(entity_id, 'failed', notes="Fracture unauthorized by Aboyeur")
+                    self.pool.station_writer(handler.station_id).transition_status(entity_id, 'failed', notes="Fracture unauthorized by Aboyeur")
 
             except Exception as e:
                 handler._tasks_failed += 1
                 if self.verbose:
                     print(f"  [!] {handler.name} dropped the pan: {e}")
-                self.pool.transition_status(entity_id, 'failed',
+                self.pool.station_writer(handler.station_id).transition_status(entity_id, 'failed',
                                             notes=f"Station error: {str(e)}")
 
         # Kitchen Closed
@@ -273,12 +278,13 @@ class ExecutiveChef:
             # Build new spawn chain: parent chain + parent_id
             new_chain = parent_chain + [parent_id]
 
-            eid = self.pool.add_entity(
+            eid = self.writer.add_entity(
                 ent_type=ent_type,
                 value=value,
                 sla_seconds=target.get('sla_seconds', 60),
                 parent_task_id=parent_id,
                 root_task_id=parent_root,
+                station_id='executive',
                 cascade_depth=parent_depth + 1,
                 spawn_chain=json.dumps(new_chain)
             )
