@@ -63,19 +63,19 @@ class TheLibrarian(StationChef):
 
             # Write dossier as entity
             dossier_json = json.dumps(dossier, default=str)
-            eid = self.pool.add_entity(
+            eid = self.writer.add_entity(
                 '_dossier',
                 f"dossier:{seed_value}",
                 sla_seconds=120,
             )
             if eid:
-                self.pool.transition_status(eid, 'processing', station=self.station_id)
-                self.pool.transition_status(eid, 'pending_qa')
-                self.pool.transition_status(eid, 'completed',
+                self.writer.transition_status(eid, 'processing', station=self.station_id)
+                self.writer.transition_status(eid, 'pending_qa')
+                self.writer.transition_status(eid, 'completed',
                                             station=self.station_id,
                                             confidence=dossier['confidence'],
                                             notes=dossier_json[:500])
-                self.pool.add_edge(seed_value, 'has_dossier', f"dossier:{seed_value}")
+                self.writer.add_edge(seed_value, 'has_dossier', f"dossier:{seed_value}")
 
         self.log(f"Generated {len(dossiers)} dossiers")
         return dossiers

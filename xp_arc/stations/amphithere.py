@@ -77,12 +77,12 @@ class TheAmphithere(StationChef):
                     ips_found[ip].append(domain)
 
                     # Add IP entity
-                    eid = self.pool.add_entity('ip_address', ip)
+                    eid = self.writer.add_entity('ip_address', ip)
                     if eid:
                         new_entities += 1
 
                     # Add resolves_to edge
-                    self.pool.add_edge(domain, 'resolves_to', ip)
+                    self.writer.add_edge(domain, 'resolves_to', ip)
                     new_edges += 1
             else:
                 failed += 1

@@ -17,6 +17,7 @@ try:
 except ImportError:
     _CERTIFI_AVAILABLE = False
 from ..core.station import StationChef
+from ..core.network_guard import open_public_url
 
 
 class TheAnalyst(StationChef):
@@ -65,9 +66,9 @@ class TheAnalyst(StationChef):
         if len(parts) > 2:
             parent_domain = '.'.join(parts[-2:])
             if parent_domain != entity_value:
-                existing = self.pool.add_entity('domain', parent_domain)
+                existing = self.writer.add_entity('domain', parent_domain)
                 if existing:
-                    self.pool.add_edge(entity_value, 'subdomain_of', parent_domain)
+                    self.writer.add_edge(entity_value, 'subdomain_of', parent_domain)
                     relationships.append(parent_domain)
                     self.log(f"  + Subdomain relationship: {entity_value} → {parent_domain}")
 
@@ -132,7 +133,7 @@ class TheAnalyst(StationChef):
                 method='HEAD',
                 headers={'User-Agent': 'Mozilla/5.0 (XP-Arc Analyst/0.2)'}
             )
-            with urllib.request.urlopen(req, timeout=4, context=context) as resp:
+            with open_public_url(f"https://{domain}", timeout=4, context=context) as resp:
                 result['reachable'] = True
                 result['server'] = resp.headers.get('Server', 'unknown')
                 if resp.url != f"https://{domain}" and resp.url != f"https://{domain}/":
@@ -145,7 +146,7 @@ class TheAnalyst(StationChef):
                     method='HEAD',
                     headers={'User-Agent': 'Mozilla/5.0 (XP-Arc Analyst/0.2)'}
                 )
-                with urllib.request.urlopen(req, timeout=3) as resp:
+                with open_public_url(f"http://{domain}", timeout=3) as resp:
                     result['reachable'] = True
                     result['server'] = resp.headers.get('Server', 'unknown')
             except Exception:

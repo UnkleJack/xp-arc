@@ -55,7 +55,7 @@ class ThePlongeur(StationChef):
                 self.pool.reset_descendants(orphan['id'], status='failed')
 
             # processing → failed (so it can be retried)
-            self.pool.transition_status(
+            self.writer.transition_status(
                 orphan['id'], 'failed',
                 notes=f"Plongeur recovery: exceeded SLA ({orphan['sla_seconds']}s)"
             )

@@ -89,7 +89,7 @@ class TheSalamander(StationChef):
         for normalized, originals in normalizations.items():
             for orig in originals:
                 if orig != normalized:
-                    self.pool.add_edge(orig, 'normalizes_to', normalized)
+                    self.writer.add_edge(orig, 'normalizes_to', normalized)
                     edges_added += 1
 
         # Write findings

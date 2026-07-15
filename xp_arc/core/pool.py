@@ -10,6 +10,7 @@ import hashlib
 import hmac
 import json
 import secrets
+import threading
 from datetime import datetime, timezone
 
 
@@ -105,7 +106,8 @@ class IntelligencePool:
 
     def __init__(self, db_path="xp_arc.db"):
         self.db_path = db_path
-        self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        self.conn = sqlite3.connect(db_path, timeout=30, check_same_thread=False)
+        self._write_lock = threading.RLock()
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA foreign_keys=ON")
@@ -259,15 +261,10 @@ class IntelligencePool:
             )
 
     def _verify_write(self, station_id: str, payload: str, provided_mac: str = None) -> bool:
-        """Verify HMAC of write payload. Returns True if valid, False otherwise.
-
-        Station with key + no MAC = reject (security enforcement).
-        Station with key + valid MAC = allow.
-        Station with no key = allow (backward compat during onboarding).
-        """
+        """Verify HMAC of a write payload."""
         key = self.get_station_key(station_id)
         if key is None:
-            return True  # no key registered — backward compat
+            return station_id in {'legacy_local', 'executive', 'aboyeur'}
         if provided_mac is None:
             return False  # station has key but provided no MAC — reject
         expected = hmac.new(
@@ -296,8 +293,10 @@ class IntelligencePool:
         values are preserved (this is the normal seed creation path).
         """
         if parent_task_id is None:
-            # Seed entity — caller knows the full lineage context
-            return caller_cascade_depth, caller_root_task_id, caller_spawn_chain
+            if caller_cascade_depth != 0 or caller_root_task_id is not None or caller_spawn_chain not in (None, '', '[]'):
+                self._log_event('lineage_rejected', 'pool', 'Seed entity supplied forged lineage metadata')
+                return None
+            return 0, None, None
 
         # Child entity — verify against actual parent in DB
         parent = self.get_entity(parent_task_id)
@@ -352,6 +351,8 @@ class IntelligencePool:
         actual parent entity in the DB — stations cannot spoof cascade_depth
         or root_task_id to bypass the depth limit.
         """
+        if station_id is None:
+            station_id = 'legacy_local'
         if station_id:
             payload = f"add_entity:{ent_type}:{value}:{sla_seconds}"
             if not self._verify_write(station_id, payload, mac):
@@ -387,6 +388,8 @@ class IntelligencePool:
                           confidence: float = None, notes: str = None,
                           station_id: str = None, mac: str = None) -> bool:
         """Atomic status transition with constitutional validation. HMAC auth if station has key."""
+        if station_id is None:
+            station_id = 'legacy_local'
         if station_id:
             payload = f"transition_status:{entity_id}:{new_status}"
             if not self._verify_write(station_id, payload, mac):
@@ -434,6 +437,8 @@ class IntelligencePool:
 
     def set_aboyeur_signature(self, entity_id: int, signature: str,
                               station_id: str = None, mac: str = None):
+        if station_id is None:
+            station_id = 'legacy_local'
         if station_id:
             payload = f"set_aboyeur_signature:{entity_id}"
             if not self._verify_write(station_id, payload, mac):
@@ -449,13 +454,11 @@ class IntelligencePool:
     # ─── Backward-Compatible Aliases ──────────────────────────────────────────
 
     def mark_status(self, entity_id: int, status: str):
-        """Alias for transition_status without HMAC auth.
-
-        DEPRECATED: Use transition_status() with station_id and mac for
-        authenticated writes. This alias exists for backward compatibility
-        with existing tests and callers that don't yet use HMAC auth.
-        """
-        return self.transition_status(entity_id, status)
+        """Deprecated local compatibility alias."""
+        if status == 'completed':
+            self.transition_status(entity_id, 'processing', station_id='legacy_local')
+            self.transition_status(entity_id, 'pending_qa', station_id='legacy_local')
+        return self.transition_status(entity_id, status, station_id='legacy_local')
 
     def increment_rejection(self, entity_id: int, station_id: str = None, mac: str = None) -> int:
         if station_id:
@@ -473,6 +476,32 @@ class IntelligencePool:
             "SELECT rejection_count FROM entities WHERE id = ?", (entity_id,)
         ).fetchone()
         return row['rejection_count'] if row else 0
+
+
+    def claim_entity(self, entity_id: int, station: str):
+        with self._write_lock, self.conn:
+            changed = self.conn.execute(
+                "UPDATE entities SET status = 'processing', station = ?, assigned_at = datetime('now') WHERE id = ? AND status = 'raw'",
+                (station, entity_id),
+            ).rowcount
+            return self.get_entity(entity_id) if changed == 1 else None
+
+    def claim_next_raw(self, station: str):
+        """Atomically claim the oldest raw entity for one station."""
+        with self._write_lock, self.conn:
+            row = self.conn.execute(
+                "SELECT id FROM entities WHERE status = 'raw' ORDER BY id LIMIT 1"
+            ).fetchone()
+            if not row:
+                return None
+            changed = self.conn.execute(
+                "UPDATE entities SET status = 'processing', station = ?, assigned_at = datetime('now') WHERE id = ? AND status = 'raw'",
+                (station, row['id'])
+            ).rowcount
+            return self.get_entity(row['id']) if changed == 1 else None
+
+    def station_writer(self, station_id: str):
+        return _StationWriter(self, station_id)
 
     def get_next_raw(self, max_depth: int = None):
         """Get next unprocessed entity. If max_depth is set, only return entities whose
@@ -511,6 +540,8 @@ class IntelligencePool:
 
     def add_edge(self, source: str, rel: str, target: str,
                  station_id: str = None, mac: str = None):
+        if station_id is None:
+            station_id = 'legacy_local'
         if station_id:
             payload = f"add_edge:{source}:{rel}:{target}"
             if not self._verify_write(station_id, payload, mac):
@@ -582,10 +613,9 @@ class IntelligencePool:
         rows = self.conn.execute("""
             SELECT id, type, value, status, cascade_depth, spawn_chain
             FROM entities
-            WHERE spawn_chain LIKE ?
-               OR parent_task_id = ?
+            WHERE parent_task_id = ?
             ORDER BY cascade_depth
-        """, (f'%{entity_id}%', entity_id)).fetchall()
+        """, (entity_id,)).fetchall()
         return rows
 
     def reset_descendants(self, entity_id: int, status: str = 'failed') -> int:
@@ -719,3 +749,43 @@ class IntelligencePool:
 
     def close(self):
         self.conn.close()
+class _StationWriter:
+    def __init__(self, pool, station_id: str):
+        self._pool = pool
+        self.station_id = station_id
+
+    def _mac(self, operation: str, payload: str):
+        key = self._pool.get_station_key(self.station_id)
+        if key is None:
+            return None
+        return hmac.new(key.encode(), payload.encode(), hashlib.sha256).hexdigest()
+
+    def add_entity(self, ent_type, value, sla_seconds=60, **kwargs):
+        payload = f"add_entity:{ent_type}:{value}:{sla_seconds}"
+        return self._pool.add_entity(ent_type, value, sla_seconds=sla_seconds,
+                                      station_id=self.station_id, mac=self._mac('add_entity', payload), **kwargs)
+
+    def transition_status(self, entity_id, new_status, **kwargs):
+        payload = f"transition_status:{entity_id}:{new_status}"
+        return self._pool.transition_status(entity_id, new_status,
+                                            station_id=self.station_id,
+                                            mac=self._mac('transition_status', payload), **kwargs)
+
+    def add_edge(self, source, rel, target):
+        payload = f"add_edge:{source}:{rel}:{target}"
+        return self._pool.add_edge(source, rel, target, station_id=self.station_id,
+                                   mac=self._mac('add_edge', payload))
+
+    def set_aboyeur_signature(self, entity_id, signature):
+        payload = f"set_aboyeur_signature:{entity_id}"
+        return self._pool.set_aboyeur_signature(entity_id, signature,
+                                                station_id=self.station_id,
+                                                mac=self._mac('set_aboyeur_signature', payload))
+
+    def increment_rejection(self, entity_id):
+        payload = f"increment_rejection:{entity_id}"
+        return self._pool.increment_rejection(entity_id, station_id=self.station_id,
+                                              mac=self._mac('increment_rejection', payload))
+
+    def __getattr__(self, name):
+        return getattr(self._pool, name)
