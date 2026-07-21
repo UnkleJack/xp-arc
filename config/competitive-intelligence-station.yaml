@@ -36,6 +36,7 @@ sources:
     enabled: true
     rate_limit: 5000  # per hour with token
     timeout: 30
+    # Will load watchlist from competitive-watchlist.yaml
 
   pypi:
     enabled: true

@@ -12,6 +12,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 import yaml
 
+from .fetchers import create_fetcher
+from .detection import DetectionEngine, GapAnalyzer
+
 logger = logging.getLogger(__name__)
 
 # Module-level reference to project root
@@ -31,6 +34,10 @@ class CompetitiveIntelStation:
         self.watchlist = config.get("watchlist", {})
         self.db_path = Path(self.config.get("database", {}).get("path", "data/competitive/gaps.db"))
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Initialize sub-modules
+        self.detection_engine = DetectionEngine(self)
+        self.gap_analyzer = GapAnalyzer(self)
 
     async def init_database(self):
         """Initialize the SQLite database with schema."""
@@ -68,10 +75,13 @@ class CompetitiveIntelStation:
                 tasks.append(self.fetch_source(source_id))
 
         if tasks:
-            await asyncio.gather(*tasks)
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    logger.error(f"Error fetching from source {list(sources.keys())[i]}: {result}")
 
     async def fetch_source(self, source_id: str):
-        """Fetch data from a specific source."""
+        """Fetch data from a specific source using the fetcher factory."""
         logger.info(f"Fetching from source: {source_id}")
 
         source_config = self.config.get("sources", {}).get(source_id, {})
@@ -79,95 +89,189 @@ class CompetitiveIntelStation:
             logger.warning(f"Source {source_id} is not enabled")
             return
 
-        # This is a placeholder - actual implementation would use specific fetchers
-        # for each source type (GitHub API, PyPI, NPM, RSS, etc.)
-        fetchers = {
-            "github": self._fetch_github,
-            "pypi": self._fetch_pypi,
-            "npm": self._fetch_npm,
-            "crates_io": self._fetch_crates_io,
-            "websites": self._fetch_websites,
-            "x_twitter": self._fetch_x_twitter,
-            "linkedin": self._fetch_linkedin,
-            "hackernews": self._fetch_hackernews,
-            "reddit": self._fetch_reddit,
-            "custom_watchlist": self._fetch_custom_watchlist,
-        }
+        # Merge watchlist data into source config for fetchers that need it
+        source_config = self._enrich_source_config(source_id, source_config)
 
-        fetcher = fetchers.get(source_id)
+        # Create fetcher using factory
+        fetcher = await create_fetcher(self, source_id)
         if fetcher:
-            await fetcher(source_config)
+            try:
+                events = await fetcher.fetch(source_config)
+                logger.info(f"Fetched {len(events)} events from {source_id}")
+
+                # Store raw events
+                for event in events:
+                    self.emit_raw_event(event)
+
+                # Run detection on these events
+                signals = await self.detection_engine.process_events(events)
+                logger.info(f"Generated {len(signals)} signals from {source_id}")
+
+            except Exception as e:
+                logger.error(f"Error fetching from {source_id}: {e}")
         else:
-            logger.warning(f"No fetcher implemented for source: {source_id}")
+            logger.warning(f"No fetcher available for source: {source_id}")
 
-    async def _fetch_github(self, config: Dict[str, Any]):
-        """Fetch GitHub events for watched repos."""
-        # Placeholder for actual GitHub API integration
-        logger.info("GitHub fetcher - not yet implemented")
-        pass
+    def _enrich_source_config(self, source_id: str, source_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Enrich source config with watchlist data."""
+        enriched = source_config.copy()
+        watchlist = self.watchlist.get("competitors", [])
 
-    async def _fetch_pypi(self, config: Dict[str, Any]):
-        """Fetch PyPI package releases."""
-        logger.info("PyPI fetcher - not yet implemented")
-        pass
+        if source_id == "github":
+            # Build watchlist from competitor github_repos with org prefix
+            repos = []
+            for comp in watchlist:
+                org = comp.get("github_org", "")
+                for repo in comp.get("github_repos", []):
+                    if org and not repo.startswith(org + "/"):
+                        repos.append(f"{org}/{repo}")
+                    else:
+                        repos.append(repo)
+            enriched["watchlist"] = repos
+            enriched["events"] = ["release", "push", "issue", "pull_request"]
 
-    async def _fetch_npm(self, config: Dict[str, Any]):
-        """Fetch NPM package releases."""
-        logger.info("NPM fetcher - not yet implemented")
-        pass
+        elif source_id == "pypi":
+            packages = []
+            for comp in watchlist:
+                packages.extend(comp.get("pypi_packages", []))
+            enriched["packages"] = packages
 
-    async def _fetch_crates_io(self, config: Dict[str, Any]):
-        """Fetch crates.io package releases."""
-        logger.info("crates.io fetcher - not yet implemented")
-        pass
+        elif source_id == "npm":
+            packages = []
+            for comp in watchlist:
+                packages.extend(comp.get("npm_packages", []))
+            enriched["packages"] = packages
 
-    async def _fetch_websites(self, config: Dict[str, Any]):
-        """Fetch RSS/Atom feeds from competitor websites."""
-        logger.info("Website/RSS fetcher - not yet implemented")
-        pass
+        elif source_id == "crates_io":
+            packages = []
+            for comp in watchlist:
+                packages.extend(comp.get("crates_packages", []))
+            enriched["packages"] = packages
 
-    async def _fetch_x_twitter(self, config: Dict[str, Any]):
-        """Fetch X/Twitter posts from competitor accounts."""
-        logger.info("X/Twitter fetcher - not yet implemented")
-        pass
+        elif source_id == "websites":
+            feeds = []
+            for comp in watchlist:
+                feeds.extend(comp.get("rss_feeds", []))
+            enriched["feeds"] = feeds
 
-    async def _fetch_linkedin(self, config: Dict[str, Any]):
-        """Fetch LinkedIn company updates."""
-        logger.info("LinkedIn fetcher - not yet implemented")
-        pass
+        elif source_id == "x_twitter":
+            accounts = []
+            for comp in watchlist:
+                accounts.extend(comp.get("x_accounts", []))
+            enriched["accounts"] = accounts
 
-    async def _fetch_hackernews(self, config: Dict[str, Any]):
-        """Fetch HackerNews stories matching keywords."""
-        logger.info("HackerNews fetcher - not yet implemented")
-        pass
+        elif source_id == "linkedin":
+            companies = []
+            for comp in watchlist:
+                if comp.get("linkedin_company"):
+                    companies.append(comp["linkedin_company"])
+            enriched["company_pages"] = companies
 
-    async def _fetch_reddit(self, config: Dict[str, Any]):
-        """Fetch Reddit posts from relevant subreddits."""
-        logger.info("Reddit fetcher - not yet implemented")
-        pass
+        elif source_id == "hackernews":
+            # Use keyword sets from watchlist
+            enriched["keywords"] = self.watchlist.get("keyword_sets", {}).get("multi_agent_orchestration", []) + \
+                                   self.watchlist.get("keyword_sets", {}).get("ai_agents_general", []) + \
+                                   self.watchlist.get("keyword_sets", {}).get("xp_arc_specific", []) + \
+                                   self.watchlist.get("keyword_sets", {}).get("market_signals", [])
 
-    async def _fetch_custom_watchlist(self, config: Dict[str, Any]):
-        """Process custom watchlist entries."""
-        logger.info("Custom watchlist fetcher - not yet implemented")
-        pass
+        elif source_id == "reddit":
+            subreddits = self.watchlist.get("source_overrides", {}).get("reddit", {}).get("extra_subreddits", [])
+            # Also add default subreddits
+            defaults = ["MachineLearning", "LangChain", "AutoGPT", "LocalLLaMA", "AI_Agents"]
+            enriched["subreddits"] = list(set(subreddits + defaults))
+            enriched["keywords"] = self.watchlist.get("keyword_sets", {}).get("multi_agent_orchestration", [])
+
+        return enriched
 
     async def detect_all(self):
-        """Run detection on all fetched events."""
-        logger.info("Running detection on all sources")
-        # Placeholder - would query unprocessed events and run detection rules
-        pass
+        """Run detection on all unprocessed events in database."""
+        logger.info("Running detection on all unprocessed events")
 
-    async def detect_source(self, source_id: str):
-        """Run detection for a specific source."""
-        logger.info(f"Running detection for source: {source_id}")
-        pass
+        conn = self.get_connection()
+        try:
+            cursor = conn.execute("""
+                SELECT * FROM raw_events 
+                WHERE processed = 0 
+                ORDER BY fetched_at DESC
+                LIMIT 1000
+            """)
+            events = [dict(row) for row in cursor.fetchall()]
+
+            if events:
+                signals = await self.detection_engine.process_events(events)
+                logger.info(f"Generated {len(signals)} signals from stored events")
+
+                # Mark as processed
+                event_ids = [e["id"] for e in events]
+                placeholders = ",".join("?" * len(event_ids))
+                conn.execute(f"UPDATE raw_events SET processed = 1 WHERE id IN ({placeholders})", event_ids)
+                conn.commit()
+        finally:
+            conn.close()
+
+    def emit_raw_event(self, event: Dict[str, Any]):
+        """Store a raw event in the database."""
+        if self.dry_run:
+            logger.info(f"[DRY RUN] Would emit raw event: {event.get('title')}")
+            return
+
+        import uuid
+        conn = self.get_connection()
+        try:
+            conn.execute("""
+                INSERT INTO raw_events (id, source, source_type, competitor, fetched_at, timestamp, title, summary, url, raw_payload, tags)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                str(uuid.uuid4()),
+                event.get("source"),
+                event.get("source_type"),
+                event.get("competitor"),
+                datetime.now().isoformat(),
+                event.get("timestamp"),
+                event.get("title"),
+                event.get("summary"),
+                event.get("url"),
+                json.dumps(event.get("raw_payload", {})),
+                json.dumps(event.get("tags", [])),
+            ))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def emit_event(self, event: Dict[str, Any]):
+        """Emit a competitive intelligence event to the database."""
+        if self.dry_run:
+            logger.info(f"[DRY RUN] Would emit event: {event.get('title')}")
+            return
+
+        conn = self.get_connection()
+        try:
+            conn.execute("""
+                INSERT INTO events (event_id, timestamp, source, competitor, category, signal_type, severity, title, summary, url, raw_payload, tags)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                event.get("event_id", str(uuid.uuid4())),
+                event.get("timestamp", datetime.now().isoformat()),
+                event.get("source"),
+                event.get("competitor"),
+                event.get("category"),
+                event.get("signal_type"),
+                event.get("severity"),
+                event.get("title"),
+                event.get("summary"),
+                event.get("url"),
+                json.dumps(event.get("raw_payload", {})),
+                json.dumps(event.get("tags", [])),
+            ))
+            conn.commit()
+        finally:
+            conn.close()
 
     async def run_once(self):
         """Run the full pipeline once: fetch -> detect -> report."""
         logger.info("Running full pipeline once")
         await self.fetch_all_sources()
         await self.detect_all()
-        # Check if it's time for weekly report
         if self._should_generate_weekly_report():
             await self.generate_weekly_report()
 
@@ -178,12 +282,11 @@ class CompetitiveIntelStation:
 
         while True:
             now = datetime.now()
-            # Check each schedule
             for name, cron_expr in schedule.items():
                 if self._should_run_cron(cron_expr, now):
                     logger.info(f"Running scheduled task: {name}")
                     if name == "high_frequency":
-                        await self.fetch_all_sources()  # Just high-freq sources
+                        await self.fetch_all_sources()
                         await self.detect_all()
                     elif name == "daily":
                         await self.fetch_all_sources()
@@ -195,13 +298,11 @@ class CompetitiveIntelStation:
                     elif name == "monthly":
                         await self.snapshot_all_competitors()
 
-            # Sleep until next minute
             await asyncio.sleep(60)
 
     def _should_run_cron(self, cron_expr: str, now: datetime) -> bool:
         """Check if a cron expression matches now (simplified)."""
         # This is a simplified check - real implementation would use croniter
-        # For now, just check hourly/daily/weekly/monthly patterns
         return False
 
     def _should_generate_weekly_report(self) -> bool:
@@ -221,17 +322,14 @@ class CompetitiveIntelStation:
 
         logger.info(f"Generating weekly report for {week}")
 
-        # Placeholder - would query database and render template
         report_path = Path("reports/competitive/weekly") / f"{week}.md"
         report_path.parent.mkdir(parents=True, exist_ok=True)
 
         if not self.dry_run:
-            # Render template with data
             template_path = Path(self.config.get("reports", {}).get("template", "templates/competitive-weekly-report.md"))
             if template_path.exists():
                 with open(template_path, "r") as f:
                     template = f.read()
-                # Would render with actual data
                 report_content = template.replace("{{ week }}", week)
                 report_content = report_content.replace("{{ year }}", week.split("-W")[0])
             else:
@@ -245,7 +343,7 @@ class CompetitiveIntelStation:
     async def snapshot_competitor(self, competitor_id: str):
         """Create a snapshot for a specific competitor."""
         logger.info(f"Creating snapshot for {competitor_id}")
-        pass
+        # Implementation would query current state and store in competitor_snapshots
 
     async def snapshot_all_competitors(self):
         """Create snapshots for all competitors."""
@@ -308,36 +406,6 @@ class CompetitiveIntelStation:
         finally:
             conn.close()
 
-    def emit_event(self, event: Dict[str, Any]):
-        """Emit a competitive intelligence event to the database."""
-        if self.dry_run:
-            logger.info(f"[DRY RUN] Would emit event: {event.get('title')}")
-            return
-
-        conn = self.get_connection()
-        try:
-            conn.execute("""
-                INSERT INTO events (event_id, timestamp, source, competitor, category,
-                                   signal_type, severity, title, summary, url, raw_payload, tags)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                event.get("event_id", str(uuid.uuid4())),
-                event.get("timestamp", datetime.now().isoformat()),
-                event.get("source"),
-                event.get("competitor"),
-                event.get("category"),
-                event.get("signal_type"),
-                event.get("severity"),
-                event.get("title"),
-                event.get("summary"),
-                event.get("url"),
-                json.dumps(event.get("raw_payload", {})),
-                json.dumps(event.get("tags", [])),
-            ))
-            conn.commit()
-        finally:
-            conn.close()
-
 
 def load_config(station_config_path: str, watchlist_path: str) -> Dict[str, Any]:
     """Load station configuration and watchlist."""
@@ -346,12 +414,11 @@ def load_config(station_config_path: str, watchlist_path: str) -> Dict[str, Any]
     # Load station config
     station_path = Path(station_config_path)
     if not station_path.exists():
-        # Try relative to project root
         station_path = PROJECT_ROOT / station_config_path
 
     if station_path.exists():
         with open(station_path, "r") as f:
-            config = yaml.safe_load(f)
+            config = yaml.safe_load(f) or {}
     else:
         logger.warning(f"Station config not found at {station_config_path}")
 
@@ -362,7 +429,7 @@ def load_config(station_config_path: str, watchlist_path: str) -> Dict[str, Any]
 
     if watchlist_path_obj.exists():
         with open(watchlist_path_obj, "r") as f:
-            watchlist = yaml.safe_load(f)
+            watchlist = yaml.safe_load(f) or {}
         config["watchlist"] = watchlist
     else:
         logger.warning(f"Watchlist not found at {watchlist_path}")

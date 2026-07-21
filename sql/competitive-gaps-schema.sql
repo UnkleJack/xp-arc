@@ -2,6 +2,31 @@
 -- SQLite schema for tracking competitive gaps and opportunities
 
 -- ============================================================================
+-- RAW EVENTS TABLE
+-- Raw events before detection processing
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS raw_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source TEXT NOT NULL,  -- github, pypi, npm, website, x_twitter, linkedin, hackernews, reddit, custom
+    source_type TEXT NOT NULL,  -- release, push, issue, pull_request, blog_post, story, post, etc.
+    competitor TEXT NOT NULL,
+    fetched_at TEXT NOT NULL,  -- ISO8601 when we fetched it
+    timestamp TEXT NOT NULL,   -- ISO8601 when the event occurred
+    title TEXT NOT NULL,
+    summary TEXT,
+    url TEXT,
+    raw_payload TEXT,  -- JSON
+    tags TEXT,  -- JSON array
+    processed BOOLEAN DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_raw_events_fetched_at ON raw_events(fetched_at);
+CREATE INDEX IF NOT EXISTS idx_raw_events_competitor ON raw_events(competitor);
+CREATE INDEX IF NOT EXISTS idx_raw_events_source ON raw_events(source);
+CREATE INDEX IF NOT EXISTS idx_raw_events_processed ON raw_events(processed);
+
+-- ============================================================================
 -- GAPS TABLE
 -- Core table tracking identified gaps in competitor offerings
 -- ============================================================================

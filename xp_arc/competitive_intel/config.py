@@ -7,9 +7,10 @@ import yaml
 from pathlib import Path
 from typing import Dict, Any
 
-from .station import PROJECT_ROOT, load_config
-
 logger = logging.getLogger(__name__)
+
+# Module-level reference to project root
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 
 
 def load_station_config(config_path: str = "config/competitive-intelligence-station.yaml") -> Dict[str, Any]:

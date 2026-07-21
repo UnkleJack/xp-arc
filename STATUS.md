@@ -20,9 +20,11 @@ This document tracks the engineering status of all features described in the XP-
 | **Brigade Compression** | Core | `xp_arc/core/executive.py` | **SHIPPED** | Degrades to critical stations. |
 | **Persistent Daemon** | Deployment | `run_persistent.py` | **SHIPPED** | HTTP API server for DRAGON. |
 | **DRAGON Dashboard** | UI | `dragon/index.html` | **SHIPPED** | JS dashboard polling `/api/dragon`. |
-| **Asset Engine** | Extension | `xp_arc/asset_engine/` | **SHIPPED** | Evolutionary asset pipeline. |
-| **Competitive Intel** | Extension | `xp_arc/competitive_intel/`| **SHIPPED** | Watchlist + gap detection. |
-| **Write Broker** | Obsolete | `xp_arc/broker.py` | **OBSOLETE** | *Do not implement.* |
+|| **Asset Engine** | Extension | `xp_arc/asset_engine/` | **SHIPPED** | Evolutionary asset pipeline. ||
+|| **Competitive Intel** | Extension | `xp_arc/competitive_intel/`| **SHIPPED** | Watchlist + gap detection. ||
+|| **GRC Supervisor** | Extension | `xp_arc/stations/grc_supervisor.py` | **SHIPPED** | CISO Assistant write integration (assets, applied-controls, incidents, reference-controls, evidences, compliance-assessments). ||
+|| **GRC Commis** | Extension | `xp_arc/stations/grc_commis.py` | **SHIPPED** | CISO Assistant read-only validation + audit exports. ||
+|| **Write Broker** | Obsolete | `xp_arc/broker.py` | **OBSOLETE** | *Do not implement.* ||
 | **DuckDB Backend** | Obsolete | — | **OBSOLETE** | *Do not implement. Use SQLite WAL.* |
 | **Gemini-backed SpaZzMatiC** | Aspirational| — | **PENDING** | Current implementation is rule-based. |
 

@@ -3,12 +3,9 @@ Fetchers for Competitive Intelligence Station.
 Handles data collection from various sources.
 """
 
-import asyncio
-import json
 import logging
 import re
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
@@ -47,7 +44,6 @@ class GitHubFetcher(BaseFetcher):
         )
 
     async def fetch(self, source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Fetch GitHub events for all watched repositories."""
         events = []
         watchlist = source_config.get("watchlist", [])
         events_config = source_config.get("events", [])
@@ -64,7 +60,6 @@ class GitHubFetcher(BaseFetcher):
     async def _fetch_repo_events(
         self, repo: str, event_types: List[str]
     ) -> List[Dict[str, Any]]:
-        """Fetch events for a single repository."""
         events = []
 
         if "release" in event_types:
@@ -86,7 +81,6 @@ class GitHubFetcher(BaseFetcher):
         return events
 
     async def _fetch_releases(self, repo: str) -> List[Dict[str, Any]]:
-        """Fetch repository releases."""
         url = f"{self.base_url}/repos/{repo}/releases"
         response = await self.client.get(url, params={"per_page": 10})
         response.raise_for_status()
@@ -110,7 +104,6 @@ class GitHubFetcher(BaseFetcher):
         return events
 
     async def _fetch_pushes(self, repo: str) -> List[Dict[str, Any]]:
-        """Fetch recent commits to default branch."""
         url = f"{self.base_url}/repos/{repo}/commits"
         response = await self.client.get(url, params={"per_page": 20})
         response.raise_for_status()
@@ -135,7 +128,6 @@ class GitHubFetcher(BaseFetcher):
         return events
 
     async def _fetch_issues(self, repo: str) -> List[Dict[str, Any]]:
-        """Fetch recent issues."""
         url = f"{self.base_url}/repos/{repo}/issues"
         response = await self.client.get(
             url, params={"state": "open", "per_page": 20, "sort": "created", "direction": "desc"}
@@ -145,7 +137,7 @@ class GitHubFetcher(BaseFetcher):
 
         events = []
         for issue in issues:
-            if issue.get("pull_request"):  # Skip PRs, handled separately
+            if issue.get("pull_request"):
                 continue
             events.append(
                 {
@@ -163,7 +155,6 @@ class GitHubFetcher(BaseFetcher):
         return events
 
     async def _fetch_pull_requests(self, repo: str) -> List[Dict[str, Any]]:
-        """Fetch recent pull requests."""
         url = f"{self.base_url}/repos/{repo}/pulls"
         response = await self.client.get(
             url, params={"state": "all", "per_page": 20, "sort": "created", "direction": "desc"}
@@ -189,7 +180,6 @@ class GitHubFetcher(BaseFetcher):
         return events
 
     def _normalize_competitor(self, repo: str) -> str:
-        """Normalize repository to competitor ID."""
         competitor_map = {
             "langchain-ai/langgraph": "langgraph",
             "langchain-ai/langgraphjs": "langgraph",
@@ -234,7 +224,6 @@ class RSSFetcher(BaseFetcher):
         )
 
     async def fetch(self, source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Fetch all configured RSS/Atom feeds."""
         events = []
         feeds = source_config.get("feeds", [])
 
@@ -248,7 +237,6 @@ class RSSFetcher(BaseFetcher):
         return events
 
     async def _fetch_feed(self, feed_url: str) -> List[Dict[str, Any]]:
-        """Fetch and parse a single RSS/Atom feed."""
         response = await self.client.get(feed_url)
         response.raise_for_status()
 
@@ -283,7 +271,6 @@ class RSSFetcher(BaseFetcher):
         return events
 
     def _identify_competitor(self, feed_url: str) -> str:
-        """Identify competitor from feed URL."""
         domain = urlparse(feed_url).netloc.lower()
         competitor_map = {
             "blog.langchain.dev": "langchain",
@@ -302,7 +289,6 @@ class RSSFetcher(BaseFetcher):
         return domain.replace("www.", "").replace(".com", "").replace(".dev", "")
 
     def _parse_date(self, entry) -> Optional[datetime]:
-        """Parse publication date from feed entry."""
         for field in ["published_parsed", "updated_parsed", "created_parsed"]:
             if hasattr(entry, field) and getattr(entry, field):
                 try:
@@ -312,12 +298,11 @@ class RSSFetcher(BaseFetcher):
         return None
 
     def _clean_html(self, text: str) -> str:
-        """Strip HTML tags from text."""
         if not text:
             return ""
         clean = re.sub(r"<[^>]+>", "", text)
         clean = clean.replace("&nbsp;", " ").replace("&", "&").replace("<", "<").replace(">", ">")
-        clean = clean.replace(""", '"').replace("'", "'")
+        clean = clean.replace(chr(8220), '"').replace(chr(8221), '"').replace(chr(8216), "'").replace(chr(8217), "'")
         return " ".join(clean.split())
 
 
@@ -330,7 +315,6 @@ class PyPIFetcher(BaseFetcher):
         self.base_url = "https://pypi.org/pypi"
 
     async def fetch(self, source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Fetch releases for all watched packages."""
         events = []
         packages = source_config.get("packages", [])
 
@@ -344,7 +328,6 @@ class PyPIFetcher(BaseFetcher):
         return events
 
     async def _fetch_package(self, package: str) -> List[Dict[str, Any]]:
-        """Fetch releases for a single package."""
         url = f"{self.base_url}/{package}/json"
         response = await self.client.get(url)
         if response.status_code == 404:
@@ -384,7 +367,6 @@ class PyPIFetcher(BaseFetcher):
         return events
 
     def _normalize_package(self, package: str) -> str:
-        """Map package name to competitor ID."""
         pkg_map = {
             "langgraph": "langgraph",
             "autogen-agentchat": "autogen",
@@ -416,7 +398,6 @@ class NPMFetcher(BaseFetcher):
         self.base_url = "https://registry.npmjs.org"
 
     async def fetch(self, source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Fetch releases for all watched npm packages."""
         events = []
         packages = source_config.get("packages", [])
 
@@ -430,7 +411,6 @@ class NPMFetcher(BaseFetcher):
         return events
 
     async def _fetch_package(self, package: str) -> List[Dict[str, Any]]:
-        """Fetch releases for a single npm package."""
         url = f"{self.base_url}/{package}"
         response = await self.client.get(url)
         if response.status_code == 404:
@@ -467,7 +447,6 @@ class NPMFetcher(BaseFetcher):
         return events
 
     def _normalize_package(self, package: str) -> str:
-        """Map npm package to competitor ID."""
         pkg_map = {
             "@langchain/langgraph": "langgraph",
             "autogen": "autogen",
@@ -492,7 +471,6 @@ class HackerNewsFetcher(BaseFetcher):
         self.base_url = "https://hacker-news.firebaseio.com/v0"
 
     async def fetch(self, source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Fetch HN stories matching keywords."""
         events = []
         keywords = source_config.get("keywords", [])
 
@@ -512,14 +490,12 @@ class HackerNewsFetcher(BaseFetcher):
         return events
 
     async def _get_story_ids(self, endpoint: str) -> List[int]:
-        """Get story IDs from HN API."""
         url = f"{self.base_url}/{endpoint}.json"
         response = await self.client.get(url)
         response.raise_for_status()
         return response.json()
 
     async def _get_story(self, story_id: int) -> Optional[Dict[str, Any]]:
-        """Get story details."""
         url = f"{self.base_url}/item/{story_id}.json"
         response = await self.client.get(url)
         if response.status_code == 404:
@@ -528,12 +504,10 @@ class HackerNewsFetcher(BaseFetcher):
         return response.json()
 
     def _matches_keywords(self, story: Dict[str, Any], keywords: List[str]) -> bool:
-        """Check if story matches any keywords."""
         text = f"{story.get('title', '')} {story.get('text', '')}".lower()
         return any(kw.lower() in text for kw in keywords)
 
     def _story_to_event(self, story: Dict[str, Any]) -> Dict[str, Any]:
-        """Convert HN story to event."""
         return {
             "source": "hackernews",
             "source_type": "story",
@@ -555,7 +529,6 @@ class RedditFetcher(BaseFetcher):
         self.client = httpx.AsyncClient(timeout=15.0)
 
     async def fetch(self, source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Fetch posts from configured subreddits."""
         events = []
         subreddits = source_config.get("subreddits", [])
         keywords = source_config.get("keywords", [])
@@ -570,7 +543,6 @@ class RedditFetcher(BaseFetcher):
         return events
 
     async def _fetch_subreddit(self, subreddit: str, keywords: List[str]) -> List[Dict[str, Any]]:
-        """Fetch hot posts from a subreddit."""
         url = f"https://www.reddit.com/r/{subreddit}/hot.json"
         params = {"limit": 25, "raw_json": 1}
         headers = {"User-Agent": "XP-Arc Competitive Intel Bot/0.1"}
@@ -605,7 +577,6 @@ class RedditFetcher(BaseFetcher):
         return events
 
     def _matches_keywords(self, text: str, keywords: List[str]) -> bool:
-        """Check if text matches any keywords."""
         text_lower = text.lower()
         return any(kw.lower() in text_lower for kw in keywords)
 
@@ -616,13 +587,13 @@ async def create_fetcher(station, source_id: str) -> Optional[BaseFetcher]:
         "github": GitHubFetcher,
         "pypi": PyPIFetcher,
         "npm": NPMFetcher,
-        "crates_io": None,  # Not implemented yet
+        "crates_io": None,
         "websites": RSSFetcher,
-        "x_twitter": None,  # Requires Twitter API v2
-        "linkedin": None,  # Requires LinkedIn API
+        "x_twitter": None,
+        "linkedin": None,
         "hackernews": HackerNewsFetcher,
         "reddit": RedditFetcher,
-        "custom_watchlist": None,  # Special handling
+        "custom_watchlist": None,
     }
 
     fetcher_class = fetcher_map.get(source_id)

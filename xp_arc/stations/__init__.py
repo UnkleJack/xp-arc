@@ -11,3 +11,5 @@ from .hydra import TheHydra
 from .salamander import TheSalamander
 from .herald import TheHerald
 from .dossier import TheDossier
+from .grc_supervisor import GRCSupervisor
+from .grc_commis import GRCCommis

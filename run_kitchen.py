@@ -26,7 +26,8 @@ from xp_arc.core.executive import ExecutiveChef
 from xp_arc.stations import (
     TheForager, TheAnalyst, TheSentinel, ThePlongeur,
     TheLibrarian, TheCartographer, TheAuditor, TheWarden,
-    TheAmphithere, TheHydra, TheSalamander, TheHerald, TheDossier
+    TheAmphithere, TheHydra, TheSalamander, TheHerald, TheDossier,
+    GRCSupervisor, GRCCommis
 )
 from xp_arc.monitoring.zorans_law import ZoransLaw
 from xp_arc.monitoring.spazzmatic import SpaZzMatiC
@@ -83,6 +84,9 @@ def run_kitchen(targets: list, db_path: str = "xp_arc.db",
     executive.register_station(TheSalamander(pool))
     executive.register_station(TheHerald(pool))
     executive.register_station(TheDossier(pool))
+    # GRC Stations
+    executive.register_station(GRCSupervisor(pool))
+    executive.register_station(GRCCommis(pool))
     
     # Utilities
     sentinel = TheSentinel(pool)

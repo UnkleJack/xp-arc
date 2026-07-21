@@ -15,8 +15,8 @@ from datetime import datetime
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from competitive_intel.station import CompetitiveIntelStation
-from competitive_intel.config import load_config
+from xp_arc.competitive_intel.station import CompetitiveIntelStation
+from xp_arc.competitive_intel.config import load_all_configs
 
 
 async def main():
@@ -38,7 +38,7 @@ async def main():
     args = parser.parse_args()
 
     # Load configuration
-    config = load_config(args.config, args.watchlist)
+    config = load_all_configs(args.config, args.watchlist)
 
     # Initialize station
     station = CompetitiveIntelStation(config, dry_run=args.dry_run)
