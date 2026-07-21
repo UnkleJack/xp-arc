@@ -1,0 +1,390 @@
+# XP-Arc Competitive Intelligence Station Specification
+# Station: competitive-intel
+# Purpose: Monitor competitive landscape, detect conflicts, identify market gaps
+
+station:
+  id: competitive-intel
+  name: Competitive Intelligence Station
+  version: "0.1.0"
+  status: draft
+
+# ============================================================================
+# INPUT SCHEMA (Schema-First: sources define what we can detect)
+# ============================================================================
+input_schema:
+  sources:
+    - id: github
+      type: api
+      provider: github
+      config:
+        # Repos to watch: owner/repo or org/* for all org repos
+        watchlist:
+          - "langchain-ai/langgraph"
+          - "microsoft/autogen"
+          - "crewaiinc/crewai"
+          - "significant-gravitas/autogpt"
+          - "geekan/metagpt"
+          - "openai/swarm"
+          - "agno-agi/agno"
+          - "browser-use/browser-use"
+          - "langchain-ai/langchain"
+          - "llamaindex/llama-index"
+        events:
+          - release
+          - push
+          - issue
+          - pull_request
+          - discussion
+          - workflow_run
+        polling_interval: "daily"  # GitHub Events API doesn't support webhooks for all events easily
+        auth: "${GITHUB_TOKEN}"
+
+    - id: pypi
+      type: api
+      provider: pypi
+      config:
+        packages:
+          - "langgraph"
+          - "autogen-agentchat"
+          - "crewai"
+          - "autogpt"
+          - "metagpt"
+          - "swarm"
+          - "agno"
+          - "browser-use"
+          - "langchain"
+          - "llama-index"
+        events:
+          - new_version
+          - version_yanked
+        polling_interval: "daily"
+
+    - id: npm
+      type: api
+      provider: npm
+      config:
+        packages:
+          - "@langchain/langgraph"
+          - "autogen"
+          - "crewai"
+          - "swarm"
+          - "langchain"
+          - "llamaindex"
+          - "@vercel/ai"
+        events:
+          - new_version
+          - deprecation
+        polling_interval: "daily"
+
+    - id: crates_io
+      type: api
+      provider: crates_io
+      config:
+        packages:
+          - "rig"
+          - "llm-chain"
+          - "agent-torch"
+        events:
+          - new_version
+        polling_interval: "weekly"
+
+    - id: websites
+      type: rss_atom
+      provider: generic
+      config:
+        feeds:
+          - "https://blog.langchain.dev/feed/"
+          - "https://blog.crewai.com/feed/"
+          - "https://www.anthropic.com/news/feed"
+          - "https://openai.com/blog/rss/"
+          - "https://aws.amazon.com/blogs/machine-learning/feed/"
+          - "https://azure.microsoft.com/en-us/blog/feed/"
+          - "https://cloud.google.com/blog/topics/artificial-intelligence/rss/"
+          - "https://huggingface.co/blog/feed.xml"
+        polling_interval: "6h"
+
+    - id: x_twitter
+      type: api
+      provider: x_twitter
+      config:
+        accounts:
+          - "langchain"
+          - "crewai"
+          - "autogenai"
+          - "significantgravitas"
+          - "metagpt"
+          - "vercel"
+          - "huggingface"
+          - "openai"
+          - "anthropicai"
+          - "googledeepmind"
+        polling_interval: "daily"
+        auth: "${X_BEARER_TOKEN}"
+
+    - id: linkedin
+      type: api
+      provider: linkedin
+      config:
+        company_pages:
+          - "langchain"
+          - "crewai"
+          - "microsoft"
+          - "openai"
+          - "anthropic"
+          - "google"
+          - "aws"
+          - "azure"
+        polling_interval: "weekly"
+        auth: "${LINKEDIN_TOKEN}"
+
+    - id: hackernews
+      type: api
+      provider: hn
+      config:
+        keywords:
+          - "langgraph"
+          - "autogen"
+          - "crewai"
+          - "autogpt"
+          - "metagpt"
+          - "multi-agent"
+          - "agent orchestration"
+          - "ai agents"
+        polling_interval: "6h"
+
+    - id: reddit
+      type: api
+      provider: reddit
+      config:
+        subreddits:
+          - "MachineLearning"
+          - "LangChain"
+          - "AutoGPT"
+          - "LocalLLaMA"
+          - "AI_Agents"
+        keywords:
+          - "langgraph"
+          - "crewai"
+          - "autogen"
+          - "autogpt"
+          - "metagpt"
+        polling_interval: "daily"
+
+  # Custom watchlist maintained by user (file-based, version controlled)
+  custom_watchlist:
+    path: "config/competitive-watchlist.yaml"
+    polling_interval: "daily"
+
+# ============================================================================
+# DETECTION RULES (what triggers an event)
+# ============================================================================
+detection_rules:
+  conflict_signals:
+    - id: api_breaking_change
+      description: "Competitor releases breaking API change that affects XP-Arc compatibility layer"
+      pattern:
+        source: github
+        event_type: release
+        conditions:
+          - "tag matches semver major bump (v2.0.0, v3.0.0)"
+          - "release notes contain 'breaking', 'migration', 'deprecated'"
+      severity: high
+
+    - id: feature_parity
+      description: "Competitor launches feature XP-Arc currently lacks"
+      pattern:
+        source: any
+        event_type: release | blog_post | announcement
+        conditions:
+          - "feature keywords match XP-Arc roadmap items"
+          - "not in XP-Arc current capabilities"
+      severity: medium
+
+    - id: pricing_model_shift
+      description: "Competitor changes pricing (free tier removed, new enterprise tier, usage-based)"
+      pattern:
+        source: website | blog_post | linkedin
+        event_type: announcement
+        conditions:
+          - "pricing, tiers, billing, subscription keywords present"
+      severity: high
+
+    - id: shutdown_sunset
+      description: "Competitor announces shutdown, sunset, or acquisition"
+      pattern:
+        source: any
+        event_type: announcement
+        conditions:
+          - "shutdown, sunset, deprecate, acquire, acquired keywords present"
+      severity: critical
+
+    - id: talent_acquisition
+      description: "Key competitor hires or acquires team relevant to XP-Arc domain"
+      pattern:
+        source: linkedin | x_twitter | website
+        event_type: announcement
+        conditions:
+          - "hiring, joins, acquires, acquisition keywords + relevant roles"
+      severity: low
+
+  gap_signals:
+    - id: missing_integration
+      description: "Competitor lacks integration that XP-Arc could provide"
+      pattern:
+        source: github | website | blog_post
+        event_type: issue | discussion | blog_post
+        conditions:
+          - "user requests integration with X"
+          - "competitor responds: not planned, won't fix, out of scope"
+      severity: medium
+
+    - id: performance_complaint
+      description: "Users complain about competitor performance/scale/cost"
+      pattern:
+        source: github | reddit | hackernews | x_twitter
+        event_type: issue | comment | post
+        conditions:
+          - "slow, expensive, latency, memory, cost, scale keywords"
+          - "sentiment negative"
+      severity: medium
+
+    - id: dx_friction
+      description: "Developer experience complaints (docs, onboarding, debugging, typing)"
+      pattern:
+        source: github | reddit | x_twitter
+        event_type: issue | discussion | post
+        conditions:
+          - "docs, documentation, tutorial, example, typescript, types, debugging keywords"
+          - "sentiment negative"
+      severity: low
+
+    - id: vendor_lockin_concern
+      description: "Users express concern about vendor lock-in, data portability, cloud-only"
+      pattern:
+        source: github | reddit | hackernews
+        event_type: issue | discussion | comment
+        conditions:
+          - "lock-in, vendor, portability, self-host, on-premise, data ownership keywords"
+      severity: high
+
+# ============================================================================
+# OUTPUT ARTIFACTS
+# ============================================================================
+outputs:
+  - id: structured_events
+    type: jsonl
+    path: "data/competitive/events/{date}.jsonl"
+    schema:
+      event_id: "uuid"
+      timestamp: "iso8601"
+      source: "github|pypi|npm|website|x_twitter|linkedin|hackernews|reddit|custom"
+      competitor: "string"  # normalized competitor identifier
+      category: "conflict|gap|intel"
+      signal_type: "string"  # e.g., "api_breaking_change", "missing_integration"
+      severity: "critical|high|medium|low"
+      title: "string"
+      summary: "string"
+      url: "string"
+      raw_payload: "object"  # original source data for traceability
+      tags: ["string"]
+
+  - id: weekly_report
+    type: markdown
+    path: "reports/competitive/weekly/{year}-W{week}.md"
+    template: "templates/competitive-weekly-report.md"
+    sections:
+      - executive_summary
+      - competitor_moves (table: competitor, action, impact, xp_arc_response)
+      - gap_opportunities (table: gap, evidence, effort_estimate, priority)
+      - threats (table: threat, likelihood, impact, mitigation)
+      - noise_filter (sources that produced low-signal events this week)
+
+  - id: gap_database
+    type: sqlite
+    path: "data/competitive/gaps.db"
+    schema:
+      gaps:
+        id: "integer primary key"
+        competitor: "text"
+        gap_type: "text"  # missing_integration, performance, dx, lockin, other
+        description: "text"
+        evidence_urls: "text"  # JSON array
+        first_seen: "iso8601"
+        last_seen: "iso8601"
+        frequency: "integer"
+        severity: "text"
+        status: "text"  # open, investigating, prototyping, shipped, wont_fix
+        xp_arc_ticket: "text"  # link to XP-Arc issue/PR
+      competitor_snapshots:
+        id: "integer primary key"
+        competitor: "text"
+        snapshot_date: "iso8601"
+        version: "text"
+        pricing_tier: "text"
+        key_features: "text"  # JSON array
+        market_position: "text"  # leader, challenger, niche, declining
+        funding_stage: "text"  # seed, series_a, series_b, public, bootstrapped
+        team_size: "integer"
+        notes: "text"
+
+  - id: query_api
+    type: http
+    endpoint: "/api/v1/competitive"
+    methods:
+      - GET /gaps?competitor=&status=&severity=
+      - GET /events?competitor=&category=&since=
+      - GET /competitors/:id/snapshot?date=
+      - GET /report/weekly?week=
+
+# ============================================================================
+# SCHEDULE (Periodic batch per user choice)
+# ============================================================================
+schedule:
+  - name: "high_frequency"
+    cron: "0 * * * *"  # hourly
+    sources: ["github", "hackernews", "x_twitter"]
+    actions: ["fetch", "detect", "emit_events"]
+
+  - name: "daily"
+    cron: "0 6 * * *"  # 6 AM daily
+    sources: ["pypi", "npm", "crates_io", "websites", "reddit", "custom_watchlist"]
+    actions: ["fetch", "detect", "emit_events", "update_gap_db"]
+
+  - name: "weekly"
+    cron: "0 6 * * 1"  # Monday 6 AM
+    sources: ["linkedin", "all"]
+    actions: ["fetch", "detect", "emit_events", "update_gap_db", "generate_weekly_report"]
+
+  - name: "monthly_deep_dive"
+    cron: "0 6 1 * *"  # 1st of month 6 AM
+    sources: ["all"]
+    actions: ["full_competitor_snapshot", "trend_analysis", "strategic_review"]
+
+# ============================================================================
+# NOISE REDUCTION (weed out low-relevance sources over time)
+# ============================================================================
+noise_reduction:
+  signal_tracking:
+    window_days: 30
+    min_events_for_baseline: 10
+  auto_mute:
+    enabled: true
+    threshold: 0.1  # signal-to-noise ratio below 10% -> mute for 7 days
+    review_cadence: "weekly"
+  manual_override:
+    path: "config/competitive-noise-overrides.yaml"
+
+# ============================================================================
+# XP-ARC INTEGRATION
+# ============================================================================
+xp_arc_integration:
+  entity_id: "competitive-intel-station"
+  capabilities:
+    - "competitive.monitor"
+    - "competitive.query_gaps"
+    - "competitive.get_report"
+    - "competitive.snapshot_competitor"
+  emits_events_to_pool: true
+  subscribes_to:
+    - "xp-arc.roadmap.updated"  # re-evaluate gaps when roadmap changes
+    - "xp-arc.release.published"  # check for conflict with our own releases

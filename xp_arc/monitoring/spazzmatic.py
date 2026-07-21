@@ -1,11 +1,12 @@
 """
 SpaZzMatiC — Adversarial Review Authority.
 
+STATUS: Active (Rule-based, deterministic).
+Note: While README.md and WHITEPAPER.md refer to this as a "Gemini-backed" LLM authority,
+the actual implementation is rule-based and deterministic. Refer to STATUS.md.
+
 Cold-eyes QA with no architectural bias toward XP-Arc.
 SpaZzMatiC does not build. SpaZzMatiC breaks.
-
-Rule-based adversarial monitor. No LLM dependency.
-Deterministic. Verifiable. Traceable.
 
 Constitution Article XIV.
 """

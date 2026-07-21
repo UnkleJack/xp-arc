@@ -1,0 +1,298 @@
+# Theme Definitions
+# Each theme expands to multiple specific concepts for generation
+
+themes:
+  halloween:
+    name: "Halloween"
+    description: "Spooky seasonal content"
+    color_palette: ["#FF6B00", "#000000", "#FFFFFF", "#8B0000", "#FFD700", "#2F4F4F"]
+    concepts:
+      - witch
+      - pumpkin
+      - ghost
+      - vampire
+      - werewolf
+      - skeleton
+      - haunted_house
+      - black_cat
+      - candy_corn
+      - bat
+      - spider_web
+      - graveyard
+      - jack_o_lantern
+      - mummy
+      - frankenstein
+      - zombie
+      - grim_reaper
+      - cauldron
+      - spellbook
+      - moon
+
+  christmas:
+    name: "Christmas"
+    description: "Holiday/winter seasonal content"
+    color_palette: ["#C41E3A", "#228B22", "#FFFFFF", "#FFD700", "#000000", "#8B0000"]
+    concepts:
+      - santa_claus
+      - reindeer
+      - snowman
+      - christmas_tree
+      - ornament
+      - stocking
+      - candy_cane
+      - gingerbread_man
+      - wreath
+      - sleigh
+      - elf
+      - nutcracker
+      - snowflake
+      - present
+      - fireplace
+      - angel
+      - star
+      - bell
+      - holly
+      - mistletoe
+
+  valentine:
+    name: "Valentine's Day"
+    description: "Romantic/love themed content"
+    color_palette: ["#FF1493", "#FF69B4", "#FFC0CB", "#FFFFFF", "#8B0000", "#FFD700"]
+    concepts:
+      - heart
+      - cupid
+      - rose
+      - love_letter
+      - chocolates
+      - teddy_bear
+      - dove
+      - arrow
+      - couple
+      - kiss
+      - ring
+      - bow_and_arrow
+      - lovebirds
+      - valentine_card
+      - candy_heart
+      - balloon
+      - ribbon
+      - lace
+      - candlelight
+      - sunset
+
+  easter:
+    name: "Easter"
+    description: "Spring/Easter themed content"
+    color_palette: ["#FFB6C1", "#98FB98", "#87CEEB", "#FFD700", "#DDA0DD", "#FFFFFF"]
+    concepts:
+      - easter_bunny
+      - easter_egg
+      - chick
+      - basket
+      - tulip
+      - daffodil
+      - cross
+      - lamb
+      - butterfly
+      - spring_flowers
+      - egg_hunt
+      - carrot
+      - nest
+      - jelly_beans
+      - bonnet
+      - parade
+      - sunrise
+      - rainbow
+      - cloud
+      - grass
+
+  fantasy:
+    name: "Fantasy"
+    description: "Generic fantasy/D&D style content"
+    color_palette: ["#4B0082", "#8B0000", "#2F4F4F", "#DAA520", "#FFFFFF", "#000000"]
+    concepts:
+      - dragon
+      - wizard
+      - knight
+      - elf
+      - dwarf
+      - unicorn
+      - phoenix
+      - griffin
+      - castle
+      - sword
+      - shield
+      - potion
+      - spellbook
+      - crystal
+      - amulet
+      - portal
+      - dungeon
+      - treasure_chest
+      - goblin
+      - fairy
+
+  horror:
+    name: "Horror"
+    description: "Dark horror/gothic content (non-seasonal)"
+    color_palette: ["#000000", "#8B0000", "#2F4F4F", "#FFFFFF", "#FFD700", "#800000"]
+    concepts:
+      - skull
+      - raven
+      - coffin
+      - candle
+      - gargoyle
+      - haunted_mirror
+      - phantom
+      - banshee
+      - crypt
+      - tombstone
+      - fog
+      - full_moon
+      - wolf
+      - spider
+      - snake
+      - dagger
+      - poison
+      - chains
+      - dungeon
+      - shadow
+
+  space:
+    name: "Space/Sci-Fi"
+    description: "Cosmic and futuristic content"
+    color_palette: ["#000000", "#1A1A2E", "#16213E", "#0F3460", "#E94560", "#FFFFFF", "#00FFFF"]
+    concepts:
+      - astronaut
+      - rocket
+      - planet
+      - galaxy
+      - nebula
+      - alien
+      - ufo
+      - satellite
+      - star
+      - comet
+      - black_hole
+      - space_station
+      - rover
+      - telescope
+      - constellation
+      - meteor
+      - ring_planet
+      - moon_base
+      - space_walk
+      - wormhole
+
+  ocean:
+    name: "Ocean/Underwater"
+    description: "Marine life and underwater scenes"
+    color_palette: ["#006994", "#0077BE", "#0096C7", "#00B4D8", "#90E0EF", "#CAF0F8", "#FFFFFF"]
+    concepts:
+      - mermaid
+      - whale
+      - dolphin
+      - shark
+      - octopus
+      - jellyfish
+      - seahorse
+      - coral_reef
+      - treasure_chest
+      - submarine
+      - anchor
+      - shell
+      - starfish
+      - crab
+      - turtle
+      - fish
+      - kelp
+      - bubble
+      - pearl
+      - shipwreck
+
+  everyday:
+    name: "Everyday Life"
+    description: "Slice of life, cozy, mundane scenes"
+    color_palette: ["#F5F5DC", "#DEB887", "#D2B48C", "#BC8F8F", "#F0E68C", "#8FBC8F"]
+    concepts:
+      - coffee_cup
+      - book
+      - cat_sleeping
+      - dog_walking
+      - bicycle
+      - flower_pot
+      - window
+      - chair
+      - lamp
+      - blanket
+      - tea_pot
+      - radio
+      - plant
+      - clock
+      - stairs
+      - door
+      - mailbox
+      - garden
+      - porch
+      - sunset
+
+concept_categories:
+  character:
+    - witch
+    - wizard
+    - knight
+    - elf
+    - mermaid
+    - astronaut
+    - santa_claus
+    - easter_bunny
+    - vampire
+    - ghost
+  
+  creature:
+    - dragon
+    - unicorn
+    - phoenix
+    - griffin
+    - whale
+    - shark
+    - octopus
+    - bat
+    - spider
+    - wolf
+  
+  object:
+    - sword
+    - shield
+    - potion
+    - spellbook
+    - crystal
+    - pumpkin
+    - ornament
+    - candy_cane
+    - easter_egg
+    - rocket
+    - telescope
+  
+  environment:
+    - castle
+    - haunted_house
+    - graveyard
+    - forest
+    - ocean
+    - space
+    - dungeon
+    - cottage
+    - garden
+  
+  symbol:
+    - heart
+    - skull
+    - cross
+    - star
+    - moon
+    - pentagram
+    - ankh
+    - yin_yang
+    - eye
+    - key

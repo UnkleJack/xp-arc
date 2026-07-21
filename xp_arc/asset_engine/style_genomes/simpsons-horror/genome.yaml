@@ -1,0 +1,69 @@
+# Simpsons Horror Style Genome
+# Based on The Simpsons + horror/gothic aesthetic
+style_id: simpsons-horror
+parent: null
+version: 1
+description: "Simpsons style with horror twist — thick outlines, yellow skin, exaggerated expressions, gothic elements"
+
+visual_dna:
+  line_weight: "thick_constant"
+  color_palette: ["#FFD700", "#FF6B00", "#8B0000", "#000000", "#FFFFFF", "#2F4F4F", "#DC143C"]
+  proportions: "exaggerated_head_1.5x_body"
+  shading: "cel_shaded_minimal"
+  background: "simple_silhouette_gothic"
+
+prompt_genome:
+  positive_core: |
+    {style_id} style, {subject}, thick black outlines, flat cel shading,
+    yellow skin tone #FFD700, exaggerated facial features, large expressive eyes,
+    {theme} elements, gothic horror atmosphere, dramatic lighting, clean vector lines,
+    matt groening art style, simpsons aesthetic, spooky but cute
+  negative_core: |
+    realistic, photorealistic, gradient shading, soft edges, thin lines,
+    pastel colors, watercolor, sketch, messy lines, watermark, text, signature,
+    anime, manga, 3d render, octane render, blurry, low quality, deformed,
+    ugly, bad anatomy, extra limbs, missing fingers, mutated hands
+  parameters:
+    sampler: euler_a
+    steps: 30
+    cfg_scale: 7.0
+    width: 1024
+    height: 1024
+    aspect_ratio: "1:1"
+
+variants:
+  coloring_page:
+    id: coloring_page
+    prompt_suffix: "coloring book page, line art only, no fill, clean closed paths, high contrast black and white, vector style"
+    negative_suffix: "color, fill, shading, gradient, background, grey, gray, solid areas"
+    output_format: svg
+    postprocess: potrace_svg_cleanup
+    params_override:
+      width: 1024
+      height: 1328
+      aspect_ratio: "4:5"
+
+  tarot_card:
+    id: tarot_card
+    prompt_suffix: "tarot card composition, ornate decorative border, major arcana symbolism, vertical 2:3.5 aspect, intricate frame details"
+    negative_suffix: "horizontal, square, modern border, simple frame"
+    output_format: png
+    postprocess: upscale_2x_add_bleed
+    params_override:
+      width: 750
+      height: 1275
+      aspect_ratio: "2:3.5"
+
+  unity_sprite:
+    id: unity_sprite
+    prompt_suffix: "game sprite sheet, multiple poses in grid, transparent background, consistent lighting, character design sheet"
+    negative_suffix: "background, scenery, perspective, 3d, render"
+    output_format: png
+    postprocess: sprite_sheet_slice
+
+evolution_log:
+  - version: 1
+    note: "Initial genome - base Simpsons style with horror theme"
+    parent: null
+    human_rating: null
+    rating_notes: "Awaiting first generation run"

@@ -1,0 +1,53 @@
+# Asset Engine Configuration
+# Copy to config.local.yaml for local overrides (gitignored)
+
+scheduler:
+  cron: "0 6,18 * * *"  # 6 AM and 6 PM UTC
+  manual_trigger: true
+  max_prompts_per_run: 20
+
+style_engines:
+  active:
+    - simpsons-horror
+    - disney-dark
+  max_per_run: 10
+
+generation:
+  browser:
+    enabled: true
+    platforms: [chatgpt, openrouter, copilot, grok]
+    headless: true
+    timeout_seconds: 120
+    profile_dir: "~/.asset-engine/browser-profiles"
+  api:
+    enabled: true
+    providers:
+      - openrouter
+      - fal
+      - replicate
+      - comfyui
+    budget_per_run_usd: 5.00
+    comfyui_endpoint: "http://zo.computer:8188"  # or localhost for local
+
+review:
+  interface: obsidian
+  vault_path: "~/asset-engine/review-vault"
+  auto_open_on_run: false
+
+sync:
+  gdrive:
+    enabled: true
+    remote_name: "asset-engine"
+    folder_id: ""  # Set after creating GDrive folder
+    sync_on_review: true
+
+unity:
+  enabled: false
+  output_dir: "~/asset-engine/unity-assets"
+
+database:
+  path: "~/asset-engine/metadata.db"
+
+logging:
+  level: INFO
+  file: "~/asset-engine/logs/engine.log"

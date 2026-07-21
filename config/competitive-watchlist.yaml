@@ -1,0 +1,571 @@
+# XP-Arc Competitive Intelligence - Custom Watchlist
+# User-maintained list of competitors, sources, and keywords to monitor
+# Version controlled so changes are tracked
+
+# ============================================================================
+# COMPETITOR REGISTRY
+# Each competitor gets a normalized ID used across all sources
+# ============================================================================
+competitors:
+  - id: langgraph
+    name: "LangGraph (LangChain)"
+    category: "open_source_framework"
+    website: "https://langchain-ai.github.io/langgraph/"
+    github_org: "langchain-ai"
+    github_repos: ["langgraph", "langgraphjs", "langgraph-cloud"]
+    pypi_packages: ["langgraph"]
+    npm_packages: ["@langchain/langgraph"]
+    x_accounts: ["langchain"]
+    linkedin_company: "langchain"
+    rss_feeds: ["https://blog.langchain.dev/feed/"]
+    tags: ["graph", "stateful", "orchestration", "langchain-ecosystem"]
+    priority: high
+
+  - id: autogen
+    name: "AutoGen (Microsoft)"
+    category: "open_source_framework"
+    website: "https://microsoft.github.io/autogen/"
+    github_org: "microsoft"
+    github_repos: ["autogen", "autogen.net", "autogen-java"]
+    pypi_packages: ["autogen-agentchat", "autogen-core", "autogen-ext"]
+    npm_packages: []
+    x_accounts: ["autogenai"]
+    linkedin_company: "microsoft"
+    rss_feeds: ["https://www.microsoft.com/en-us/research/blog/feed/"]
+    tags: ["multi-agent", "conversation", "microsoft", "enterprise"]
+    priority: high
+
+  - id: crewai
+    name: "CrewAI"
+    category: "open_source_framework"
+    website: "https://crewai.com/"
+    github_org: "crewaiinc"
+    github_repos: ["crewai", "crewai-examples", "crewai-tools"]
+    pypi_packages: ["crewai", "crewai-tools"]
+    npm_packages: []
+    x_accounts: ["crewai"]
+    linkedin_company: "crewai"
+    rss_feeds: ["https://blog.crewai.com/feed/"]
+    tags: ["role-based", "process", "crews", "commercial-open-source"]
+    priority: high
+
+  - id: autogpt
+    name: "AutoGPT"
+    category: "open_source_framework"
+    website: "https://agpt.co/"
+    github_org: "significant-gravitas"
+    github_repos: ["autogpt", "autogpt-frontend", "autogpt-server"]
+    pypi_packages: ["autogpt"]
+    npm_packages: []
+    x_accounts: ["significantgravitas"]
+    linkedin_company: "significant-gravitas"
+    rss_feeds: ["https://agpt.co/blog/rss.xml"]
+    tags: ["autonomous", "goal-driven", "god-mode", "early-mover"]
+    priority: medium
+
+  - id: metagpt
+    name: "MetaGPT"
+    category: "open_source_framework"
+    website: "https://github.com/geekan/metagpt"
+    github_org: "geekan"
+    github_repos: ["metagpt"]
+    pypi_packages: ["metagpt"]
+    npm_packages: []
+    x_accounts: ["metagpt"]
+    linkedin_company: ""
+    rss_feeds: []
+    tags: ["software-company", "sop", "meta-programming", "academic-origin"]
+    priority: medium
+
+  - id: swarm
+    name: "OpenAI Swarm"
+    category: "open_source_framework"
+    website: "https://github.com/openai/swarm"
+    github_org: "openai"
+    github_repos: ["swarm"]
+    pypi_packages: ["swarm"]
+    npm_packages: []
+    x_accounts: ["openai"]
+    linkedin_company: "openai"
+    rss_feeds: ["https://openai.com/blog/rss/"]
+    tags: ["lightweight", "educational", "openai", "experimental"]
+    priority: low
+
+  - id: agno
+    name: "Agno (formerly Phidata)"
+    category: "open_source_framework"
+    website: "https://github.com/agno-agi/agno"
+    github_org: "agno-agi"
+    github_repos: ["agno"]
+    pypi_packages: ["agno"]
+    npm_packages: []
+    x_accounts: ["agno_agi"]
+    linkedin_company: "phidata"
+    rss_feeds: ["https://blog.phidata.com/feed/"]
+    tags: ["agent-framework", "memory", "knowledge", "reasoning"]
+    priority: medium
+
+  - id: browser_use
+    name: "Browser Use"
+    category: "specialized_agent"
+    website: "https://github.com/browser-use/browser-use"
+    github_org: "browser-use"
+    github_repos: ["browser-use"]
+    pypi_packages: ["browser-use"]
+    npm_packages: []
+    x_accounts: ["browser_use"]
+    linkedin_company: ""
+    rss_feeds: []
+    tags: ["browser-automation", "web-agent", "playwright"]
+    priority: low
+
+  - id: langchain
+    name: "LangChain"
+    category: "developer_tooling"
+    website: "https://langchain.com/"
+    github_org: "langchain-ai"
+    github_repos: ["langchain", "langchainjs", "langchain-python", "langgraph"]
+    pypi_packages: ["langchain", "langchain-core", "langchain-community"]
+    npm_packages: ["langchain", "@langchain/core"]
+    x_accounts: ["langchain"]
+    linkedin_company: "langchain"
+    rss_feeds: ["https://blog.langchain.dev/feed/"]
+    tags: ["llm-apps", "chains", "rag", "ecosystem"]
+    priority: high
+
+  - id: llama_index
+    name: "LlamaIndex"
+    category: "developer_tooling"
+    website: "https://llamaindex.ai/"
+    github_org: "run-llama"
+    github_repos: ["llama-index", "llama-index-core", "llama-index-llms"]
+    pypi_packages: ["llama-index", "llama-index-core", "llama-index-llms"]
+    npm_packages: ["llamaindex"]
+    x_accounts: ["llama_index"]
+    linkedin_company: "llamaindex"
+    rss_feeds: ["https://blog.llamaindex.ai/feed/"]
+    tags: ["rag", "data-framework", "indexing", "retrieval"]
+    priority: medium
+
+  - id: vercel_ai
+    name: "Vercel AI SDK"
+    category: "developer_tooling"
+    website: "https://sdk.vercel.ai/"
+    github_org: "vercel"
+    github_repos: ["ai", "ai-chatbot", "ai-sdk"]
+    pypi_packages: []
+    npm_packages: ["ai", "@ai-sdk/react", "@ai-sdk/openai"]
+    x_accounts: ["vercel"]
+    linkedin_company: "vercel"
+    rss_feeds: ["https://vercel.com/blog/feed.xml"]
+    tags: ["frontend", "react", "nextjs", "streaming", "dx"]
+    priority: medium
+
+  # Commercial Platforms
+  - id: langsmith
+    name: "LangSmith (LangChain)"
+    category: "commercial_platform"
+    website: "https://langsmith.com/"
+    github_org: "langchain-ai"
+    github_repos: ["langsmith-sdk", "langsmith-evaluation"]
+    pypi_packages: ["langsmith"]
+    npm_packages: ["langsmith"]
+    x_accounts: ["langchain"]
+    linkedin_company: "langchain"
+    rss_feeds: ["https://blog.langchain.dev/feed/"]
+    tags: ["observability", "evaluation", "debugging", "production"]
+    priority: high
+
+  - id: langgraph_platform
+    name: "LangGraph Platform"
+    category: "commercial_platform"
+    website: "https://langchain-ai.github.io/langgraph/cloud/"
+    github_org: "langchain-ai"
+    github_repos: ["langgraph-platform"]
+    pypi_packages: []
+    npm_packages: []
+    x_accounts: ["langchain"]
+    linkedin_company: "langchain"
+    rss_feeds: ["https://blog.langchain.dev/feed/"]
+    tags: ["deployment", "scaling", "human-in-loop", "persistence"]
+    priority: high
+
+  - id: crewai_enterprise
+    name: "CrewAI Enterprise"
+    category: "commercial_platform"
+    website: "https://crewai.com/enterprise"
+    github_org: "crewaiinc"
+    github_repos: []
+    pypi_packages: []
+    npm_packages: []
+    x_accounts: ["crewai"]
+    linkedin_company: "crewai"
+    rss_feeds: ["https://blog.crewai.com/feed/"]
+    tags: ["enterprise", "deployment", "management", "ui"]
+    priority: medium
+
+  - id: autogpt_cloud
+    name: "AutoGPT Cloud"
+    category: "commercial_platform"
+    website: "https://agpt.co/cloud"
+    github_org: "significant-gravitas"
+    github_repos: []
+    pypi_packages: []
+    npm_packages: []
+    x_accounts: ["significantgravitas"]
+    linkedin_company: "significant-gravitas"
+    rss_feeds: ["https://agpt.co/blog/rss.xml"]
+    tags: ["cloud", "hosted", "marketplace"]
+    priority: low
+
+  # Cloud AI Agent Services
+  - id: bedrock_agents
+    name: "AWS Bedrock Agents"
+    category: "cloud_service"
+    website: "https://aws.amazon.com/bedrock/agents/"
+    github_org: "aws-samples"
+    github_repos: ["amazon-bedrock-samples", "bedrock-agents-sdk"]
+    pypi_packages: []
+    npm_packages: []
+    x_accounts: ["awscloud", "awsmachinelearning"]
+    linkedin_company: "amazon-web-services"
+    rss_feeds: ["https://aws.amazon.com/blogs/machine-learning/feed/"]
+    tags: ["aws", "managed", "enterprise", "integration"]
+    priority: medium
+
+  - id: azure_ai_agents
+    name: "Azure AI Agents"
+    category: "cloud_service"
+    website: "https://azure.microsoft.com/en-us/products/ai-agents/"
+    github_org: "azure-samples"
+    github_repos: ["ai-agents-samples"]
+    pypi_packages: []
+    npm_packages: []
+    x_accounts: ["azure", "msftazure"]
+    linkedin_company: "microsoft"
+    rss_feeds: ["https://azure.microsoft.com/en-us/blog/feed/"]
+    tags: ["azure", "managed", "enterprise", "copilot-studio"]
+    priority: medium
+
+  - id: vertex_ai_agents
+    name: "Google Vertex AI Agent Builder"
+    category: "cloud_service"
+    website: "https://cloud.google.com/vertex-ai/docs/agent-builder"
+    github_org: "googleapis"
+    github_repos: ["python-aiplatform", "vertex-ai-samples"]
+    pypi_packages: []
+    npm_packages: []
+    x_accounts: ["googlecloud", "googledeepmind"]
+    linkedin_company: "google"
+    rss_feeds: ["https://cloud.google.com/blog/topics/artificial-intelligence/rss/"]
+    tags: ["gcp", "managed", "enterprise", "dialogflow"]
+    priority: medium
+
+# ============================================================================
+# ADDITIONAL KEYWORD SETS FOR BROAD MONITORING
+# ============================================================================
+keyword_sets:
+  multi_agent_orchestration:
+    - "multi-agent orchestration"
+    - "agent orchestration"
+    - "agent framework"
+    - "agent swarm"
+    - "agent team"
+    - "agent collaboration"
+    - "agent communication"
+    - "agent coordination"
+
+  ai_agents_general:
+    - "AI agents"
+    - "autonomous agents"
+    - "LLM agents"
+    - "agentic AI"
+    - "agentic workflow"
+    - "agentic system"
+
+  xp_arc_specific:
+    - "XP-Arc"
+    - "xp arc"
+    - "dynamic ethical entity"
+    - "DEEP framework"
+
+  market_signals:
+    - "funding"
+    - "series A"
+    - "series B"
+    - "acquisition"
+    - "acquired by"
+    - "shutdown"
+    - "sunset"
+    - "deprecated"
+    - "pricing change"
+    - "free tier"
+    - "enterprise pricing"
+
+# ============================================================================
+# SOURCE-SPECIFIC OVERRIDES
+# ============================================================================
+source_overrides:
+  github:
+    # Additional repos to watch beyond competitor-owned
+    extra_repos:
+      - "aws-samples/amazon-bedrock-agent-samples"
+      - "google-gemini/generative-ai-docs"
+      - "microsoft/semantic-kernel"
+      - "nvidia/nemotron"
+      - "huggingface/transformers"
+      - "huggingface/trl"
+    # Ignore these repos (too noisy, low relevance)
+    ignore_repos:
+      - "langchain-ai/langchainjs"  # JS port, less relevant
+      - "langchain-ai/langchain-python"  # core, too high volume
+
+  x_twitter:
+    # Additional accounts for ecosystem pulse
+    extra_accounts:
+      - "simonw"
+      - "karpathy"
+      - "ylecun"
+      - "anthrupad"
+      - "gdb"
+      - "hardmaru"
+      - "omarsar0"
+      - "jxnlco"
+      - "hamelhusain"
+      - "eugeneyan"
+    # Mute these accounts (too much noise)
+    mute_accounts:
+      - "openai"  # too high volume, mostly product announcements
+
+  hackernews:
+    # Stories with these domains get auto-boosted
+    boost_domains:
+      - "github.com"
+      - "langchain.dev"
+      - "crewai.com"
+      - "agpt.co"
+      - "phidata.com"
+      - "agno-agi.github.io"
+    # Ignore these domains
+    ignore_domains:
+      - "news.ycombinator.com"  # meta posts
+
+  reddit:
+    # Additional subreddits
+    extra_subreddits:
+      - "artificial"
+      - "OpenAI"
+      - "LocalLLaMA"
+      - "MachineLearning"
+      - "LangChain"
+      - "AutoGPT"
+      - "AI_Agents"
+      - "RAG"
+    # Ignore these subreddits
+    ignore_subreddits:
+      - "ChatGPT"  # too consumer-focused
+      - "singularity"  # too speculative
+
+# ============================================================================
+# NOISE REDUCTION CONFIG
+# ============================================================================
+noise_reduction:
+  # Competitors to completely exclude (set by user)
+  excluded_competitors: []
+
+  # Sources to exclude
+  excluded_sources: []
+
+  # Keywords that indicate noise (filter out)
+  noise_keywords:
+    - "crypto"
+    - "blockchain"
+    - "web3"
+    - "token"
+    - "airdrop"
+    - "nft"
+    - "memecoin"
+    - "defi"
+    - "trading bot"
+    - "arbitrage"
+    - "onlyfans"
+    - "adult"
+    - "nsfw"
+    - "gambling"
+    - "betting"
+    - "casino"
+    - "porn"
+    - "sex"
+    - "dating"
+    - "hookup"
+    - "escort"
+    - "massage"
+    - "viagra"
+    - "cialis"
+    - "weight loss"
+    - "diet pill"
+    - "male enhancement"
+    - "hair loss"
+    - "skincare"
+    - "anti-aging"
+    - "supplement"
+    - "vitamin"
+    - "cbd"
+    - "marijuana"
+    - "cannabis"
+    - "psychedelic"
+    - "microdosing"
+    - "nootropic"
+    - "biohack"
+    - "longevity"
+    - "antiaging"
+    - "life extension"
+    - "immortality"
+    - "transhuman"
+    - "singularity"
+    - "AGI"
+    - "ASI"
+    - "superintelligence"
+    - "existential risk"
+    - "x-risk"
+    - "ai safety"
+    - "alignment"
+    - "interpretability"
+    - "mechanistic interpretability"
+    - "sparse autoencoder"
+    - "SAE"
+    - "feature"
+    - "circuit"
+    - "induction head"
+    - "grokking"
+    - "double descent"
+    - "scaling law"
+    - "chinchilla"
+    - "compute optimal"
+    - "training run"
+    - "foundation model"
+    - "large language model"
+    - "LLM training"
+    - "pretraining"
+    - "fine-tuning"
+    - "RLHF"
+    - "DPO"
+    - "PPO"
+    - "GRPO"
+    - "KTO"
+    - "ORPO"
+    - "SFT"
+    - "instruction tuning"
+    - "chat template"
+    - "system prompt"
+    - "jailbreak"
+    - "prompt injection"
+    - "adversarial"
+    - "red team"
+    - "blue team"
+    - "security"
+    - "vulnerability"
+    - "exploit"
+    - "CVE"
+    - "zero day"
+    - "0day"
+    - "ransomware"
+    - "malware"
+    - "phishing"
+    - "social engineering"
+    - "penetration testing"
+    - "bug bounty"
+    - "CTF"
+    - "capture the flag"
+    - "hacking"
+    - "hacker"
+    - "infosec"
+    - "cybersecurity"
+    - "application security"
+    - "appsec"
+    - "devsecops"
+    - "shift left"
+    - "SAST"
+    - "DAST"
+    - "IAST"
+    - "SCA"
+    - "software composition analysis"
+    - "dependency scanning"
+    - "container scanning"
+    - "kubernetes security"
+    - "cloud security"
+    - "CSPM"
+    - "CWPP"
+    - "CIEM"
+    - "DSPM"
+    - "data loss prevention"
+    - "DLP"
+    - "identity"
+    - "IAM"
+    - "PAM"
+    - "zero trust"
+    - "ZTNA"
+    - "SASE"
+    - "SSE"
+    - "CASB"
+    - "SWG"
+    - "FWaaS"
+    - "network security"
+    - "firewall"
+    - "WAF"
+    - "DDoS"
+    - "bot mitigation"
+    - "API security"
+    - "API gateway"
+    - "rate limiting"
+    - "authentication"
+    - "authorization"
+    - "OAuth"
+    - "OIDC"
+    - "SAML"
+    - "SSO"
+    - "MFA"
+    - "2FA"
+    - "passkey"
+    - "FIDO"
+    - "WebAuthn"
+    - "biometric"
+    - "passwordless"
+    - "identity provider"
+    - "IdP"
+    - "Okta"
+    - "Auth0"
+    - "Azure AD"
+    - "Entra ID"
+    - "Keycloak"
+    - "FusionAuth"
+    - "Clerk"
+    - "Supabase Auth"
+    - "Firebase Auth"
+    - "AWS Cognito"
+    - "Google Identity Platform"
+
+# ============================================================================
+# USER PREFERENCES
+# ============================================================================
+user_preferences:
+  # Minimum severity to include in weekly report
+  report_min_severity: "low"
+
+  # Max events per competitor per day in report
+  max_events_per_competitor_per_day: 5
+
+  # Include raw payload in events (for debugging)
+  include_raw_payload: true
+
+  # Auto-generate GitHub issues for high/critical gaps
+  auto_create_issues: false
+
+  # Notification channels (for future integration)
+  notifications:
+    slack_webhook: ""
+    discord_webhook: ""
+    email: ""
+
+  # Timezone for scheduling
+  timezone: "America/Los_Angeles"

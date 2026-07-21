@@ -1,7 +1,41 @@
+# Python
 __pycache__/
-*.pyc
-*.db
-*.json
-!dragon/pool_state.json
-!docs/aboyeur-protocol-v1.json
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime artifacts (preserved on disk, ignored from git)
+asset-engine/browser-profiles/
+asset-engine/generation-runs/
+asset-engine/logs/
+asset-engine/review-vault/approved/*
+asset-engine/review-vault/pending/*
+asset-engine/review-vault/rejected/*
+asset-engine/review-vault/templates/*
+!asset-engine/review-vault/**/.gitkeep
+
+# Competitive intel runtime data
+data/competitive/
+reports/competitive/
+sql/*.db
+
+# OS / Editor
 .DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+batch_log.txt
+proof_of_work_log.jsonl
+
+# Test artifacts
+*.db-journal
+test_*.db
+xp_arc_*.db
+stress_test.db

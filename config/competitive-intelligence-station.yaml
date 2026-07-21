@@ -1,0 +1,149 @@
+# XP-Arc Competitive Intelligence Station Configuration
+# Station: competitive-intel
+# Version: 0.1.0
+
+station:
+  id: competitive-intel
+  name: Competitive Intelligence Station
+  version: "0.1.0"
+
+# Database configuration
+database:
+  path: "data/competitive/gaps.db"
+  schema: "sql/competitive-gaps-schema.sql"
+
+# Event storage
+events:
+  path: "data/competitive/events"
+  format: "jsonl"
+  retention_days: 365
+
+# Reports
+reports:
+  path: "reports/competitive"
+  template: "templates/competitive-weekly-report.md"
+  retention_weeks: 52
+
+# API server (for query endpoint)
+api:
+  host: "0.0.0.0"
+  port: 8081
+  enabled: false  # Enable when needed
+
+# Source configurations (referenced by watchlist.yaml)
+sources:
+  github:
+    enabled: true
+    rate_limit: 5000  # per hour with token
+    timeout: 30
+
+  pypi:
+    enabled: true
+    rate_limit: 1000  # per hour
+    timeout: 15
+
+  npm:
+    enabled: true
+    rate_limit: 1000  # per hour
+    timeout: 15
+
+  crates_io:
+    enabled: true
+    rate_limit: 1000  # per hour
+    timeout: 15
+
+  websites:
+    enabled: true
+    rate_limit: 100  # per hour (polite scraping)
+    timeout: 30
+    user_agent: "XP-Arc Competitive Intel Bot/0.1 (+https://github.com/unklejack/xp-arc)"
+
+  x_twitter:
+    enabled: true
+    rate_limit: 300  # per 15 min (v2 API)
+    timeout: 30
+
+  linkedin:
+    enabled: false  # Requires auth, disabled by default
+    rate_limit: 100  # per day (limited API)
+    timeout: 30
+
+  hackernews:
+    enabled: true
+    rate_limit: 1000  # per hour
+    timeout: 15
+
+  reddit:
+    enabled: true
+    rate_limit: 600  # per minute
+    timeout: 15
+
+  custom_watchlist:
+    enabled: true
+
+# Detection engine
+detection:
+  # Confidence threshold for emitting events (0.0-1.0)
+  confidence_threshold: 0.7
+
+  # Deduplication window (hours)
+  dedup_window_hours: 24
+
+  # Maximum events per competitor per day
+  max_events_per_competitor_per_day: 20
+
+  # Enable LLM-enhanced detection (requires API key)
+  llm_enhanced: false
+  llm_model: "openrouter/gpt-oss-120b:free"
+  llm_temperature: 0.1
+
+# Competitor normalization (maps various names to canonical IDs)
+competitor_normalization:
+  "langgraph": "langgraph"
+  "langchain langgraph": "langgraph"
+  "autogen": "autogen"
+  "microsoft autogen": "autogen"
+  "autogen-agentchat": "autogen"
+  "crewai": "crewai"
+  "crewaiinc": "crewai"
+  "autogpt": "autogpt"
+  "significant-gravitas": "autogpt"
+  "significant gravitas": "autogpt"
+  "metagpt": "metagpt"
+  "geekan": "metagpt"
+  "swarm": "swarm"
+  "openai swarm": "swarm"
+  "agno": "agno"
+  "agno-agi": "agno"
+  "browser-use": "browser-use"
+  "browseruse": "browser-use"
+  "langchain": "langchain"
+  "langchain-ai": "langchain"
+  "llama-index": "llama-index"
+  "llamaindex": "llama-index"
+  "vercel ai": "vercel-ai"
+  "vercel ai sdk": "vercel-ai"
+  "@vercel/ai": "vercel-ai"
+
+# Scheduling (cron expressions)
+schedule:
+  high_frequency: "0 * * * *"  # hourly
+  daily: "0 6 * * *"  # 6 AM daily
+  weekly: "0 6 * * 1"  # Monday 6 AM
+  monthly: "0 6 1 * *"  # 1st of month 6 AM
+
+# Timezone for scheduling
+timezone: "America/Los_Angeles"
+
+# Logging
+logging:
+  level: "INFO"
+  file: "logs/competitive-intel.log"
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
+
+# Notifications (future integration)
+notifications:
+  enabled: false
+  webhook_url: ""
+  min_severity: "high"

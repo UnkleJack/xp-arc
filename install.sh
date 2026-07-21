@@ -1,7 +1,21 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════
-#  XP-Arc Installation Script for Zo.Computer
-#  Installs the XP-Arc protocol engine and DRAGON dashboard
+# XP-Arc Installation Script
+#  Installs the XP‑Arc protocol engine and DRAGON dashboard.
+#
+# Usage:  ./install.sh [options]
+#
+# Options (environment variables, can be exported before running):
+#   XP_ARC_HOME   Destination directory (default: $HOME/xp-arc)
+#   XP_ARC_DB     Path to the SQLite database (default: $XP_ARC_HOME/xp_arc.db)
+#   XP_ARC_PORT   HTTP port for the daemon (default: 8089)
+#   NO_SERVICE    Set to any non‑empty value to skip writing the systemd unit file.
+#
+# The script is idempotent: re‑running it will back up an existing database, 
+# re‑copy source files, and rewrite the convenience wrappers (start.sh, run_once.sh, seed.sh).
+#
+# After installation you will see a summary with the paths and quick‑start commands.
+
 # ═══════════════════════════════════════════════════════════
 
 set -e

@@ -1,6 +1,6 @@
 # XP-Arc: A Unified Protocol for Resilient Multi-Agent Intelligence Systems
 
-**Version:** 0.2
+**Version:** 0.2.1
 **Authors:** Jack (unklejack), Claude (Anthropic), Zo.Computer, Gemini (Google)
 **Repository:** github.com/unklejack/xp-arc
 **License:** MIT

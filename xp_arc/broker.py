@@ -1,30 +1,16 @@
 """
-Write Broker — Redis-buffered Pool write sequencer.
+Write Broker — Redis-buffered Pool write sequencer (OBSOLETE / EXPERIMENTAL).
 
-CONSTITUTION Article III, Section 3.5:
+STATUS: Obsolete / Experimental.
+This module is NOT used by the reference runtime (run_kitchen.py / run_persistent.py).
+The current system writes directly to SQLite WAL in pool.py, avoiding DuckDB and Redis.
+This file remains for experimental multi-process queuing research only.
+Refer to STATUS.md and ARCHITECTURE.md for current implementation details.
+
+CONSTITUTIONAL NOTE (V1.4 legacy):
   "All Pool writes MUST be routed through a write broker that buffers
   operations via a Redis queue before committing to DuckDB."
-
-Architecture:
-  Stations → [signed write request] → Redis queue
-                                    → Write Broker (single-threaded consumer)
-                                    → DuckDB (only writer; no lock contention)
-                                    → Materialized View updated
-                                    → DRAGON polls view at 500ms
-
-Hot standby: two broker processes. Leader election via Redis lock.
-Primary holds lock TTL=15s, refreshed every 5s. Standby monitors lock.
-On primary failure, standby acquires lock and takes over.
-
-Usage:
-  # Primary
-  python -m xp_arc.broker --role primary --db xp_arc.db
-
-  # Standby
-  python -m xp_arc.broker --role standby --db xp_arc.db
-
-  # DRAGON API (starts with primary or standalone)
-  python -m xp_arc.broker --api-only --db xp_arc.db
+  *Note: Superseded in v0.2 by SQLite WAL direct pool writes.*
 """
 
 import argparse

@@ -2,13 +2,13 @@
 
 ## Overview
 
-This guide covers installing XP-Arc v0.2 on Zo.Computer and integrating with the existing `unklejack.zo.space` infrastructure (Hono + Bun backend, React frontend).
+This guide covers installing XP-Arc v0.2.1 on a generic Linux/macOS environment and integrating with any backend of your choice.
 
-## Architecture on Zo
+## Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Zo.Computer                          │
+│            XP-Arc Engine (Python)                        │
 │                                                         │
 │  ┌──────────────────┐     ┌──────────────────────────┐  │
 │  │  XP-Arc Engine   │     │  Hono + Bun Backend      │  │
@@ -38,7 +38,7 @@ The Python engine and the Hono backend share the same SQLite file on the Zo file
 # Upload the zip to Zo
 # Then on Zo:
 cd ~
-unzip xp-arc-v0.2-deploy.zip
+unzip xp-arc-v0.2.1-deploy.zip
 cd xp-arc
 chmod +x install.sh
 ./install.sh
@@ -80,7 +80,22 @@ curl -X POST http://localhost:8089/api/seed \
 
 ---
 
-## Zo.Computer Integration
+## Optional Subpackages
+
+XP-Arc v0.2.1 ships three subpackages under a single `pip install -e .` — install only what you need:
+
+| Subpackage | Install Command | Purpose |
+|---|---|---|
+| Core (orchestration) | `pip install -e .` | Pool, stations, broker, monitoring |
+| Asset Engine | `pip install -e .[asset-engine]` | Evolutionary asset generation |
+| Competitive Intel | `pip install -e .[competitive-intel]` | Watchlist + gap detection |
+| Everything | `pip install -e .[all]` | All of the above |
+
+**All subpackages share the same Intelligence Pool (SQLite WAL) and Aboyeur QA gate.**
+
+---
+
+## API Interaction (Generic)
 
 ### Option A: Use XP-Arc's Built-in API (Simplest)
 
@@ -135,7 +150,7 @@ app.get('/api/dragon', (c) => {
     zorans_latest: zorans || {},
     events: events.reverse(),
     meta: {
-      version: '0.2.0',
+      version: '0.2.1',
       protocol: 'XP-Arc',
     }
   })
@@ -156,6 +171,7 @@ register_user_service xp-arc-kitchen \
 ## DB Schema Reference (v0.2)
 
 ### entities
+
 | Column | Type | Description |
 |---|---|---|
 | id | INTEGER | Primary key |
@@ -184,6 +200,7 @@ register_user_service xp-arc-kitchen \
 | max_crawl_depth | INTEGER | Max crawl depth for this entity's subtree |
 
 ### edges
+
 | Column | Type | Description |
 |---|---|---|
 | source | TEXT | Source entity value |
@@ -191,27 +208,69 @@ register_user_service xp-arc-kitchen \
 | target | TEXT | Target entity value |
 
 ### station_registry
+
 | Column | Type | Description |
 |---|---|---|
 | station_id | TEXT | Unique station identifier |
 | name | TEXT | Display name |
 | handles_types | TEXT | JSON array of handled entity types |
+| hmac_key | TEXT | Derived HMAC write authentication key |
 | status | TEXT | active/inactive |
 | is_primary | INTEGER | 1 = primary role, 0 = fallback |
+| registered_at | TEXT | ISO-8601 registration time |
 
 ### findings (SpaZzMatiC)
+
 | Column | Type | Description |
 |---|---|---|
 | severity | TEXT | critical/warning/info |
 | source | TEXT | Finding source |
 | message | TEXT | Description |
+| detail | TEXT | Expanded trace or telemetry logs |
 
 ### zorans_metrics
+
 | Column | Type | Description |
 |---|---|---|
 | stability_quotient | REAL | S value |
 | primary_role_occupancy | REAL | PRO value |
 | system_state | TEXT | healthy/equilibrium/debt/distress |
+| active_stations | INTEGER | Total active registered stations |
+| primary_stations | INTEGER | Count of active primary stations |
+| tasks_completed | INTEGER | Completed task count |
+| tasks_ingested | INTEGER | Total ingested task count |
+| measured_at | TEXT | Timestamp of measurement |
+
+### events
+
+| Column | Type | Description |
+|---|---|---|
+| event_type | TEXT | event type (e.g. zorans_measurement, status_transition) |
+| source | TEXT | Component origin |
+| message | TEXT | Log description |
+| detail | TEXT | Extended detail |
+| created_at | TEXT | Timestamp of event |
+
+---
+
+## Persistent Daemon HTTP API (`run_persistent.py`)
+
+The persistent runner initializes the pipeline and starts an HTTP API interface.
+
+### Endpoints
+
+#### 1. `POST /api/seed`
+Injects a new seed entity into the pool.
+- **Request Body**: `{"url": "https://example.com"}`
+- **Response**: `{"status": "success", "id": <entity_id>}` or `{"status": "duplicate"}`
+
+#### 2. `GET /api/dragon`
+Retrieves a JSON payload containing the complete state of the pool, edges, registered stations, metrics, and event timeline for DRAGON visualization.
+- **Response**: Full JSON-serializable pool state dump matching `pool.export_state()`.
+
+### Configuration Rules & Path Constraints
+- **`station_keys.json` Path**: Keys are loaded from `station_keys.json`. This is resolved relative to the current working directory of the execution process. Always run `run_persistent.py` or script triggers from the repository root directory to ensure the keys file is parsed successfully.
+- **Aboyeur QA Key Configuration**: Default signing key is set to `"xp-arc-aboyeur-v1"` in `aboyeur.py`. This key must be changed in a secure production context.
 
 ---
 
@@ -259,3 +318,15 @@ pool.close()
 ```
 
 **Safe halt triggered**: SpaZzMatiC detected S < 0.5 for 2+ measurements. The daemon starts a 60-second veto window. If Jack does not call `kitchen.stop()` or send Ctrl+C within 60 seconds, the system halts automatically. Incoming entities are rejected (404) during safe halt state. On restart, a debt grace window is applied.
+
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---|---|---|
+| 0.2.1 | 2026-07-21 | Consolidated 3 codebases; single pyproject.toml with extras; docs aligned |
+| 0.2.0 | 2026-07-11 | 5 production gaps shipped; CI; MIT + SQLite WAL locked |
+| 0.1.x | 2026-06 | Initial development |
+
+*Last updated: 2026-07-21 — v0.2.1 deployment guide updated for consolidated repo*

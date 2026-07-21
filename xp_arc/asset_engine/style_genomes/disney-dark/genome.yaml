@@ -1,0 +1,74 @@
+# Disney Dark Style Genome
+# Disney Renaissance aesthetic with dark/tim burton twist
+style_id: disney-dark
+parent: null
+version: 1
+description: "Disney Renaissance style with Burtonesque darkness — fluid lines, expressive faces, gothic romance aesthetic"
+
+visual_dna:
+  line_weight: "variable_elegant"
+  color_palette: ["#1A1A2E", "#16213E", "#0F3460", "#E94560", "#FFFFFF", "#FFD700", "#8B0000"]
+  proportions: "idealized_slightly_exaggerated"
+  shading: "soft_cel_with_rim_light"
+  background: "atmospheric_silhouette"
+
+prompt_genome:
+  positive_core: |
+    {style_id} style, {subject}, disney renaissance animation aesthetic,
+    fluid elegant linework, expressive facial features, large luminous eyes,
+    {theme} elements, gothic romance atmosphere, rim lighting, volumetric fog,
+    tim burton influence, henry selick stop-motion feel, rich color grading,
+    masterpiece quality, concept art
+  negative_core: |
+    realistic, photorealistic, anime, manga, 3d render, low quality, blurry,
+    deformed, ugly, bad anatomy, extra limbs, watermark, text, signature,
+    modern cartoon, flat flash animation, calarts style, thin scratchy lines,
+    oversaturated, neon colors
+  parameters:
+    sampler: euler_a
+    steps: 35
+    cfg_scale: 7.5
+    width: 1024
+    height: 1024
+    aspect_ratio: "1:1"
+
+variants:
+  coloring_page:
+    id: coloring_page
+    prompt_suffix: "coloring book page, elegant line art, clean closed paths, varying line weight, high contrast, printable"
+    negative_suffix: "color, fill, shading, gradient, solid areas, thick uniform lines"
+    output_format: svg
+    postprocess: potrace_svg_cleanup
+    params_override:
+      width: 1024
+      height: 1328
+      aspect_ratio: "4:5"
+  
+  tarot_card:
+    id: tarot_card
+    prompt_suffix: "tarot card illustration, ornate art nouveau border, major [PERSON_NAME] imagery, vertical composition, decorative frame"
+    negative_suffix: "simple border, modern minimal frame, horizontal"
+    output_format: png
+    postprocess: upscale_2x_add_bleed
+    params_override:
+      width: 750
+      height: 1275
+      aspect_ratio: "2:3.5"
+  
+  planner_page:
+    id: planner_page
+    prompt_suffix: "planner page layout, decorative header, ruled lines, checkboxes, decorative corners, functional art, organized composition"
+    negative_suffix: "cluttered, messy, illegible, no structure"
+    output_format: png
+    postprocess: none
+    params_override:
+      width: 2550
+      height: 3300
+      aspect_ratio: "8.5:11"
+
+evolution_log:
+  - version: 1
+    note: "Initial genome - Disney Renaissance meets Tim Burton"
+    parent: null
+    human_rating: null
+    rating_notes: "Awaiting first generation run"

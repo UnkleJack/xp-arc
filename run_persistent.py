@@ -2,9 +2,23 @@
 """
 XP-Arc Persistent Kitchen — Daemon Mode.
 
-Runs the brigade continuously, watching the pool for new
-raw entities and processing them as they arrive. Designed
-to run as a background service on Zo.Computer.
+# Runs the brigade continuously, watching the pool for new entities and processing them.
+#
+# Usage:  python3 run_persistent.py [options]
+#
+# Options (environment variables can also be used):
+#   --db <path>           Path to SQLite DB (default: ./xp_arc.db)
+#   --port <int>          HTTP API port (default: 8089)
+#   --poll <seconds>      Pool poll interval (default: 3)
+#   --log-level <level>   Set Python logging level (DEBUG, INFO, WARNING)
+#   --no-watchdog         Disable the internal watchdog (use with care).
+#
+# Environment overrides (take precedence over defaults):
+#   XP_ARC_DB, XP_ARC_PORT, XP_ARC_POLL
+#
+# The script will print a short startup banner and then serve the API.
+# It can be run in foreground for debugging or background (e.g. via `nohup`
+# or the provided `start.sh` wrapper).
 
 The kitchen never closes.
 
@@ -28,15 +42,37 @@ import signal
 import sys
 import time
 import threading
+import logging
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime, timezone
+from datetime import datetime, timezone
+from datetime import datetime, timezone
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Logging configuration
+log_level = os.getenv('XP_ARC_LOG_LEVEL', 'INFO').upper()
+log_file = os.getenv('XP_ARC_LOG')
+handlers = [logging.StreamHandler()]
+if log_file:
+    handlers = [logging.FileHandler(log_file)]
+logging.basicConfig(
+    level=getattr(logging, log_level, logging.INFO),
+    format='[%(asctime)s] %(levelname)s %(name)s: %(message)s',
+    handlers=handlers,
+)
+logger = logging.getLogger('xp_arc')
+
 
 from xp_arc.core.pool import IntelligencePool
 from xp_arc.core.executive import ExecutiveChef
 from xp_arc.stations.forager import TheForager
 from xp_arc.stations.analyst import TheAnalyst
+from xp_arc.stations.librarian import TheLibrarian
+from xp_arc.stations.cartographer import TheCartographer
+from xp_arc.stations.hydra import TheHydra
+from xp_arc.stations.salamander import TheSalamander
+from xp_arc.stations.herald import TheHerald
+from xp_arc.stations.dossier import TheDossier
+from xp_arc.stations.warden import TheWarden
 from xp_arc.stations.sentinel import TheSentinel
 from xp_arc.stations.plongeur import ThePlongeur
 from xp_arc.monitoring.zorans_law import ZoransLaw
@@ -68,13 +104,24 @@ class PersistentKitchen:
         self.spazz = SpaZzMatiC(self.pool, self.zorans)
 
         # Register stations
+        # Register stations – full brigade for persistent daemon
         self.forager = TheForager(self.pool, max_domains_per_target=5)
         self.analyst = TheAnalyst(self.pool)
-        self.sentinel = TheSentinel(self.pool)
+        self.librarian = __import__('xp_arc.stations.librarian', fromlist=['TheLibrarian']).TheLibrarian(self.pool)
+        self.cartographer = __import__('xp_arc.stations.cartographer', fromlist=['TheCartographer']).TheCartographer(self.pool)
+        self.hydra = __import__('xp_arc.stations.hydra', fromlist=['TheHydra']).TheHydra(self.pool)
+        self.salamander = __import__('xp_arc.stations.salamander', fromlist=['TheSalamander']).TheSalamander(self.pool)
+        self.herald = __import__('xp_arc.stations.herald', fromlist=['TheHerald']).TheHerald(self.pool)
+        self.dossier = __import__('xp_arc.stations.dossier', fromlist=['TheDossier']).TheDossier(self.pool)
+        self.warden = TheWarden(self.pool)
         self.plongeur = ThePlongeur(self.pool)
+        self.sentinel = TheSentinel(self.pool)
 
-        self.executive.register_station(self.forager)
-        self.executive.register_station(self.analyst)
+        # Register all stations with the executive
+        for station in [self.forager, self.analyst, self.librarian, self.cartographer,
+                        self.hydra, self.salamander, self.herald, self.dossier,
+                        self.warden, self.plongeur, self.sentinel]:
+            self.executive.register_station(station)
 
     def start(self):
         """Start the persistent loop."""
@@ -89,6 +136,7 @@ class PersistentKitchen:
         print(f"║  Max:   {self.max_entities} entities{' ' * (29 - len(str(self.max_entities)))} ║")
         print("╚══════════════════════════════════════════════╝")
         print()
+        logger.info("Persistent kitchen started – DB=%s, poll=%s, max=%s", self.db_path, self.poll_interval, self.max_entities)
 
         self.pool._log_event('daemon_start', 'persistent',
                              f"Persistent kitchen started. Poll: {self.poll_interval}s")
@@ -227,9 +275,18 @@ class SeedAPIHandler(BaseHTTPRequestHandler):
             findings = [dict(row) for row in self.kitchen.pool.get_findings()]
             self._json_response({'findings': findings})
 
-        elif self.path == '/api/events':
-            events = [dict(row) for row in self.kitchen.pool.get_events(200)]
-            self._json_response({'events': list(reversed(events))})
+        elif self.path == '/metrics':
+            # Simple Prometheus‑compatible metrics
+            total = self.kitchen.pool.count_entities()
+            completed = self.kitchen.pool.count_entities(status='completed')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/plain; version=0.0.4')
+            self.end_headers()
+            metric_txt = (
+                f"xp_arc_entities_total {total}\n"
+                f"xp_arc_entities_completed {completed}\n"
+            )
+            self.wfile.write(metric_txt.encode())
 
         else:
             self._json_response({'error': 'Not found', 'endpoints': [

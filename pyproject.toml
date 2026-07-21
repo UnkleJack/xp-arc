@@ -1,0 +1,56 @@
+[project]
+name = "xp-arc"
+version = "0.2.0"
+description = "Constitutional multi-agent orchestration protocol"
+readme = "README.md"
+authors = [{name = "David J. Riedl", email = ""}]
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+[project.dependencies]
+# Core runtime (v0.2 stable)
+pytz = "*"
+requests = "*"
+certifi = "*"
+# Optional broker dependencies (redis) - not required for default runs
+redis = {optional = true, version = "*"}
+
+[project.optional-dependencies]
+broker = ["redis"]
+# Asset engine: evolutionary asset generation pipeline
+asset-engine = [
+    "pyyaml>=6.0",
+    "jinja2>=3.1",
+    "sqlite-utils>=3.37",
+    "httpx>=0.27",
+    "openai>=1.30",
+    "playwright>=1.45",
+    "watchdog>=4.0",
+    "rich>=13.7",
+    "typer>=0.12",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+]
+# Competitive intel: watchlist + gap detection
+competitive-intel = [
+    "pyyaml>=6.0",
+    "jinja2>=3.1",
+]
+# Convenience: every optional dep at once
+all = ["xp-arc[broker,asset-engine,competitive-intel]"]
+
+[project.optional-dependencies.dev]
+pytest = "^8.2"
+pytest-asyncio = "^0.23"
+bandit = "*"
+ruff = "*"
+mypy = "*"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["xp_arc*"]
+exclude = ["tests*", "asset-engine*", "docs*", "examples*", "data*", "templates*"]
