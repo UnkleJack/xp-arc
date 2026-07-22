@@ -227,8 +227,8 @@ class TheWarden(StationChef):
     def process(self, entity_id, entity_type, entity_value):
         report = self.run_risk_assessment()
         return {
-            'entity_type': '_risk_assessment',
-            'entity_value': 'threat_scoring',
+            'entity_type': entity_type,
+            'entity_value': entity_value,
             'relationships': [],
             'confidence': 1.0,
             'notes': f"Assessed {report['entities_assessed']} entities. "

@@ -482,6 +482,20 @@ Operates outside the active brigade. Stress-tests assumptions, runs experimental
 routing logic, surfaces novel patterns upstream. Prevents the system from
 optimizing into a local maximum.
 
+#### 5.5.1 Reference Codebase Station Mappings (`xp_arc/stations/`)
+
+The reference Python implementation extends the 7 canonical functional domains into 13 specialized concrete stations (`CONSTITUTION Article II`):
+
+| Functional Domain (Whitepaper) | Escoffier Role | Concrete Station Implementations (`xp_arc/stations/`) | Core Responsibilities |
+|---|---|---|---|
+| **1. The Forager** | Garde Manger | `forager.py` (`TheForager`) | DOM scraping, seed URL ingestion, target URL expansion |
+| **2. The Analyst** | Saucier | `analyst.py` (`TheAnalyst`), `dossier.py` (`TheDossier`), `salamander.py` (`TheSalamander`) | Relationship inference, OSINT dossier synthesis, data normalization |
+| **3. The Mapper** | Entremetier | `cartographer.py` (`TheCartographer`), `amphithere.py` (`TheAmphithere`), `hydra.py` (`TheHydra`) | Topology mapping, DNS infrastructure enrichment, multi-headed pattern scans |
+| **4. The Chronicler** | Rotisseur | `librarian.py` (`TheLibrarian`) | Archive delta tracking, intelligence gap identification |
+| **5. The Sentinel** | Poissonnier | `sentinel.py` (`TheSentinel`), `warden.py` (`TheWarden`), `herald.py` (`TheHerald`) | Pool health anomaly detection, risk assessment, alert notification |
+| **6. The Aboyeur** | Expeditor | `aboyeur.py` (`TheAboyeur`), `auditor.py` (`TheAuditor`) | QA schema enforcement, cryptographic HMAC signing, constitutional audit checks |
+| **7. The Lateral Mesh** | R&D / Plongeur | `plongeur.py` (`ThePlongeur`), `spazzmatic.py` (`SpaZzMatiC`) | Orphaned entity recovery, GC sweeps, independent cold-eyes adversarial review |
+
 ### 5.6 The Aboyeur Protocol — Formal Schema
 
 Every station output must conform to this schema:

@@ -233,9 +233,10 @@ class SpaZzMatiC:
 
         return findings
 
-    def format_report(self) -> str:
+    def format_report(self, result: dict = None) -> str:
         """Human-readable adversarial review report."""
-        result = self.run_review()
+        if result is None:
+            result = self.run_review()
         lines = [
             "╔══════════════════════════════════════════════╗",
             "║   SpaZzMatiC — ADVERSARIAL REVIEW REPORT    ║",

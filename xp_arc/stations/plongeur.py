@@ -78,8 +78,8 @@ class ThePlongeur(StationChef):
         """Internal process — triggers sweep."""
         result = self.run_sweep()
         return {
-            'entity_type': '_plongeur_sweep',
-            'entity_value': 'sweep',
+            'entity_type': entity_type,
+            'entity_value': entity_value,
             'relationships': [],
             'confidence': 1.0,
             'notes': f"Sweep #{result['sweep_number']}: "

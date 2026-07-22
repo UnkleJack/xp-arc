@@ -22,6 +22,7 @@ class ExecutiveChef:
     """
 
     MAX_CASCADE_DEPTH = MAX_CASCADE_DEPTH  # class-level alias to module constant
+    MAX_SPAWN_PER_ENTITY = 50  # Cap on spawn_targets per completed entity (RT-14 fix)
 
     def __init__(self, pool, max_entities: int = 500, verbose: bool = True):
         self.pool = pool
@@ -138,6 +139,8 @@ class ExecutiveChef:
                 self.writer.transition_status(entity_id, 'processing', station='none')
                 self.writer.transition_status(entity_id, 'failed',
                                             notes=f"No station registered for type: {ent_type}")
+                with self.pool.conn:
+                    self.pool.conn.execute("UPDATE entities SET sla_suspended = 1 WHERE id = ?", (entity_id,))
                 continue
 
             # Route to Station
@@ -215,6 +218,12 @@ class ExecutiveChef:
                     print(f"  [!] {handler.name} dropped the pan: {e}")
                 self.pool.station_writer(handler.station_id).transition_status(entity_id, 'failed',
                                             notes=f"Station error: {str(e)}")
+                new_count = self.writer.increment_rejection(entity_id)
+                ent_check = self.pool.get_entity(entity_id)
+                max_rej = ent_check['max_rejections'] if ent_check else 3
+                if new_count >= max_rej:
+                    with self.pool.conn:
+                        self.pool.conn.execute("UPDATE entities SET sla_suspended = 1 WHERE id = ?", (entity_id,))
 
         # Kitchen Closed
         print("\n" + "=" * 60)
@@ -258,6 +267,15 @@ class ExecutiveChef:
         else:
             parent_chain = []
 
+        # Cap spawns per entity to prevent flood DoS (RT-14)
+        if len(spawn_targets) > self.MAX_SPAWN_PER_ENTITY:
+            self.pool._log_event(
+                'spawn_flood_capped', 'executive',
+                f"Spawn targets capped: {len(spawn_targets)} -> {self.MAX_SPAWN_PER_ENTITY} for parent {parent_id}",
+                f"original_count={len(spawn_targets)}"
+            )
+            spawn_targets = spawn_targets[:self.MAX_SPAWN_PER_ENTITY]
+
         for target in spawn_targets:
             ent_type = target.get('ent_type') or target.get('type') or 'url'
             value = target.get('value') or target.get('ent_value')
@@ -284,7 +302,6 @@ class ExecutiveChef:
                 sla_seconds=target.get('sla_seconds', 60),
                 parent_task_id=parent_id,
                 root_task_id=parent_root,
-                station_id='executive',
                 cascade_depth=parent_depth + 1,
                 spawn_chain=json.dumps(new_chain)
             )

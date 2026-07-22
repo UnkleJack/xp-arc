@@ -252,8 +252,8 @@ class TheHydra(StationChef):
     def process(self, entity_id, entity_type, entity_value):
         report = self.run_pattern_scan()
         return {
-            'entity_type': '_pattern_scan',
-            'entity_value': 'pattern_scan',
+            'entity_type': entity_type,
+            'entity_value': entity_value,
             'relationships': [],
             'confidence': 1.0,
             'notes': f"Scanned {report['domains_scanned']} domains. "

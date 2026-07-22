@@ -264,7 +264,7 @@ class IntelligencePool:
         """Verify HMAC of a write payload."""
         key = self.get_station_key(station_id)
         if key is None:
-            return station_id in {'legacy_local', 'executive', 'aboyeur'}
+            return station_id in {'legacy_local', 'executive', 'aboyeur', 'fracture_protocol'}
         if provided_mac is None:
             return False  # station has key but provided no MAC — reject
         expected = hmac.new(
@@ -353,6 +353,9 @@ class IntelligencePool:
         """
         if station_id is None:
             station_id = 'legacy_local'
+            self._log_event('legacy_write', 'pool',
+                            f"Unauthenticated add_entity (legacy_local): {ent_type}:{value}",
+                            "No station_id provided — using legacy bypass. Set station_id for HMAC auth.")
         if station_id:
             payload = f"add_entity:{ent_type}:{value}:{sla_seconds}"
             if not self._verify_write(station_id, payload, mac):
@@ -481,21 +484,29 @@ class IntelligencePool:
     def claim_entity(self, entity_id: int, station: str):
         with self._write_lock, self.conn:
             changed = self.conn.execute(
-                "UPDATE entities SET status = 'processing', station = ?, assigned_at = datetime('now') WHERE id = ? AND status = 'raw'",
+                """UPDATE entities SET status = 'processing', station = ?, assigned_at = datetime('now')
+                   WHERE id = ? AND status IN ('raw', 'failed') AND rejection_count < max_rejections AND sla_suspended = 0""",
                 (station, entity_id),
             ).rowcount
             return self.get_entity(entity_id) if changed == 1 else None
 
     def claim_next_raw(self, station: str):
-        """Atomically claim the oldest raw entity for one station."""
+        """Atomically claim the oldest raw (or retryable failed) entity for one station."""
         with self._write_lock, self.conn:
             row = self.conn.execute(
                 "SELECT id FROM entities WHERE status = 'raw' ORDER BY id LIMIT 1"
             ).fetchone()
             if not row:
+                row = self.conn.execute(
+                    """SELECT id FROM entities
+                       WHERE status = 'failed' AND rejection_count < max_rejections AND sla_suspended = 0
+                       ORDER BY id LIMIT 1"""
+                ).fetchone()
+            if not row:
                 return None
             changed = self.conn.execute(
-                "UPDATE entities SET status = 'processing', station = ?, assigned_at = datetime('now') WHERE id = ? AND status = 'raw'",
+                """UPDATE entities SET status = 'processing', station = ?, assigned_at = datetime('now')
+                   WHERE id = ? AND status IN ('raw', 'failed') AND rejection_count < max_rejections AND sla_suspended = 0""",
                 (station, row['id'])
             ).rowcount
             return self.get_entity(row['id']) if changed == 1 else None
@@ -504,18 +515,37 @@ class IntelligencePool:
         return _StationWriter(self, station_id)
 
     def get_next_raw(self, max_depth: int = None):
-        """Get next unprocessed entity. If max_depth is set, only return entities whose
-        crawl_depth is strictly below max_crawl_depth (depth-gated entities)."""
+        """Get next unprocessed entity. Checks 'raw' first, then retryable 'failed'."""
         if max_depth is not None:
-            return self.conn.execute("""
+            row = self.conn.execute("""
                 SELECT * FROM entities
                 WHERE status = 'raw'
                   AND crawl_depth < max_crawl_depth
                 ORDER BY id LIMIT 1
             """).fetchone()
-        return self.conn.execute(
+            if row:
+                return row
+            return self.conn.execute("""
+                SELECT * FROM entities
+                WHERE status = 'failed'
+                  AND rejection_count < max_rejections
+                  AND sla_suspended = 0
+                  AND crawl_depth < max_crawl_depth
+                ORDER BY id LIMIT 1
+            """).fetchone()
+
+        row = self.conn.execute(
             "SELECT * FROM entities WHERE status = 'raw' ORDER BY id LIMIT 1"
         ).fetchone()
+        if row:
+            return row
+        return self.conn.execute("""
+            SELECT * FROM entities
+            WHERE status = 'failed'
+              AND rejection_count < max_rejections
+              AND sla_suspended = 0
+            ORDER BY id LIMIT 1
+        """).fetchone()
 
     def get_entity(self, entity_id: int):
         return self.conn.execute(
@@ -724,7 +754,12 @@ class IntelligencePool:
         """Full pool state export as JSON-serializable dict."""
         entities = [dict(row) for row in self.get_all_entities()]
         edges = [dict(row) for row in self.get_all_edges()]
-        stations = [dict(row) for row in self.get_active_stations()]
+        # Strip HMAC keys from station export — RT-11 fix: prevent key leak via API
+        stations = []
+        for row in self.get_active_stations():
+            s = dict(row)
+            s.pop('hmac_key', None)
+            stations.append(s)
         findings = [dict(row) for row in self.get_findings()]
         zorans = [dict(row) for row in self.get_zorans_history()]
         events = [dict(row) for row in self.get_events(500)]

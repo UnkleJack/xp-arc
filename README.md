@@ -17,31 +17,50 @@ xp-arc/
 │   │   ├── pool.py            # Intelligence Pool — SQLite WAL state machine
 │   │   ├── executive.py       # Routing loop — reads raw, dispatches by type
 │   │   ├── station.py         # Base station class — all agents inherit this
-│   │   └── aboyeur.py         # QA enforcement — validates every station output
-│   ├── stations/
-│   │   ├── forager.py         # DOM scraping — seed URLs → entity extraction
+│   │   ├── aboyeur.py         # QA enforcement — validates every station output
+│   │   ├── authorization.py   # HMAC write authentication & access control
+│   │   ├── fracture.py        # Cognitive sharding & shard stitching engine
+│   │   ├── network_guard.py   # SSRF defense & public URL verification
+│   │   └── sanitization.py    # Graph node/label & Markdown output sanitization
+│   ├── stations/              # The 13 Canonical Brigade Stations
+│   │   ├── amphithere.py      # DNS & network infrastructure enrichment
 │   │   ├── analyst.py         # Relationship inference — domain classification + edges
+│   │   ├── auditor.py         # Constitutional compliance & schema verification
+│   │   ├── cartographer.py    # Topology mapping & cluster detection
+│   │   ├── dossier.py         # OSINT report synthesis & Markdown assembly
+│   │   ├── forager.py         # DOM scraping — seed URLs → entity extraction
+│   │   ├── herald.py          # Alert evaluation & operator notification
+│   │   ├── hydra.py           # Multi-headed pattern scanning & prefix analysis
+│   │   ├── librarian.py       # Historical archiving & intelligence gap tracking
+│   │   ├── plongeur.py        # Cleanup — orphan recovery, GC sweeps
+│   │   ├── salamander.py      # Data normalization & deduplication
 │   │   ├── sentinel.py        # Anomaly detection — pool health monitoring
-│   │   └── plongeur.py        # Cleanup — orphan recovery, GC sweeps
+│   │   └── warden.py          # Risk assessment & threat level scoring
+│   ├── broker.py              # Write Broker — Redis-buffered Pool write sequencer
+│   ├── broker_client.py       # Broker Client for stations & DRAGON API
 │   └── monitoring/
 │       ├── zorans_law.py      # Stability metrics — S quotient + PRO
-│       └── spazzmatic.py      # Adversarial review — Gemini-backed QA authority
+│       └── spazzmatic.py      # Adversarial review — cold-eyes QA authority
 ├── dragon/                    # DRAGON web dashboard
 │   ├── index.html             # Live visualization of Intelligence Pool
 │   └── pool_state.json        # Exported pipeline state
 ├── run_kitchen.py             # CLI entry point
+├── run_persistent.py          # Continuous daemon runner
+├── stress_test.py             # 5000-entity stress test gauntlet
+├── stress_test_instrumented.py # Proof-of-work instrumented runner
 ├── WHITEPAPER.md              # Full protocol specification
-├── CONSTITUTION.MD            # Operational law (v1.4)
+├── CONSTITUTION.MD            # Operational law (v1.5)
 └── docs/
     └── aboyeur-protocol-v1.json
 ```
 
 ## Recent Changes
 
+- **Comprehensive Adversarial Audit & Edge-Case Hardening**: Aligned every station's output schema with the Aboyeur QA protocol (`entity_type` / `entity_value` preservation), fixed `claim_next_raw` and `get_next_raw` to retry transient failures while respecting circuit breakers (`rejection_count >= 3` suspends SLA), enabled HMAC write authorization for `FractureProtocol` cognitive sharding, eliminated slow DNS timeouts on `.test` domains in `network_guard`, and fixed `SpaZzMatiC` report formatting side effects.
+- **Adversarial Gauntlet (`tests/test_adversarial.py`)**: Added an exhaustive 12-point adversarial test suite verifying D2/Markdown sanitization, unauthorized status transition rejection, HMAC write authentication, Snowball cascade depth limit enforcement (`MAX_CASCADE_DEPTH = 5`), Aboyeur circuit breaker escalation, fracture depth bounds (`depth <= 1`), and Zoran's Law sustained distress auto-compression.
 - Added GitHub Actions CI workflow (tests + Bandit security scan).
 - Fixed unit tests to use fresh in‑memory pool and correct row access.
 - Mitigated Bandit B310 by validating URL schemes in `forager` and adding `# nosec B310` comment.
-- Updated documentation (README) to reflect new CI and security improvements.
 
 
 ```bash
@@ -73,8 +92,8 @@ python run_kitchen.py --export-only --db myrun.db
 | 1 | Shared Pool State | `pool.py` — SQLite WAL state machine, constitutional schema | ✓ |
 | 2 | Typed Routing | `executive.py` — dispatches by entity type to registered stations | ✓ |
 | 3 | QA Enforcement | `aboyeur.py` — validates every output, signs approved entities | ✓ |
-| 4 | Graceful Degradation | Brigade Compression fallback roles | Spec'd |
-| 5 | Cognitive Sharding | Fracture Protocol — task decomposition | Spec'd |
+| 4 | Graceful Degradation | `executive.py` — Brigade Compression fallback roles matrix | ✓ |
+| 5 | Cognitive Sharding | `fracture.py` — Fracture Protocol task decomposition & stitching | ✓ |
 | 6 | Stability Measurement | `zorans_law.py` — S quotient + PRO | ✓ |
 
 ## DRAGON Dashboard

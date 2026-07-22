@@ -126,6 +126,10 @@ class Aboyeur:
 
         # Circuit breaker: max_rejections hit → fail and escalate
         if new_count >= max_rej:
+            with self.pool.conn:
+                self.pool.conn.execute(
+                    "UPDATE entities SET sla_suspended = 1 WHERE id = ?", (entity_id,)
+                )
             self.writer.transition_status(entity_id, 'failed')
             self.pool._log_event('aboyeur_circuit_break', 'aboyeur',
                                  f"Entity {entity_id} circuit breaker tripped. "
@@ -173,8 +177,8 @@ class Aboyeur:
             return False
             
         entity = dict(entity)
-        # Shards have parent_task_id or fracture_id set
-        if entity.get('parent_task_id') is not None or entity.get('fracture_id') is not None:
+        # Shards or already-fractured tasks have fracture_id set or type == 'shard'
+        if entity.get('fracture_id') is not None or entity.get('type') == 'shard':
             self.pool._log_event('fracture_rejected', 'aboyeur',
                                  f"Fracture rejected for entity {entity_id}: already a shard/fractured (depth limit)")
             return False

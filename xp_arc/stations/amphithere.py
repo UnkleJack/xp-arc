@@ -160,8 +160,8 @@ class TheAmphithere(StationChef):
     def process(self, entity_id, entity_type, entity_value):
         report = self.run_enrichment()
         return {
-            'entity_type': '_dns_enrichment',
-            'entity_value': 'dns_sweep',
+            'entity_type': entity_type,
+            'entity_value': entity_value,
             'relationships': [],
             'confidence': 1.0,
             'notes': f"Resolved {report['resolved']} domains. "

@@ -489,8 +489,7 @@ def test_bottleneck_detection():
     # All stations should have processed something if they're registered for URL type
     forager_stats = station_stats.get('forager', {})
     assert forager_stats.get('processed', 0) > 0, "Forager should process URL entities"
-
-    return m
+    assert m['throughput_per_sec'] > 0
 
 
 if __name__ == '__main__':

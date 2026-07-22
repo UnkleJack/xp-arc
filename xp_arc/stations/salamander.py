@@ -172,8 +172,8 @@ class TheSalamander(StationChef):
     def process(self, entity_id, entity_type, entity_value):
         report = self.run_normalization()
         return {
-            'entity_type': '_normalization_pass',
-            'entity_value': 'normalization',
+            'entity_type': entity_type,
+            'entity_value': entity_value,
             'relationships': [],
             'confidence': 1.0,
             'notes': f"Quality: {report['quality_metrics']['data_quality_score']:.1%}. "

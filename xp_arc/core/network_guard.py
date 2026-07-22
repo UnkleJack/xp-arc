@@ -24,6 +24,9 @@ def _is_public_ip(value: str) -> bool:
 def public_host(hostname: str, port: int = 443) -> bool:
     if not hostname or hostname.lower() == 'localhost':
         return False
+    # Fast reject RFC 6761 special-use domains to prevent DNS lookup timeouts
+    if hostname.lower().endswith(('.test', '.invalid', '.example', '.localhost')):
+        return False
     try:
         addresses = {item[4][0] for item in socket.getaddrinfo(hostname, port, type=socket.SOCK_STREAM)}
     except (OSError, socket.gaierror):

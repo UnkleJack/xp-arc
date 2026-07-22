@@ -205,8 +205,8 @@ class TheHerald(StationChef):
     def process(self, entity_id, entity_type, entity_value):
         report = self.run_alert_check()
         return {
-            'entity_type': '_alert_check',
-            'entity_value': 'alert_check',
+            'entity_type': entity_type,
+            'entity_value': entity_value,
             'relationships': [],
             'confidence': 1.0,
             'notes': f"Check #{report['check_number']}: "

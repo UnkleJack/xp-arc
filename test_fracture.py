@@ -1,3 +1,6 @@
+import os
+if os.path.exists("test_fracture.db"):
+    os.unlink("test_fracture.db")
 from xp_arc.core.pool import IntelligencePool
 from xp_arc.core.executive import ExecutiveChef
 from xp_arc.core.station import StationChef
@@ -55,3 +58,6 @@ for e in entities:
         print(f"  Notes: {e['notes'][:120]}")
 
 pool.close()
+import os
+if os.path.exists("test_fracture.db"):
+    os.unlink("test_fracture.db")

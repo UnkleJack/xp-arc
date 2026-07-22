@@ -245,8 +245,8 @@ class TheCartographer(StationChef):
     def process(self, entity_id, entity_type, entity_value):
         report = self.map_topology()
         return {
-            'entity_type': '_cartography_request',
-            'entity_value': 'topology_map',
+            'entity_type': entity_type,
+            'entity_value': entity_value,
             'relationships': [],
             'confidence': 1.0,
             'notes': f"Mapped {report['total_nodes']} nodes, "

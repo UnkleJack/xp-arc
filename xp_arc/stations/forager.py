@@ -248,9 +248,11 @@ class TheForager(StationChef):
                         extracted_domains.append(safe_domain)
                         count += 1
 
-                # Extract page title
+                # Extract page title and sanitize (RT-10 fix: strip HTML tags)
                 title_match = re.search(r'<title[^>]*>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
-                title = title_match.group(1).strip()[:200] if title_match else "No title"
+                raw_title = title_match.group(1).strip()[:200] if title_match else "No title"
+                # Strip any HTML tags from the title to prevent injection
+                title = re.sub(r'<[^>]+>', '', raw_title).strip()[:200] or "No title"
 
                 self.log(f"  Foraged {len(extracted_domains)} domains from: {safe_url}")
 

@@ -1,3 +1,6 @@
+import os
+if os.path.exists("test_osint.db"):
+    os.unlink("test_osint.db")
 from xp_arc.core.pool import IntelligencePool
 from xp_arc.core.executive import ExecutiveChef
 from xp_arc.stations import TheAnalyst, TheWarden, TheDossier
@@ -45,3 +48,6 @@ for ent in entities:
         break
 
 pool.close()
+import os
+if os.path.exists("test_osint.db"):
+    os.unlink("test_osint.db")

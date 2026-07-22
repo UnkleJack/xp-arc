@@ -29,10 +29,11 @@ from typing import Any
 try:
     import redis
 except ImportError:
-    raise ImportError("redis package required: pip install redis")
+    redis = None
 
 import sys
-sys.path.insert(0, '/Users/jadeddragon/xp-arc')
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from xp_arc.core.authorization import compute_write_signature
 
@@ -63,6 +64,8 @@ class StationClient:
                    ack_queue: str = DEFAULT_REDIS_ACK_QUEUE):
         self.station_id = station_id
         self.station_key = station_key
+        if redis is None:
+            raise ImportError("redis package required: pip install redis")
         self.r = redis.Redis(host=redis_host, port=redis_port,
                             decode_responses=True)
         self.queue_key = queue_key
@@ -197,6 +200,8 @@ class BrokerMaterializedView:
     def __init__(self, redis_host: str = DEFAULT_REDIS_HOST,
                    redis_port: int = DEFAULT_REDIS_PORT,
                    state_key: str = DEFAULT_POOL_STATE_KEY):
+        if redis is None:
+            raise ImportError("redis package required: pip install redis")
         self.r = redis.Redis(host=redis_host, port=redis_port,
                             decode_responses=True)
         self.state_key = state_key

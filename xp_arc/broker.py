@@ -43,13 +43,14 @@ from typing import Any
 try:
     import redis
 except ImportError:
-    raise ImportError("redis package required: pip install redis")
+    redis = None
 
 import sqlite3
 import threading
+import os
 
 # Local imports
-sys.path.insert(0, '/Users/jadeddragon/xp-arc')
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from xp_arc.core.authorization import (
     verify_write_signature, StationKeyRegistry
 )
@@ -258,7 +259,10 @@ class MaterializedView:
             }
 
 
-# ─── DuckDB Write Executor ────────────────────────────────────────────────────
+from xp_arc.core.pool import VALID_TRANSITIONS, MAX_CASCADE_DEPTH
+import json as _json
+
+# ─── SQLite Write Executor ────────────────────────────────────────────────────
 class SQLiteBrokerExecutor:
     """
     Single-writer SQLite connection used exclusively by the Write Broker.
@@ -282,6 +286,58 @@ class SQLiteBrokerExecutor:
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA foreign_keys=ON")
+        self.setup()
+
+    def setup(self):
+        with self._lock, self.conn:
+            self.conn.execute("""
+                CREATE TABLE IF NOT EXISTS entities (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    type TEXT NOT NULL,
+                    value TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'raw',
+                    payload_hash TEXT NOT NULL,
+                    station TEXT,
+                    confidence REAL,
+                    notes TEXT,
+                    sla_seconds INTEGER DEFAULT 60,
+                    assigned_at TEXT,
+                    completed_at TEXT,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    aboyeur_signature TEXT,
+                    fallback_role INTEGER DEFAULT 0,
+                    fracture_id TEXT,
+                    parent_task_id INTEGER,
+                    rejection_count INTEGER DEFAULT 0,
+                    max_rejections INTEGER DEFAULT 3,
+                    sla_suspended INTEGER DEFAULT 0,
+                    crawl_depth INTEGER DEFAULT 0,
+                    max_crawl_depth INTEGER DEFAULT 3,
+                    root_task_id INTEGER,
+                    cascade_depth INTEGER DEFAULT 0,
+                    spawn_chain TEXT,
+                    UNIQUE(type, value)
+                )
+            """)
+            self.conn.execute("""
+                CREATE TABLE IF NOT EXISTS edges (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    source TEXT NOT NULL,
+                    relationship TEXT NOT NULL,
+                    target TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                )
+            """)
+            self.conn.execute("""
+                CREATE TABLE IF NOT EXISTS events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_type TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    detail TEXT,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                )
+            """)
 
     def _execute(self, sql: str, params: tuple = ()):
         """Thread-safe execute with file-lock serialization."""
@@ -289,7 +345,7 @@ class SQLiteBrokerExecutor:
             return self.conn.execute(sql, params)
 
     def execute_add_entity(self, req: WriteRequest) -> dict:
-        import hashlib, json as _json
+        import hashlib
         ent_type = req.payload["type"]
         value = req.payload["value"]
         sla_seconds = req.payload.get("sla_seconds", 60)
@@ -302,11 +358,35 @@ class SQLiteBrokerExecutor:
         ).hexdigest()
 
         with self._lock:
+            cascade_depth = 0
+            root_task_id = None
+            spawn_chain = None
+            if parent_task_id is not None:
+                parent_row = self.conn.execute(
+                    "SELECT cascade_depth, root_task_id, spawn_chain FROM entities WHERE id = ?", (parent_task_id,)
+                ).fetchone()
+                if not parent_row:
+                    return {"ok": False, "error": "parent_task_id does not exist"}
+                parent_depth = parent_row["cascade_depth"] or 0
+                if parent_depth >= MAX_CASCADE_DEPTH:
+                    self.conn.execute("""
+                        INSERT INTO events (event_type, source, message, detail)
+                        VALUES (?, ?, ?, ?)
+                    """, ("spawn_blocked_depth_limit", "write_broker",
+                          f"Lineage rejected: parent at depth {parent_depth} >= {MAX_CASCADE_DEPTH}",
+                          f"parent_task_id={parent_task_id}"))
+                    return {"ok": False, "error": f"cascade depth limit {MAX_CASCADE_DEPTH} exceeded"}
+                cascade_depth = parent_depth + 1
+                root_task_id = parent_row["root_task_id"] or parent_task_id
+                parent_chain_raw = parent_row["spawn_chain"]
+                parent_chain = _json.loads(parent_chain_raw) if parent_chain_raw else []
+                spawn_chain = _json.dumps(parent_chain + [parent_task_id])
+
             with self.conn:
                 cur = self.conn.execute("""
-                    INSERT INTO entities (type, value, status, payload_hash, sla_seconds, parent_task_id, crawl_depth, max_crawl_depth)
-                    VALUES (?, ?, 'raw', ?, ?, ?, ?, ?)
-                """, (ent_type, value, payload_hash, sla_seconds, parent_task_id, crawl_depth, max_crawl_depth))
+                    INSERT INTO entities (type, value, status, payload_hash, sla_seconds, parent_task_id, crawl_depth, max_crawl_depth, root_task_id, cascade_depth, spawn_chain)
+                    VALUES (?, ?, 'raw', ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (ent_type, value, payload_hash, sla_seconds, parent_task_id, crawl_depth, max_crawl_depth, root_task_id, cascade_depth, spawn_chain))
                 eid = cur.lastrowid
                 self.conn.execute("""
                     INSERT INTO events (event_type, source, message, detail)
@@ -326,6 +406,9 @@ class SQLiteBrokerExecutor:
             return {"ok": False, "error": "entity not found"}
 
         current = row[0]
+        if new_status not in VALID_TRANSITIONS.get(current, []):
+            return {"ok": False, "error": f"unauthorized transition: {current} -> {new_status}"}
+
         updates = {"status": new_status}
         if new_status == "processing":
             updates["assigned_at"] = datetime.now(timezone.utc).isoformat()
@@ -479,7 +562,7 @@ class LeaderElection:
     On expiry, standby attempts to set the key — first to succeed becomes leader.
     """
 
-    def __init__(self, redis_client: redis.Redis, lock_key: str,
+    def __init__(self, redis_client: Any, lock_key: str,
                    ttl: int = DEFAULT_LEADER_TTL):
         self.redis = redis_client
         self.lock_key = lock_key
@@ -593,6 +676,8 @@ class WriteBroker:
         self.ack_queue = ack_queue
         self.pool_state_key = pool_state_key
 
+        if redis is None:
+            raise ImportError("redis package required: pip install redis")
         self.r = redis.Redis(host=redis_host, port=redis_port,
                              decode_responses=True)
         self.r.ping()
@@ -822,6 +907,8 @@ class StandbyMonitor:
         self.db_path = db_path
         self.station_registry = station_registry
 
+        if redis is None:
+            raise ImportError("redis package required: pip install redis")
         self.r = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
         self.broker: WriteBroker | None = None
         self._running = False
@@ -980,6 +1067,8 @@ def main():
         api_thread.start()
 
         # Also run leader election so primary holds the lock
+        if redis is None:
+            raise ImportError("redis package required: pip install redis")
         r = redis.Redis(host=args.redis_host, port=args.redis_port, decode_responses=True)
         election = LeaderElection(r, DEFAULT_LOCK_KEY)
         if not election.try_acquire():

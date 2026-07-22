@@ -291,8 +291,8 @@ class TheAuditor(StationChef):
     def process(self, entity_id, entity_type, entity_value):
         report = self.run_full_audit()
         return {
-            'entity_type': '_audit_request',
-            'entity_value': 'full_audit',
+            'entity_type': entity_type,
+            'entity_value': entity_value,
             'relationships': [],
             'confidence': 1.0,
             'notes': f"Integrity: {report['overall']['integrity_score']:.1%}. "

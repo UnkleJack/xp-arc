@@ -135,8 +135,8 @@ class TheSentinel(StationChef):
         """Internal process — triggers health check."""
         results = self.run_health_check()
         return {
-            'entity_type': '_sentinel_check',
-            'entity_value': 'health_check',
+            'entity_type': entity_type,
+            'entity_value': entity_value,
             'relationships': [],
             'confidence': 1.0,
             'notes': f"Found {len(results)} anomalies",

@@ -162,8 +162,8 @@ class TheLibrarian(StationChef):
     def process(self, entity_id, entity_type, entity_value):
         dossiers = self.generate_dossiers()
         return {
-            'entity_type': '_dossier_request',
-            'entity_value': 'dossier_generation',
+            'entity_type': entity_type,
+            'entity_value': entity_value,
             'relationships': [],
             'confidence': 1.0,
             'notes': f"Generated {len(dossiers)} dossiers",

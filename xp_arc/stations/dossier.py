@@ -61,11 +61,11 @@ class TheDossier(StationChef):
             self.writer.add_edge(target, 'has_dossier', report_value)
 
         return {
-            'entity_type': 'dossier_report',
-            'entity_value': report_value,
-            'relationships': [target],
+            'entity_type': entity_type,
+            'entity_value': entity_value,
+            'relationships': [report_value],
             'confidence': 1.0,
-            'notes': dossier_md,
+            'notes': f"Generated dossier report: {report_value}",
         }
 
     def _gather_intelligence(self, target: str) -> dict:
