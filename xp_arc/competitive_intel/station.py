@@ -204,8 +204,17 @@ class CompetitiveIntelStation:
                 # Mark as processed
                 event_ids = [e["id"] for e in events]
                 placeholders = ",".join("?" * len(event_ids))
-                conn.execute(f"UPDATE raw_events SET processed = 1 WHERE id IN ({placeholders})", event_ids)
+                conn.execute(  # nosec B608
+                    f"UPDATE raw_events SET processed = 1 WHERE id IN ({placeholders})",
+                    event_ids
+                )
                 conn.commit()
+
+                # Run gap analysis on accumulated signals
+                gaps = await self.gap_analyzer.identify_gaps(days=30)
+                if gaps:
+                    await self.gap_analyzer.update_gap_database(gaps)
+                    logger.info(f"Identified {len(gaps)} gaps")
         finally:
             conn.close()
 

@@ -37,7 +37,12 @@ class Aboyeur:
         self.pool = pool
         self.pool.register_station('aboyeur', 'The Aboyeur', [], is_primary=True)
         self.writer = pool.station_writer('aboyeur')
-        self._signing_key = signing_key or os.environ.get('XP_ARC_ABOYEUR_KEY', 'development-only-change-me')
+        self._signing_key = signing_key or os.environ.get('XP_ARC_ABOYEUR_KEY')
+        if not self._signing_key:
+            raise RuntimeError(
+                "Aboyeur signing key not configured. Set XP_ARC_ABOYEUR_KEY environment variable "
+                "or pass signing_key to constructor. No default key is provided for security."
+            )
         self._verifications = 0
         self._rejections = 0
         self._approvals = 0
@@ -69,6 +74,12 @@ class Aboyeur:
 
         if output.get('entity_type') != entity['type'] or output.get('entity_value') != entity['value']:
             return self._reject(entity_id, 'Output does not match input entity')
+
+        # ─── Semantic Validation ───
+        # Validate relationships are appropriate for entity type
+        relationships = output.get('relationships', [])
+        if not self._validate_relationships(entity['type'], relationships):
+            return self._reject(entity_id, f"Invalid relationships for entity type {entity['type']}: {relationships}")
 
         # ─── Confidence Bounds ───
         conf = output.get('confidence', 0)
@@ -203,3 +214,49 @@ class Aboyeur:
             'approval_rate': self._approvals / total,
             'rejection_rate': self._rejections / total,
         }
+
+    def _validate_relationships(self, entity_type: str, relationships: list) -> bool:
+        """
+        Validate that relationships are semantically valid for the entity type.
+        
+        For domain entities, relationships should be valid domain names.
+        For URL entities, relationships should be valid URLs or domains.
+        Empty relationships are valid.
+        """
+        if not relationships:
+            return True  # Empty relationships are allowed
+        
+        # Import validators
+        import re
+        
+        _DOMAIN_PATTERN = re.compile(
+            r'^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?'
+            r'(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)+$'
+        )
+        
+        _URL_PATTERN = re.compile(
+            r'^(https?)://'
+            r'[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?'
+            r'(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)+'
+            r'(:[0-9]{1,5})?'
+            r'(/[^\s]*)?$', re.IGNORECASE
+        )
+        
+        for rel in relationships:
+            if not isinstance(rel, str):
+                return False
+            
+            if entity_type == 'domain':
+                # Domain relationships should be valid domains
+                if not _DOMAIN_PATTERN.match(rel):
+                    return False
+            elif entity_type == 'url':
+                # URL relationships can be URLs or domains
+                if not (_URL_PATTERN.match(rel) or _DOMAIN_PATTERN.match(rel)):
+                    return False
+            # For other types (shard, etc.), allow any string relationship
+            # but reject control characters
+            elif any(ord(c) < 32 or ord(c) == 127 for c in rel):
+                return False
+        
+        return True

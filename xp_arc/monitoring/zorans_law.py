@@ -105,6 +105,12 @@ class ZoransLaw:
         return measurement
 
     def get_latest(self) -> dict | None:
+        # Read latest from database to ensure we see all measurements
+        rows = self.pool.conn.execute("""
+            SELECT * FROM zorans_metrics ORDER BY id DESC LIMIT 1
+        """).fetchone()
+        if rows:
+            return dict(rows)
         return self._measurements[-1] if self._measurements else None
 
     def format_report(self) -> str:

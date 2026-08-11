@@ -12,12 +12,12 @@ competitors:
     category: "open_source_framework"
     website: "https://langchain-ai.github.io/langgraph/"
     github_org: "langchain-ai"
-    github_repos: ["langgraph", "langgraphjs", "langgraph-cloud"]
+    github_repos: ["langgraph", "langgraphjs"]
     pypi_packages: ["langgraph"]
     npm_packages: ["@langchain/langgraph"]
     x_accounts: ["langchain"]
     linkedin_company: "langchain"
-    rss_feeds: ["https://blog.langchain.dev/feed/"]
+    rss_feeds: ["https://blog.langchain.dev/rss/"]
     tags: ["graph", "stateful", "orchestration", "langchain-ecosystem"]
     priority: high
 
@@ -26,7 +26,7 @@ competitors:
     category: "open_source_framework"
     website: "https://microsoft.github.io/autogen/"
     github_org: "microsoft"
-    github_repos: ["autogen", "autogen.net", "autogen-java"]
+    github_repos: ["autogen"]
     pypi_packages: ["autogen-agentchat", "autogen-core", "autogen-ext"]
     npm_packages: []
     x_accounts: ["autogenai"]
@@ -40,7 +40,7 @@ competitors:
     category: "open_source_framework"
     website: "https://crewai.com/"
     github_org: "crewaiinc"
-    github_repos: ["crewai", "crewai-examples", "crewai-tools"]
+    github_repos: ["crewai", "crewai-tools"]
     pypi_packages: ["crewai", "crewai-tools"]
     npm_packages: []
     x_accounts: ["crewai"]
@@ -54,12 +54,12 @@ competitors:
     category: "open_source_framework"
     website: "https://agpt.co/"
     github_org: "significant-gravitas"
-    github_repos: ["autogpt", "autogpt-frontend", "autogpt-server"]
+    github_repos: ["autogpt"]
     pypi_packages: ["autogpt"]
     npm_packages: []
     x_accounts: ["significantgravitas"]
     linkedin_company: "significant-gravitas"
-    rss_feeds: ["https://agpt.co/blog/rss.xml"]
+    rss_feeds: []
     tags: ["autonomous", "goal-driven", "god-mode", "early-mover"]
     priority: medium
 
@@ -87,7 +87,7 @@ competitors:
     npm_packages: []
     x_accounts: ["openai"]
     linkedin_company: "openai"
-    rss_feeds: ["https://openai.com/blog/rss/"]
+    rss_feeds: ["https://openai.com/blog/rss.xml"]
     tags: ["lightweight", "educational", "openai", "experimental"]
     priority: low
 
@@ -101,7 +101,7 @@ competitors:
     npm_packages: []
     x_accounts: ["agno_agi"]
     linkedin_company: "phidata"
-    rss_feeds: ["https://blog.phidata.com/feed/"]
+    rss_feeds: []
     tags: ["agent-framework", "memory", "knowledge", "reasoning"]
     priority: medium
 
@@ -129,7 +129,7 @@ competitors:
     npm_packages: ["langchain", "@langchain/core"]
     x_accounts: ["langchain"]
     linkedin_company: "langchain"
-    rss_feeds: ["https://blog.langchain.dev/feed/"]
+    rss_feeds: ["https://blog.langchain.dev/rss/"]
     tags: ["llm-apps", "chains", "rag", "ecosystem"]
     priority: high
 
@@ -143,7 +143,7 @@ competitors:
     npm_packages: ["llamaindex"]
     x_accounts: ["llama_index"]
     linkedin_company: "llamaindex"
-    rss_feeds: ["https://blog.llamaindex.ai/feed/"]
+    rss_feeds: []
     tags: ["rag", "data-framework", "indexing", "retrieval"]
     priority: medium
 
@@ -167,12 +167,12 @@ competitors:
     category: "commercial_platform"
     website: "https://langsmith.com/"
     github_org: "langchain-ai"
-    github_repos: ["langsmith-sdk", "langsmith-evaluation"]
+    github_repos: []
     pypi_packages: ["langsmith"]
     npm_packages: ["langsmith"]
     x_accounts: ["langchain"]
     linkedin_company: "langchain"
-    rss_feeds: ["https://blog.langchain.dev/feed/"]
+    rss_feeds: ["https://blog.langchain.dev/rss/"]
     tags: ["observability", "evaluation", "debugging", "production"]
     priority: high
 
@@ -181,12 +181,12 @@ competitors:
     category: "commercial_platform"
     website: "https://langchain-ai.github.io/langgraph/cloud/"
     github_org: "langchain-ai"
-    github_repos: ["langgraph-platform"]
+    github_repos: []
     pypi_packages: []
     npm_packages: []
     x_accounts: ["langchain"]
     linkedin_company: "langchain"
-    rss_feeds: ["https://blog.langchain.dev/feed/"]
+    rss_feeds: ["https://blog.langchain.dev/rss/"]
     tags: ["deployment", "scaling", "human-in-loop", "persistence"]
     priority: high
 
@@ -214,7 +214,7 @@ competitors:
     npm_packages: []
     x_accounts: ["significantgravitas"]
     linkedin_company: "significant-gravitas"
-    rss_feeds: ["https://agpt.co/blog/rss.xml"]
+    rss_feeds: []
     tags: ["cloud", "hosted", "marketplace"]
     priority: low
 
@@ -224,7 +224,7 @@ competitors:
     category: "cloud_service"
     website: "https://aws.amazon.com/bedrock/agents/"
     github_org: "aws-samples"
-    github_repos: ["amazon-bedrock-samples", "bedrock-agents-sdk"]
+    github_repos: []
     pypi_packages: []
     npm_packages: []
     x_accounts: ["awscloud", "awsmachinelearning"]
@@ -238,7 +238,7 @@ competitors:
     category: "cloud_service"
     website: "https://azure.microsoft.com/en-us/products/ai-agents/"
     github_org: "azure-samples"
-    github_repos: ["ai-agents-samples"]
+    github_repos: []
     pypi_packages: []
     npm_packages: []
     x_accounts: ["azure", "msftazure"]
@@ -252,12 +252,12 @@ competitors:
     category: "cloud_service"
     website: "https://cloud.google.com/vertex-ai/docs/agent-builder"
     github_org: "googleapis"
-    github_repos: ["python-aiplatform", "vertex-ai-samples"]
+    github_repos: []
     pypi_packages: []
     npm_packages: []
     x_accounts: ["googlecloud", "googledeepmind"]
     linkedin_company: "google"
-    rss_feeds: ["https://cloud.google.com/blog/topics/artificial-intelligence/rss/"]
+    rss_feeds: []
     tags: ["gcp", "managed", "enterprise", "dialogflow"]
     priority: medium
 
@@ -309,8 +309,6 @@ source_overrides:
   github:
     # Additional repos to watch beyond competitor-owned
     extra_repos:
-      - "aws-samples/amazon-bedrock-agent-samples"
-      - "google-gemini/generative-ai-docs"
       - "microsoft/semantic-kernel"
       - "nvidia/nemotron"
       - "huggingface/transformers"

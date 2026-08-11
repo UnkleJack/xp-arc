@@ -8,6 +8,7 @@ Fallback: type-tagging only, no relationship inference.
 Whitepaper Section 4.4, Station #2.
 """
 
+import logging
 import re
 import urllib.request
 import ssl
@@ -18,6 +19,8 @@ except ImportError:
     _CERTIFI_AVAILABLE = False
 from ..core.station import StationChef
 from ..core.network_guard import open_public_url
+
+logger = logging.getLogger("xp_arc.analyst")
 
 
 class TheAnalyst(StationChef):
@@ -149,6 +152,6 @@ class TheAnalyst(StationChef):
                 with open_public_url(f"http://{domain}", timeout=3) as resp:
                     result['reachable'] = True
                     result['server'] = resp.headers.get('Server', 'unknown')
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"HTTP probe failed for {domain}: {e}")
         return result

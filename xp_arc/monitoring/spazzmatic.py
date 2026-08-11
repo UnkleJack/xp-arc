@@ -1,20 +1,39 @@
 """
 SpaZzMatiC — Adversarial Review Authority.
 
-STATUS: Active (Rule-based, deterministic).
-Note: While README.md and WHITEPAPER.md refer to this as a "Gemini-backed" LLM authority,
-the actual implementation is rule-based and deterministic. Refer to STATUS.md.
+STATUS: Active (Rule-based + Gemini-backed LLM authority - optional).
+Note: The base implementation is rule-based and deterministic.
+The optional Gemini-backed LLM authority provides cold-eyes QA with no 
+architectural bias toward XP-Arc (Constitution §14.3).
 
-Cold-eyes QA with no architectural bias toward XP-Arc.
+IMPORTANT: The legacy `google.generativeai` package is deprecated and only supports 
+older models (gemini-1.x, gemini-pro). Modern API keys typically only grant access
+to newer models (gemini-2.x, 3.x) which require the new `google-genai` package.
+To enable LLM review: either use an API key with legacy model access, or migrate
+to `google-genai` (not yet implemented).
+
 SpaZzMatiC does not build. SpaZzMatiC breaks.
 
 Constitution Article XIV.
 """
 
+import os
+import json
+import logging
+from typing import Optional
+
+# Optional Gemini integration (legacy package - deprecated)
+try:
+    import google.generativeai as genai
+    _GEMINI_AVAILABLE = True
+except ImportError:
+    _GEMINI_AVAILABLE = False
+
+logger = logging.getLogger("xp_arc.spazzmatic")
+
 
 class SpaZzMatiC:
-    """
-    Independent adversarial review engine.
+    """Independent adversarial review engine.
 
     Monitors:
     - Zoran's Law violations
@@ -27,6 +46,8 @@ class SpaZzMatiC:
     Issues findings with severity classifications.
     Can recommend safe halt (60-second veto countdown) and
     trigger Brigade Compression when PRO < 70% or S < 0.5.
+    
+    Includes optional Gemini-backed adversarial review per Constitution §14.3.
     """
 
     # Constitutional thresholds
@@ -50,8 +71,7 @@ class SpaZzMatiC:
         self._executive = executive
 
     def run_review(self) -> dict:
-        """
-        Execute full adversarial review pass.
+        """Execute full adversarial review pass.
 
         Returns:
         {
@@ -68,6 +88,7 @@ class SpaZzMatiC:
         findings.extend(self._review_pool_integrity())
         findings.extend(self._review_entity_flood())
         findings.extend(self._review_orphans())
+        findings.extend(self._review_gemini_adversarial())
 
         # Write findings to pool
         for f in findings:
@@ -104,6 +125,26 @@ class SpaZzMatiC:
 
         s = measurement['stability_quotient']
         pro = measurement['primary_role_occupancy']
+
+        # Check streak from measurement HISTORY (last 5 measurements)
+        # This handles the case where multiple bad measurements are inserted before review runs
+        # We initialize from DB history ONLY on the very first review
+        if self._reviews == 1 and self._s_violation_streak == 0:
+            rows = self.pool.conn.execute("""
+                SELECT stability_quotient FROM zorans_metrics 
+                ORDER BY id DESC LIMIT 5
+            """).fetchall()
+            recent_s_values = [r['stability_quotient'] for r in rows]
+            
+            # Count consecutive S < 0.5 from most recent backwards
+            s_violation_streak = 0
+            for val in recent_s_values:
+                if val < self.SAFE_HALT_S_THRESHOLD:
+                    s_violation_streak += 1
+                else:
+                    break
+            if s_violation_streak > 0:
+                self._s_violation_streak = s_violation_streak
 
         # S < 0.5 sustained = safe halt candidate + compression
         if s < self.SAFE_HALT_S_THRESHOLD:
@@ -233,6 +274,166 @@ class SpaZzMatiC:
             })
 
         return findings
+
+    def _review_gemini_adversarial(self) -> list:
+        """Gemini-backed adversarial review for deep structural analysis.
+        
+        Per Constitution §14.3: SpaZzMatiC operates on an independent LLM backbone 
+        (Gemini API) to eliminate architectural bias. This is the cold-eyes QA
+        that catches what rule-based reviews miss.
+        """
+        findings = []
+        
+        if not _GEMINI_AVAILABLE:
+            logger.debug("Gemini not available, skipping LLM adversarial review")
+            return findings
+            
+        api_key = os.environ.get("XP_ARC_GEMINI_API_KEY")
+        if not api_key:
+            logger.debug("XP_ARC_GEMINI_API_KEY not set, skipping LLM adversarial review")
+            return findings
+            
+        try:
+            # Configure Gemini
+            genai.configure(api_key=api_key)
+            # Try to find a compatible model - legacy package only supports older models
+            # but the API key may only have access to newer models (gemini-2.x, 3.x)
+            model = None
+            for model_name in ['gemini-1.5-pro', 'gemini-pro', 'gemini-1.5-flash', 'gemini-1.0-pro']:
+                try:
+                    model = genai.GenerativeModel(model_name)
+                    logger.debug(f"Using Gemini model: {model_name}")
+                    break
+                except Exception as e:
+                    logger.debug(f"Model {model_name} not available: {e}")
+                    continue
+            if model is None:
+                raise RuntimeError(
+                    "No compatible Gemini model found. "
+                    "The legacy 'google.generativeai' package only supports older models "
+                    "(gemini-1.x, gemini-pro). Your API key appears to only have access "
+                    "to newer models (gemini-2.x, 3.x) which require the new 'google.genai' package. "
+                    "Either: (1) Use an API key with access to legacy models, or "
+                    "(2) Install 'google-genai' and migrate the integration."
+                )
+            
+            # Gather context for the review
+            measurement = self.zorans_law.get_latest()
+            stats = self.pool.get_stats()
+            entities = self.pool.get_all_entities()
+            edges = self.pool.get_all_edges()
+            events = self.pool.get_events(50)
+            stations = self.pool.get_active_stations()
+            
+            # Build context prompt
+            context = self._build_gemini_context(measurement, stats, entities, edges, events, stations)
+            
+            prompt = f"""You are SpaZzMatiC, the Adversarial Review Authority for XP-Arc multi-agent orchestration system.
+
+CONSTITUTIONAL MANDATE: You do not build. You break. You have no architectural bias toward XP-Arc. 
+Your job is cold-eyes QA: identify weaknesses, single points of failure, degradation vectors, 
+and non-compliance that rule-based checks miss.
+
+CURRENT SYSTEM STATE:
+{context}
+
+ANALYSIS REQUIRED:
+1. Are there structural weaknesses in the brigade configuration?
+2. Is the Snowball cascade properly bounded or showing runaway signs?
+3. Are station role assignments correct or are there domain breaches?
+4. Is Zoran's Law calculation being gamed via SLA manipulation?
+5. Are there silent data loss patterns (entities dropped, edges orphaned)?
+6. Is the Aboyeur QA gate actually catching errors or just rubber-stamping?
+7. Are there constitutional violations the rule-based checks missed?
+
+Respond with a JSON array of findings, each with:
+- severity: "critical" | "warning" | "info"
+- category: "structural" | "constitutional" | "operational" | "security"
+- message: concise finding description
+- detail: expanded analysis
+- recommendation: concrete remediation step
+
+If no significant findings, return empty array [].
+
+JSON ONLY - no markdown, no explanation."""
+
+            response = model.generate_content(prompt)
+            
+            # Parse response
+            try:
+                response_text = response.text.strip()
+                # Extract JSON from potential markdown code blocks
+                if '```json' in response_text:
+                    response_text = response_text.split('```json')[1].split('```')[0]
+                elif '```' in response_text:
+                    response_text = response_text.split('```')[1].split('```')[0]
+                    
+                gemini_findings = json.loads(response_text)
+                
+                for gf in gemini_findings:
+                    findings.append({
+                        'severity': gf.get('severity', 'warning'),
+                        'message': f"[GEMINI] {gf.get('message', 'Adversarial finding')}",
+                        'detail': f"{gf.get('detail', '')} | Recommendation: {gf.get('recommendation', 'N/A')}",
+                    })
+                    
+                logger.info(f"Gemini adversarial review found {len(findings)} findings")
+                
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse Gemini response as JSON: {e}")
+                # Fallback: add raw response as info finding
+                findings.append({
+                    'severity': 'info',
+                    'message': 'Gemini adversarial review completed (raw response logged)',
+                    'detail': f"Response parsing failed: {e}. Raw response logged.",
+                })
+                
+        except Exception as e:
+            logger.error(f"Gemini adversarial review failed: {e}")
+            # Don't fail the whole review - rule-based findings still stand
+            
+        return findings
+
+    def _build_gemini_context(self, measurement, stats, entities, edges, events, stations) -> str:
+        """Build structured context for Gemini review."""
+        if not measurement:
+            measurement = {}
+            
+        # Helper to convert sqlite3.Row to dict
+        def row_to_dict(row):
+            if hasattr(row, 'keys'):
+                return dict(row)
+            return row
+            
+        context = {
+            'zorans_law': {
+                'stability_quotient': measurement.get('stability_quotient', 'N/A'),
+                'primary_role_occupancy': measurement.get('primary_role_occupancy', 'N/A'),
+                'system_state': measurement.get('system_state', 'N/A'),
+            },
+            'pool_stats': {k: dict(v) if hasattr(v, 'keys') else str(v) for k, v in stats.items()},
+            'entity_count': len(entities),
+            'edge_count': len(edges),
+            'station_count': len(stations),
+            'stations': [
+                {
+                    'id': s.get('station_id', 'unknown') if hasattr(s, 'get') else s['station_id'],
+                    'name': s.get('name', 'unknown') if hasattr(s, 'get') else s['name'],
+                    'handles_types': s.get('handles_types', []) if hasattr(s, 'get') else s['handles_types'],
+                    'is_primary': s.get('is_primary', 1) if hasattr(s, 'get') else s['is_primary'],
+                }
+                for s in stations
+            ],
+            'recent_events': [
+                {
+                    'type': e.get('event_type', 'unknown') if hasattr(e, 'get') else e['event_type'],
+                    'source': e.get('source', 'unknown') if hasattr(e, 'get') else e['source'],
+                    'message': e.get('message', '')[:200] if hasattr(e, 'get') else e['message'][:200],
+                }
+                for e in events[:10]
+            ],
+        }
+        return json.dumps(context, indent=2)
 
     def format_report(self) -> str:
         """Human-readable adversarial review report."""

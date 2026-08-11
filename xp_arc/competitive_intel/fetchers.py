@@ -4,6 +4,7 @@ Handles data collection from various sources.
 """
 
 import logging
+import os
 import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
@@ -33,6 +34,8 @@ class GitHubFetcher(BaseFetcher):
     def __init__(self, station):
         super().__init__(station)
         self.token = self.config.get("env", {}).get("GITHUB_TOKEN", "")
+        if not self.token:
+            logger.warning("GITHUB_TOKEN not set - GitHub API will be rate-limited to 60 req/hour")
         self.base_url = "https://api.github.com"
         self.client = httpx.AsyncClient(
             timeout=30.0,
@@ -273,7 +276,7 @@ class RSSFetcher(BaseFetcher):
     def _identify_competitor(self, feed_url: str) -> str:
         domain = urlparse(feed_url).netloc.lower()
         competitor_map = {
-            "blog.langchain.dev": "langchain",
+            "www.langchain.com": "langchain",
             "blog.crewai.com": "crewai",
             "www.anthropic.com": "anthropic",
             "openai.com": "openai",
@@ -281,7 +284,8 @@ class RSSFetcher(BaseFetcher):
             "azure.microsoft.com": "azure-ai-agents",
             "cloud.google.com": "vertex-ai-agents",
             "huggingface.co": "huggingface",
-            "blog.phidata.com": "agno",
+            "blog.agno.com": "agno",
+            "vercel.com": "vercel-ai",
         }
         for key, value in competitor_map.items():
             if key in domain:
@@ -293,8 +297,8 @@ class RSSFetcher(BaseFetcher):
             if hasattr(entry, field) and getattr(entry, field):
                 try:
                     return datetime(*getattr(entry, field)[:6])
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Date parsing failed for field {field}: {e}")
         return None
 
     def _clean_html(self, text: str) -> str:
@@ -527,6 +531,8 @@ class RedditFetcher(BaseFetcher):
     def __init__(self, station):
         super().__init__(station)
         self.client = httpx.AsyncClient(timeout=15.0)
+        # Reddit requires a descriptive User-Agent per API rules
+        self.reddit_ua = "python:xp_arc_competitive_intel:v0.1.0 (by /u/unklejack)"
 
     async def fetch(self, source_config: Dict[str, Any]) -> List[Dict[str, Any]]:
         events = []
@@ -545,7 +551,10 @@ class RedditFetcher(BaseFetcher):
     async def _fetch_subreddit(self, subreddit: str, keywords: List[str]) -> List[Dict[str, Any]]:
         url = f"https://www.reddit.com/r/{subreddit}/hot.json"
         params = {"limit": 25, "raw_json": 1}
-        headers = {"User-Agent": "XP-Arc Competitive Intel Bot/0.1"}
+        headers = {
+            "User-Agent": self.reddit_ua,
+            "Accept": "application/json",
+        }
 
         response = await self.client.get(url, params=params, headers=headers)
         response.raise_for_status()

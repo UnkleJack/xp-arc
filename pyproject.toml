@@ -1,23 +1,20 @@
 [project]
 name = "xp-arc"
-version = "0.2.0"
+version = "0.3.0"
 description = "Constitutional multi-agent orchestration protocol"
 readme = "README.md"
-authors = [{name = "David J. Riedl", email = ""}]
+authors = [{name = "David J. Riedl", email = "david@unclejack.xyz"}]
 requires-python = ">=3.10"
 license = {text = "MIT"}
-
-[project.dependencies]
-# Core runtime (v0.2 stable)
-pytz = "*"
-requests = "*"
-certifi = "*"
-# Optional broker dependencies (redis) - not required for default runs
-redis = {optional = true, version = "*"}
+dependencies = [
+    "pytz",
+    "requests",
+    "certifi",
+    "cryptography>=48.0.1",
+]
 
 [project.optional-dependencies]
 broker = ["redis"]
-# Asset engine: evolutionary asset generation pipeline
 asset-engine = [
     "pyyaml>=6.0",
     "jinja2>=3.1",
@@ -31,20 +28,25 @@ asset-engine = [
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
 ]
-# Competitive intel: watchlist + gap detection
 competitive-intel = [
     "pyyaml>=6.0",
     "jinja2>=3.1",
 ]
-# Convenience: every optional dep at once
-all = ["xp-arc[broker,asset-engine,competitive-intel]"]
+gauntlet = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "bandit",
+    "ruff",
+    "mypy",
+]
+all = ["xp-arc[broker,asset-engine,competitive-intel,gauntlet]"]
 
-[project.optional-dependencies.dev]
-pytest = "^8.2"
-pytest-asyncio = "^0.23"
-bandit = "*"
-ruff = "*"
-mypy = "*"
+[project.scripts]
+xp-arc-gauntlet = "gauntlet_pkg:main"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
@@ -52,5 +54,5 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["xp_arc*"]
+include = ["xp_arc*", "gauntlet*"]
 exclude = ["tests*", "asset-engine*", "docs*", "examples*", "data*", "templates*"]

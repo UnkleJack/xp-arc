@@ -369,10 +369,14 @@ section{padding:32px 0}
 let DATA = null;
 let simulation = null;
 let svgZoom = null;
-let polling = false;
-let pollInterval = null;
-const POLL_INTERVAL_MS = 500;
-const API_BASE = (new URLSearchParams(window.location.search)).get('api') || 'http://localhost:8089';
+let ws = null;
+let wsReconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 10;
+const WS_URL = (() => {
+  const params = new URLSearchParams(window.location.search);
+  const apiBase = params.get('api') || 'http://localhost:8089';
+  return apiBase.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws';
+})();
 
 function scrollTo_(sel) {
   document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth' });
@@ -380,85 +384,166 @@ function scrollTo_(sel) {
   event.target.classList.add('active');
 }
 
-function togglePolling() {
-  const btn = document.getElementById('pollToggle');
-  if (!polling) {
-    startPolling();
-    btn.textContent = 'STOP POLLING';
-    btn.classList.add('polling-active');
-  } else {
-    stopPolling();
-    btn.textContent = 'START POLLING';
-    btn.classList.remove('polling-active');
-  }
-}
+function connectWebSocket() {
+  console.log('[DRAGON] Connecting to WebSocket:', WS_URL);
+  ws = new WebSocket(WS_URL);
 
-function startPolling() {
-  if (polling) return;
-  polling = true;
-  fetchData(); // initial load
-  pollInterval = setInterval(fetchData, POLL_INTERVAL_MS);
-  console.log('[DRAGON] Live polling started at', POLL_INTERVAL_MS, 'ms');
-}
-
-function stopPolling() {
-  if (!polling) return;
-  polling = false;
-  if (pollInterval) {
-    clearInterval(pollInterval);
-    pollInterval = null;
-  }
-  console.log('[DRAGON] Live polling stopped');
-}
-
-async function fetchData() {
-  try {
-    const res = await fetch(`${API_BASE}/api/dragon`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    DATA = data;
-    renderAll();
+  ws.onopen = () => {
+    console.log('[DRAGON] WebSocket connected');
+    wsReconnectAttempts = 0;
     updateConnectionStatus(true);
-  } catch (err) {
-    console.warn('[DRAGON] Poll failed:', err.message);
-    updateConnectionStatus(false);
-    if (!polling) {
-      // If not polling, fall back to static file
-      try {
-        const res = await fetch('pool_state.json', { cache: 'no-store' });
-        if (res.ok) {
-          DATA = await res.json();
-          renderAll();
-        }
-      } catch (e) {
-        // ignore
+    // Fetch initial full state via HTTP API
+    fetchFullState();
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'pong') {
+        // Heartbeat response
+        return;
       }
+      if (msg.event === 'cycle_complete') {
+        DATA = transformTelemetry(msg);
+        renderAll();
+        updateZoranBadgeFromTelemetry(msg);
+      }
+    } catch (err) {
+      console.warn('[DRAGON] Failed to parse WebSocket message:', err);
     }
-  }
+  };
+
+  ws.onclose = () => {
+    console.log('[DRAGON] WebSocket disconnected');
+    updateConnectionStatus(false);
+    if (wsReconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      wsReconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(2, wsReconnectAttempts), 30000);
+      console.log(`[DRAGON] Reconnecting in ${delay}ms (attempt ${wsReconnectAttempts})`);
+      setTimeout(connectWebSocket, delay);
+    } else {
+      console.log('[DRAGON] Max reconnect attempts reached. Falling back to static file.');
+      loadStaticFallback();
+    }
+  };
+
+  ws.onerror = (err) => {
+    console.warn('[DRAGON] WebSocket error:', err);
+  };
+
+  // Heartbeat ping every 15 seconds
+  setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'ping' }));
+    }
+  }, 15000);
 }
 
 function updateConnectionStatus(connected) {
   const el = document.getElementById('connStatus');
-  if (!el) return;
+  const toggleBtn = document.getElementById('wsToggle');
+  if (!el || !toggleBtn) return;
   if (connected) {
     el.className = 'conn-status connected';
-    el.textContent = '● LIVE';
+    el.textContent = '● LIVE (WS)';
+    toggleBtn.textContent = 'DISCONNECT WS';
+    toggleBtn.classList.add('ws-active');
   } else {
     el.className = 'conn-status disconnected';
-    el.textContent = '● STATIC / OFFLINE';
+    el.textContent = '● RECONNECTING...';
+    toggleBtn.textContent = 'CONNECT WS';
+    toggleBtn.classList.remove('ws-active');
+  }
+}
+
+function toggleWebSocket() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.close(1000, 'User disconnected');
+    wsReconnectAttempts = MAX_RECONNECT_ATTEMPTS; // Prevent auto-reconnect
+  } else {
+    wsReconnectAttempts = 0;
+    connectWebSocket();
+  }
+}
+
+function loadStaticFallback() {
+  fetch('pool_state.json', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(data => {
+      DATA = data;
+      renderAll();
+    })
+    .catch(err => {
+      document.body.innerHTML = '<div style="padding:80px;text-align:center;color:#dc2626;font-family:monospace">Failed to load pool_state.json: ' + err.message + '</div>';
+    });
+}
+
+async function fetchFullState() {
+  try {
+    const apiBase = new URLSearchParams(window.location.search).get('api') || 'http://localhost:8089';
+    const res = await fetch(`${apiBase}/api/dragon`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    DATA = data;
+    renderAll();
+    console.log('[DRAGON] Full state loaded from HTTP API');
+  } catch (err) {
+    console.warn('[DRAGON] Failed to fetch full state:', err.message);
+    loadStaticFallback();
+  }
+}
+
+function transformTelemetry(msg) {
+  // Transform WebSocket telemetry payload to DATA format expected by render functions
+  // Preserve existing entities/edges/dossiers if we have them, otherwise use empty arrays
+  const existingEntities = DATA?.entities || [];
+  const existingEdges = DATA?.edges || [];
+  const existingDossiers = DATA?.dossiers || [];
+
+  return {
+    entities: existingEntities,
+    stations: Object.entries(msg.stations || {}).map(([id, s]) => ({
+      station_id: id,
+      name: s.name || id,
+      handles_types: JSON.stringify(s.handles_types || []),
+      is_primary: s.is_primary,
+      _tasks_processed: s.processed,
+      _tasks_failed: s.failed,
+    })),
+    edges: existingEdges,
+    dossiers: existingDossiers,
+    audit: DATA?.audit || { overall: { integrity_score: 1.0, all_checks_passed: true }, zero_drop: { zero_drop_verified: true } },
+    topology: DATA?.topology || { clusters: { count: 0, largest: 0, smallest: 0 }, bridges: [], hubs: [] },
+    zorans_latest: msg.zorans || {},
+    findings: msg.findings || [],
+    events: msg.events || [],
+    _telemetry: msg, // Keep raw telemetry for metrics
+  };
+}
+
+function updateZoranBadgeFromTelemetry(msg) {
+  const z = msg.zorans || {};
+  const badge = document.getElementById('zoranBadge');
+  if (!badge) return;
+  if (z.system_state === 'healthy' || z.system_state === 'equilibrium') {
+    badge.className = 'hero-badge badge-healthy';
+    badge.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor"></span> ZORAN: ' + (z.system_state || 'HEALTHY').toUpperCase();
+  } else {
+    badge.className = 'hero-badge badge-warning';
+    badge.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor"></span> ZORAN: ' + (z.system_state || 'UNKNOWN').toUpperCase();
   }
 }
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
-  // Add polling toggle to hero
+  // Add WebSocket toggle to hero
   const heroBadge = document.getElementById('zoranBadge');
   if (heroBadge) {
     const toggleBtn = document.createElement('button');
-    toggleBtn.id = 'pollToggle';
+    toggleBtn.id = 'wsToggle';
     toggleBtn.className = 'poll-toggle-btn';
-    toggleBtn.textContent = 'START POLLING';
-    toggleBtn.onclick = togglePolling;
+    toggleBtn.textContent = 'CONNECT WS';
+    toggleBtn.onclick = toggleWebSocket;
     toggleBtn.style.marginLeft = '12px';
     toggleBtn.style.padding = '4px 10px';
     toggleBtn.style.borderRadius = 'var(--radius)';
@@ -473,27 +558,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusEl = document.createElement('span');
     statusEl.id = 'connStatus';
     statusEl.className = 'conn-status disconnected';
-    statusEl.textContent = '● STATIC';
+    statusEl.textContent = '● DISCONNECTED';
     statusEl.style.marginLeft = '12px';
     statusEl.style.fontFamily = 'var(--mono)';
     statusEl.style.fontSize = '10px';
     heroBadge.parentNode.insertBefore(statusEl, toggleBtn.nextSibling);
   }
 
-  // Auto-detect: if ?api= query param present, start polling
+  // Auto-connect if ?api= query param present
   if (new URLSearchParams(window.location.search).has('api')) {
-    startPolling();
+    connectWebSocket();
   } else {
     // Load static file as fallback
-    fetch('pool_state.json', { cache: 'no-store' })
-      .then(r => r.json())
-      .then(data => {
-        DATA = data;
-        renderAll();
-      })
-      .catch(err => {
-        document.body.innerHTML = '<div style="padding:80px;text-align:center;color:#dc2626;font-family:monospace">Failed to load pool_state.json: ' + err.message + '</div>';
-      });
+    loadStaticFallback();
   }
 });
 
@@ -558,6 +635,25 @@ function renderStations() {
   });
 
   const grid = document.getElementById('stationsGrid');
+  // If no station data from pool but telemetry available, use telemetry
+  if (DATA.stations.length === 0 && DATA._telemetry) {
+    const t = DATA._telemetry;
+    const stationStats = t.stations || {};
+    
+    grid.innerHTML = Object.entries(stationStats).map(([id, s]) => {
+      const meta = stationMeta[id] || { role: 'Specialist', handles: 'Processing' };
+      return `<div class="station-card">
+        <div class="station-badge"></div>
+        <div class="station-name">${s.name || id}</div>
+        <div class="station-role">${meta.role}</div>
+        <div class="station-metric">${s.processed || 0}</div>
+        <div class="station-metric-label">Processed (telemetry)</div>
+        <div class="station-handles">Failed: ${s.failed || 0} | Primary: ${s.is_primary ? 'Yes' : 'No'}</div>
+      </div>`;
+    }).join('');
+    return;
+  }
+
   grid.innerHTML = DATA.stations.map(s => {
     const sid = s.station_id;
     const meta = stationMeta[sid] || { role: 'Specialist', handles: 'Processing' };
@@ -582,14 +678,51 @@ function renderMetrics() {
   const dosCount = ent.filter(e => e.type === '_dossier').length;
   const totalEnt = ent.length;
   const totalEdges = DATA.edges.length;
-  const inferredEdges = DATA.topology.new_inferred_edges;
+  const inferredEdges = DATA.topology?.new_inferred_edges || 0;
   const directEdges = totalEdges - inferredEdges;
-  const clusters = DATA.topology.clusters.count;
-  const bridges = DATA.topology.bridges.length;
-  const auditScore = DATA.audit.overall.integrity_score;
+  const clusters = DATA.topology?.clusters?.count || 0;
+  const bridges = DATA.topology?.bridges?.length || 0;
+  const auditScore = DATA.audit?.overall?.integrity_score || 1.0;
   const scoreColor = auditScore >= 0.95 ? 'var(--green-bright)' : auditScore >= 0.8 ? 'var(--amber)' : 'var(--red)';
 
   const grid = document.getElementById('metricsGrid');
+  // If no entities (telemetry-only mode), show telemetry metrics
+  if (totalEnt === 0 && DATA._telemetry) {
+    const t = DATA._telemetry;
+    const entCounts = t.entities || {};
+    const stationStats = t.stations || {};
+    const totalTelemetryEnt = Object.values(entCounts).reduce((a, b) => a + b, 0);
+
+    grid.innerHTML = `
+      <div class="metric-card">
+        <div class="metric-label">Total Entities (telemetry)</div>
+        <div class="metric-value">${totalTelemetryEnt}</div>
+        <div class="metric-sub">Completed: ${entCounts.completed || 0} / Processing: ${entCounts.processing || 0} / Raw: ${entCounts.raw || 0} / Failed: ${entCounts.failed || 0}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Zoran S</div>
+        <div class="metric-value">${(t.zorans?.stability_quotient || 0).toFixed(3)}</div>
+        <div class="metric-sub">PRO: ${((t.zorans?.primary_role_occupancy || 0) * 100).toFixed(1)}% | State: ${t.zorans?.system_state || 'unknown'}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Stations Active</div>
+        <div class="metric-value">${Object.keys(stationStats).length}</div>
+        <div class="metric-sub">${Object.entries(stationStats).map(([k, v]) => `${k}: ${v.processed}p/${v.failed}f`).join(', ')}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Snowball Spawns</div>
+        <div class="metric-value">${t.spawn?.created || 0}</div>
+        <div class="metric-sub">Blocked: ${t.spawn?.blocked || 0}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Safe Halt</div>
+        <div class="metric-value" style="color:${t.safe_halt?.recommended ? 'var(--red)' : 'var(--green-bright)'}">${t.safe_halt?.recommended ? 'RECOMMENDED' : 'NOMINAL'}</div>
+        <div class="metric-sub">Countdown: ${Math.ceil(t.safe_halt?.countdown || 0)}s | Vetoed: ${t.safe_halt?.vetoed ? 'YES' : 'NO'}</div>
+      </div>
+    `;
+    return;
+  }
+
   grid.innerHTML = `
     <div class="metric-card">
       <div class="metric-label">Total Entities</div>
@@ -606,14 +739,14 @@ function renderMetrics() {
       <div class="metric-value">${totalEdges}</div>
       <div class="metric-sub">${directEdges} direct / ${inferredEdges} inferred</div>
       <div class="metric-bar">
-        <div class="metric-bar-fill" style="width:${(directEdges/totalEdges*100).toFixed(1)}%;background:var(--green)"></div>
-        <div class="metric-bar-fill" style="width:${(inferredEdges/totalEdges*100).toFixed(1)}%;background:var(--green-dim)"></div>
+        <div class="metric-bar-fill" style="width:${totalEdges > 0 ? (directEdges/totalEdges*100).toFixed(1) : 0}%;background:var(--green)"></div>
+        <div class="metric-bar-fill" style="width:${totalEdges > 0 ? (inferredEdges/totalEdges*100).toFixed(1) : 0}%;background:var(--green-dim)"></div>
       </div>
     </div>
     <div class="metric-card">
       <div class="metric-label">Clusters Detected</div>
       <div class="metric-value">${clusters}</div>
-      <div class="metric-sub">Largest: ${DATA.topology.clusters.largest} nodes / Smallest: ${DATA.topology.clusters.smallest}</div>
+      <div class="metric-sub">Largest: ${DATA.topology?.clusters?.largest || 0} nodes / Smallest: ${DATA.topology?.clusters?.smallest || 0}</div>
     </div>
     <div class="metric-card">
       <div class="metric-label">Bridge Nodes</div>
@@ -623,7 +756,7 @@ function renderMetrics() {
     <div class="metric-card">
       <div class="metric-label">Audit Score</div>
       <div class="metric-value" style="color:${scoreColor}">${(auditScore*100).toFixed(1)}%</div>
-      <div class="metric-sub">${DATA.audit.overall.all_checks_passed ? 'All checks passed' : 'Some checks flagged'}</div>
+      <div class="metric-sub">${DATA.audit?.overall?.all_checks_passed ? 'All checks passed' : 'Some checks flagged'}</div>
       <div class="metric-bar">
         <div class="metric-bar-fill" style="width:${(auditScore*100).toFixed(1)}%;background:${scoreColor}"></div>
       </div>
@@ -633,6 +766,12 @@ function renderMetrics() {
 
 // ===== NETWORK GRAPH =====
 function renderGraph() {
+  // Skip graph rendering in telemetry-only mode
+  if (DATA.entities.length === 0 && DATA._telemetry) {
+    const container = document.getElementById('graphContainer');
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-family:var(--mono);font-size:12px">Graph requires full pool state. Connect to HTTP API for initial load.</div>';
+    return;
+  }
   const container = document.getElementById('graphContainer');
   const width = container.clientWidth;
   const height = container.clientHeight;
@@ -815,6 +954,11 @@ function resetGraph() {
 
 // ===== DOSSIERS =====
 function renderDossiers() {
+  if (DATA.dossiers.length === 0 && DATA._telemetry) {
+    const grid = document.getElementById('dossiersGrid');
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);font-family:var(--mono);padding:40px">Dossiers require full pool state. Connect to HTTP API for initial load.</div>';
+    return;
+  }
   const grid = document.getElementById('dossiersGrid');
   grid.innerHTML = DATA.dossiers.map((d, i) => {
     const ecosystemTags = Object.entries(d.ecosystem_breakdown)
@@ -873,6 +1017,11 @@ function toggleDossier(i) {
 
 // ===== AUDIT =====
 function renderAudit() {
+  if (DATA.audit?.overall === undefined && DATA._telemetry) {
+    const grid = document.getElementById('auditGrid');
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);font-family:var(--mono);padding:40px">Audit requires full pool state. Connect to HTTP API for initial load.</div>';
+    return;
+  }
   const a = DATA.audit;
   const score = (a.overall.integrity_score * 100).toFixed(1);
   const scoreColor = a.overall.integrity_score >= 0.95 ? 'var(--green-bright)' : a.overall.integrity_score >= 0.8 ? 'var(--amber)' : 'var(--red)';
@@ -948,6 +1097,11 @@ function renderFindings() {
 let tableState = { sortCol: 'id', sortAsc: true, page: 0, perPage: 25 };
 
 function renderEntityTable() {
+  if (DATA.entities.length === 0 && DATA._telemetry) {
+    const container = document.getElementById('entityTableContainer');
+    container.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-family:var(--mono);padding:40px">Entity table requires full pool state. Connect to HTTP API for initial load.</div>';
+    return;
+  }
   const entities = [...DATA.entities];
   entities.sort((a, b) => {
     let va = a[tableState.sortCol], vb = b[tableState.sortCol];

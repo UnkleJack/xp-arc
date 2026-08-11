@@ -6,7 +6,7 @@
 -- Raw events before detection processing
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS raw_events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,  -- UUID string
     source TEXT NOT NULL,  -- github, pypi, npm, website, x_twitter, linkedin, hackernews, reddit, custom
     source_type TEXT NOT NULL,  -- release, push, issue, pull_request, blog_post, story, post, etc.
     competitor TEXT NOT NULL,
@@ -89,7 +89,7 @@ CREATE INDEX IF NOT EXISTS idx_snapshots_date ON competitor_snapshots(snapshot_d
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    event_id TEXT NOT NULL UNIQUE,  -- UUID
+    event_id TEXT NOT NULL UNIQUE,  -- UUID string
     timestamp TEXT NOT NULL,  -- ISO8601
     source TEXT NOT NULL,  -- github, pypi, npm, website, x_twitter, linkedin, hackernews, reddit, custom
     competitor TEXT NOT NULL,

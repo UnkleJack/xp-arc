@@ -1,52 +1,57 @@
 #!/usr/bin/env python3
 """
-XP-Arc Persistent Kitchen — Daemon Mode.
+XP-Arc Persistent Kitchen — Daemon Mode with WebSocket Telemetry.
 
-# Runs the brigade continuously, watching the pool for new entities and processing them.
-#
-# Usage:  python3 run_persistent.py [options]
-#
-# Options (environment variables can also be used):
-#   --db <path>           Path to SQLite DB (default: ./xp_arc.db)
-#   --port <int>          HTTP API port (default: 8089)
-#   --poll <seconds>      Pool poll interval (default: 3)
-#   --log-level <level>   Set Python logging level (DEBUG, INFO, WARNING)
-#   --no-watchdog         Disable the internal watchdog (use with care).
-#
-# Environment overrides (take precedence over defaults):
-#   XP_ARC_DB, XP_ARC_PORT, XP_ARC_POLL
-#
-# The script will print a short startup banner and then serve the API.
-# It can be run in foreground for debugging or background (e.g. via `nohup`
-# or the provided `start.sh` wrapper).
+Runs the brigade continuously, watching the pool for new entities and processing them.
+Serves HTTP API for seed injection + WebSocket for real-time telemetry streaming.
 
-The kitchen never closes.
+Usage:  python3 run_persistent.py [options]
+
+Options (environment variables can also be used):
+  --db <path>           Path to SQLite DB (default: ./xp_arc.db)
+  --port <int>          HTTP/WebSocket API port (default: 8089)
+  --poll <seconds>      Pool poll interval (default: 0.5)
+  --log-level <level>   Set Python logging level (DEBUG, INFO, WARNING)
+  --no-watchdog         Disable the internal watchdog (use with care).
+
+Environment overrides (take precedence over defaults):
+  XP_ARC_DB, XP_ARC_PORT, XP_ARC_POLL
+
+The script will print a short startup banner and then serve the API.
+It can be run in foreground for debugging or background.
+
+API Authentication: Set XP_ARC_API_KEY to enable Bearer token auth on all endpoints.
+
+WebSocket Events (pushed on every cycle):
+  {
+    "event": "cycle_complete",
+    "cycle": 42,
+    "timestamp": "2026-08-09T14:30:00Z",
+    "zorans": {"stability_quotient": 1.23, "primary_role_occupancy": 0.85, ...},
+    "entities": {"total": 150, "completed": 120, "processing": 10, "raw": 5, "failed": 15},
+    "stations": {"forager": {"processed": 50, "failed": 2}, ...},
+    "findings": [...],
+    "events": [...]
+  }
 
 Usage:
     python run_persistent.py                          # Default config
     python run_persistent.py --db /path/to/xp_arc.db  # Custom DB
     python run_persistent.py --poll 2                  # 2-second poll interval
-    python run_persistent.py --port 8089               # Enable seed API on port
-
-Environment:
-    XP_ARC_DB       — Database path (default: xp_arc.db)
-    XP_ARC_POLL     — Poll interval seconds (default: 3)
-    XP_ARC_PORT     — HTTP port for seed injection API (default: disabled)
-    XP_ARC_MAX      — Max entities before auto-halt (default: 500)
+    python run_persistent.py --port 8089               # Enable API on port
 """
 
 import argparse
+import asyncio
 import json
 import os
 import signal
 import sys
 import time
-import threading
 import logging
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime, timezone
-from datetime import datetime, timezone
-from datetime import datetime, timezone
+from typing import Set, Dict, Any, List
+from aiohttp import web, WSMsgType
 
 # Logging configuration
 log_level = os.getenv('XP_ARC_LOG_LEVEL', 'INFO').upper()
@@ -61,7 +66,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger('xp_arc')
 
-
 from xp_arc.core.pool import IntelligencePool
 from xp_arc.core.executive import ExecutiveChef
 from xp_arc.stations.forager import TheForager
@@ -73,10 +77,14 @@ from xp_arc.stations.salamander import TheSalamander
 from xp_arc.stations.herald import TheHerald
 from xp_arc.stations.dossier import TheDossier
 from xp_arc.stations.warden import TheWarden
-from xp_arc.stations.sentinel import TheSentinel
 from xp_arc.stations.plongeur import ThePlongeur
+from xp_arc.stations.sentinel import TheSentinel
 from xp_arc.monitoring.zorans_law import ZoransLaw
 from xp_arc.monitoring.spazzmatic import SpaZzMatiC
+
+
+# API Key from environment (optional - if not set, auth is disabled)
+API_KEY = os.environ.get("XP_ARC_API_KEY")
 
 
 class PersistentKitchen:
@@ -85,6 +93,7 @@ class PersistentKitchen:
 
     Polls the Intelligence Pool for raw entities, processes them
     through the brigade, and runs health checks on every cycle.
+    Maintains WebSocket connections for real-time telemetry.
     """
 
     def __init__(self, db_path: str = "xp_arc.db", poll_interval: float = 0.5,
@@ -94,30 +103,32 @@ class PersistentKitchen:
         self.max_entities = max_entities
         self._running = False
         self._cycles = 0
-        self._halt_vetoed = False   # True once veto window passes without stop()
-        self._halt_countdown = 0    # seconds remaining in veto window
+        self._halt_vetoed = False
+        self._halt_countdown = 0
+
+        # WebSocket connections
+        self._ws_connections: Set[web.WebSocketResponse] = set()
 
         # Initialize
         self.pool = IntelligencePool(db_path)
         self.executive = ExecutiveChef(self.pool, max_entities=max_entities, verbose=True)
         self.zorans = ZoransLaw(self.pool)
         self.spazz = SpaZzMatiC(self.pool, self.zorans)
+        self.spazz.set_executive(self.executive)
 
         # Register stations
-        # Register stations – full brigade for persistent daemon
         self.forager = TheForager(self.pool, max_domains_per_target=5)
         self.analyst = TheAnalyst(self.pool)
-        self.librarian = __import__('xp_arc.stations.librarian', fromlist=['TheLibrarian']).TheLibrarian(self.pool)
-        self.cartographer = __import__('xp_arc.stations.cartographer', fromlist=['TheCartographer']).TheCartographer(self.pool)
-        self.hydra = __import__('xp_arc.stations.hydra', fromlist=['TheHydra']).TheHydra(self.pool)
-        self.salamander = __import__('xp_arc.stations.salamander', fromlist=['TheSalamander']).TheSalamander(self.pool)
-        self.herald = __import__('xp_arc.stations.herald', fromlist=['TheHerald']).TheHerald(self.pool)
-        self.dossier = __import__('xp_arc.stations.dossier', fromlist=['TheDossier']).TheDossier(self.pool)
+        self.librarian = TheLibrarian(self.pool)
+        self.cartographer = TheCartographer(self.pool)
+        self.hydra = TheHydra(self.pool)
+        self.salamander = TheSalamander(self.pool)
+        self.herald = TheHerald(self.pool)
+        self.dossier = TheDossier(self.pool)
         self.warden = TheWarden(self.pool)
         self.plongeur = ThePlongeur(self.pool)
         self.sentinel = TheSentinel(self.pool)
 
-        # Register all stations with the executive
         for station in [self.forager, self.analyst, self.librarian, self.cartographer,
                         self.hydra, self.salamander, self.herald, self.dossier,
                         self.warden, self.plongeur, self.sentinel]:
@@ -215,11 +226,12 @@ class PersistentKitchen:
                 self._running = False
                 print("\n[SAFE HALT] Veto window expired. Initiating safe halt.")
 
-        # Export state for DRAGON
+        # Export state for DRAGON (static fallback) + push WebSocket telemetry
         self._export_dragon_state()
+        self._push_websocket_telemetry()
 
     def _export_dragon_state(self):
-        """Write current state to JSON for DRAGON consumption."""
+        """Write current state to JSON for DRAGON consumption (static fallback)."""
         export = self.pool.export_state()
         export['zorans_latest'] = self.zorans.get_latest()
         export['daemon'] = {
@@ -232,6 +244,79 @@ class PersistentKitchen:
         with open(export_path, 'w') as f:
             json.dump(export, f, indent=2, default=str)
 
+    def _push_websocket_telemetry(self):
+        """Build telemetry payload and push to all connected WebSocket clients."""
+        if not self._ws_connections:
+            return
+
+        # Build telemetry payload
+        zorans_latest = self.zorans.get_latest() or {}
+        station_stats = {}
+        for s in self.executive.stations:
+            station_stats[s.station_id] = {
+                'processed': s._tasks_processed,
+                'failed': s._tasks_failed,
+                'active': s.is_active,
+                'is_primary': s.is_primary,
+                'handles_types': s.handles_types,
+            }
+
+        # Entity counts by status
+        all_entities = self.pool.get_all_entities()
+        entity_counts = {}
+        for e in all_entities:
+            status = e['status']
+            entity_counts[status] = entity_counts.get(status, 0) + 1
+
+        # Recent findings
+        findings = [dict(row) for row in self.pool.get_findings()]
+        recent_findings = findings[:20] if findings else []
+
+        # Recent events (last 50)
+        events = [dict(row) for row in self.pool.get_events(50)]
+
+        payload = {
+            'event': 'cycle_complete',
+            'cycle': self._cycles,
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'zorans': zorans_latest,
+            'entities': {
+                'total': len(all_entities),
+                **entity_counts,
+            },
+            'stations': station_stats,
+            'spawn': {
+                'created': self.executive._spawn_created,
+                'blocked': self.executive._spawn_blocked,
+            },
+            'findings': recent_findings,
+            'events': events,
+            'safe_halt': {
+                'recommended': self.spazz._safe_halt_recommended,
+                'countdown': self._halt_countdown,
+                'vetoed': self._halt_vetoed,
+            },
+        }
+
+        # Push to all connected clients
+        dead_connections = set()
+        for ws in self._ws_connections:
+            if not ws.closed:
+                try:
+                    # Use asyncio to send from sync context
+                    asyncio.run_coroutine_threadsafe(
+                        ws.send_str(json.dumps(payload, default=str)),
+                        self._loop
+                    )
+                except Exception:
+                    dead_connections.add(ws)
+            else:
+                dead_connections.add(ws)
+
+        # Clean up dead connections
+        for ws in dead_connections:
+            self._ws_connections.discard(ws)
+
     def seed(self, url: str) -> dict:
         """Inject a seed URL into the pool. Returns entity info."""
         eid = self.pool.add_entity('url', url)
@@ -239,103 +324,148 @@ class PersistentKitchen:
             return {'status': 'seeded', 'entity_id': eid, 'url': url}
         return {'status': 'duplicate', 'url': url}
 
+    def register_ws(self, ws: web.WebSocketResponse):
+        """Register a new WebSocket connection."""
+        self._ws_connections.add(ws)
+        logger.info(f"WebSocket connected. Total: {len(self._ws_connections)}")
 
-# ─── Seed Injection HTTP API ───
+    def unregister_ws(self, ws: web.WebSocketResponse):
+        """Unregister a WebSocket connection."""
+        self._ws_connections.discard(ws)
+        logger.info(f"WebSocket disconnected. Total: {len(self._ws_connections)}")
 
-class SeedAPIHandler(BaseHTTPRequestHandler):
-    """Minimal HTTP API for injecting seeds and reading pool state."""
+    def set_loop(self, loop: asyncio.AbstractEventLoop):
+        """Set the event loop for cross-thread WebSocket sends."""
+        self._loop = loop
 
-    kitchen = None  # Set by main()
 
-    def do_GET(self):
-        if self.path == '/api/dragon' or self.path == '/api/pool':
-            # Serve full pool state
-            export = self.kitchen.pool.export_state()
-            export['zorans_latest'] = self.kitchen.zorans.get_latest()
-            self._json_response(export)
+# ─── HTTP + WebSocket Handlers ───
 
-        elif self.path == '/api/health':
-            measurement = self.kitchen.zorans.get_latest() or {}
-            self._json_response({
-                'status': 'running' if self.kitchen._running else 'stopped',
-                'cycles': self.kitchen._cycles,
-                'zorans': measurement,
-                'entities': self.kitchen.pool.count_entities(),
-            })
+async def ws_handler(request: web.Request):
+    """WebSocket endpoint for real-time telemetry."""
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
 
-        elif self.path == '/api/entities':
-            entities = [dict(row) for row in self.kitchen.pool.get_all_entities()]
-            self._json_response({'entities': entities})
+    kitchen = request.app['kitchen']
+    kitchen.register_ws(ws)
 
-        elif self.path == '/api/edges':
-            edges = [dict(row) for row in self.kitchen.pool.get_all_edges()]
-            self._json_response({'edges': edges})
+    try:
+        async for msg in ws:
+            if msg.type == WSMsgType.TEXT:
+                try:
+                    data = json.loads(msg.data)
+                    if data.get('type') == 'ping':
+                        await ws.send_str(json.dumps({'type': 'pong', 'timestamp': datetime.now(timezone.utc).isoformat()}))
+                except json.JSONDecodeError:
+                    pass
+            elif msg.type == WSMsgType.ERROR:
+                logger.warning(f"WebSocket error: {ws.exception()}")
+    finally:
+        kitchen.unregister_ws(ws)
 
-        elif self.path == '/api/findings':
-            findings = [dict(row) for row in self.kitchen.pool.get_findings()]
-            self._json_response({'findings': findings})
+    return ws
 
-        elif self.path == '/metrics':
-            # Simple Prometheus‑compatible metrics
-            total = self.kitchen.pool.count_entities()
-            completed = self.kitchen.pool.count_entities(status='completed')
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/plain; version=0.0.4')
-            self.end_headers()
-            metric_txt = (
-                f"xp_arc_entities_total {total}\n"
-                f"xp_arc_entities_completed {completed}\n"
-            )
-            self.wfile.write(metric_txt.encode())
 
-        else:
-            self._json_response({'error': 'Not found', 'endpoints': [
-                '/api/dragon', '/api/health', '/api/entities',
-                '/api/edges', '/api/findings', '/api/events',
-                'POST /api/seed {"url": "https://..."}',
-            ]}, status=404)
+async def health_handler(request: web.Request):
+    """Health check endpoint."""
+    kitchen = request.app['kitchen']
+    measurement = kitchen.zorans.get_latest() or {}
+    return web.json_response({
+        'status': 'running' if kitchen._running else 'stopped',
+        'cycles': kitchen._cycles,
+        'zorans': measurement,
+        'entities': kitchen.pool.count_entities(),
+        'ws_connections': len(kitchen._ws_connections),
+    })
 
-    def do_POST(self):
-        if self.path == '/api/seed':
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length).decode('utf-8')
-            try:
-                data = json.loads(body)
-                url = data.get('url')
-                if not url:
-                    self._json_response({'error': 'Missing "url" field'}, status=400)
-                    return
-                result = self.kitchen.seed(url)
-                self._json_response(result)
-            except json.JSONDecodeError:
-                self._json_response({'error': 'Invalid JSON'}, status=400)
-        else:
-            self._json_response({'error': 'Not found'}, status=404)
 
-    def _json_response(self, data, status=200):
-        self.send_response(status)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
-        self.wfile.write(json.dumps(data, indent=2, default=str).encode())
+async def dragon_handler(request: web.Request):
+    """Full pool state for DRAGON dashboard."""
+    kitchen = request.app['kitchen']
+    export = kitchen.pool.export_state()
+    export['zorans_latest'] = kitchen.zorans.get_latest()
+    return web.json_response(export)
 
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
 
-    def log_message(self, format, *args):
-        # Suppress default logging, use pool events instead
-        pass
+async def entities_handler(request: web.Request):
+    """All entities."""
+    kitchen = request.app['kitchen']
+    entities = [dict(row) for row in kitchen.pool.get_all_entities()]
+    return web.json_response({'entities': entities})
+
+
+async def edges_handler(request: web.Request):
+    """All edges."""
+    kitchen = request.app['kitchen']
+    edges = [dict(row) for row in kitchen.pool.get_all_edges()]
+    return web.json_response({'edges': edges})
+
+
+async def findings_handler(request: web.Request):
+    """All findings."""
+    kitchen = request.app['kitchen']
+    findings = [dict(row) for row in kitchen.pool.get_findings()]
+    return web.json_response({'findings': findings})
+
+
+async def events_handler(request: web.Request):
+    """Recent events."""
+    kitchen = request.app['kitchen']
+    events = [dict(row) for row in kitchen.pool.get_events(200)]
+    return web.json_response({'events': events})
+
+
+async def seed_handler(request: web.Request):
+    """Inject a seed URL."""
+    # Check auth
+    if API_KEY:
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Bearer ') or auth_header[7:] != API_KEY:
+            return web.json_response({'error': 'Unauthorized - invalid or missing Bearer token'}, status=401)
+
+    try:
+        data = await request.json()
+        url = data.get('url')
+        if not url:
+            return web.json_response({'error': 'Missing "url" field'}, status=400)
+        kitchen = request.app['kitchen']
+        result = kitchen.seed(url)
+        return web.json_response(result)
+    except json.JSONDecodeError:
+        return web.json_response({'error': 'Invalid JSON'}, status=400)
+
+
+async def metrics_handler(request: web.Request):
+    """Prometheus-compatible metrics."""
+    kitchen = request.app['kitchen']
+    total = kitchen.pool.count_entities()
+    completed = len([e for e in kitchen.pool.get_all_entities() if e['status'] == 'completed'])
+    metrics_text = f"xp_arc_entities_total {total}\nxp_arc_entities_completed {completed}\n"
+    return web.Response(text=metrics_text, content_type='text/plain; version=0.0.4')
+
+
+def check_auth(request: web.Request) -> bool:
+    """Check Bearer token auth if API_KEY is configured."""
+    if not API_KEY:
+        return True
+    auth_header = request.headers.get('Authorization', '')
+    return auth_header.startswith('Bearer ') and auth_header[7:] == API_KEY
+
+
+@web.middleware
+async def auth_middleware(request: web.Request, handler):
+    """Middleware to enforce API key auth on protected routes."""
+    # Skip auth for WebSocket upgrade, health, and metrics
+    if request.path in ('/ws', '/api/health', '/metrics'):
+        return await handler(request)
+    if not check_auth(request):
+        return web.json_response({'error': 'Unauthorized - invalid or missing Bearer token'}, status=401)
+    return await handler(request)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="XP-Arc Persistent Kitchen — Daemon Mode"
+        description="XP-Arc Persistent Kitchen — Daemon Mode with WebSocket Telemetry"
     )
     parser.add_argument('--db', default=os.environ.get('XP_ARC_DB', 'xp_arc.db'),
                         help='Database path')
@@ -346,8 +476,8 @@ def main():
                         default=int(os.environ.get('XP_ARC_MAX', '500')),
                         help='Max entities before auto-halt')
     parser.add_argument('--port', type=int,
-                        default=int(os.environ.get('XP_ARC_PORT', '0')),
-                        help='HTTP API port (0=disabled)')
+                        default=int(os.environ.get('XP_ARC_PORT', '8089')),
+                        help='HTTP/WebSocket API port (0=disabled)')
     parser.add_argument('--seeds', nargs='*', help='Initial seed URLs')
 
     args = parser.parse_args()
@@ -364,15 +494,40 @@ def main():
             result = kitchen.seed(url)
             print(f"  [SEED] {result['status']}: {url}")
 
-    # Start HTTP API if port specified
+    # Start HTTP + WebSocket server if port specified
     if args.port > 0:
-        SeedAPIHandler.kitchen = kitchen
-        server = HTTPServer(('0.0.0.0', args.port), SeedAPIHandler)
-        api_thread = threading.Thread(target=server.serve_forever, daemon=True)
-        api_thread.start()
-        print(f"[API] Seed injection API running on port {args.port}")
-        print(f"[API] DRAGON endpoint: http://localhost:{args.port}/api/dragon")
-        print(f"[API] Seed endpoint:   POST http://localhost:{args.port}/api/seed")
+        app = web.Application(middlewares=[auth_middleware])
+        app['kitchen'] = kitchen
+
+        # WebSocket endpoint
+        app.router.add_get('/ws', ws_handler)
+
+        # HTTP API endpoints
+        app.router.add_get('/api/health', health_handler)
+        app.router.add_get('/api/dragon', dragon_handler)
+        app.router.add_get('/api/pool', dragon_handler)  # alias
+        app.router.add_get('/api/entities', entities_handler)
+        app.router.add_get('/api/edges', edges_handler)
+        app.router.add_get('/api/findings', findings_handler)
+        app.router.add_get('/api/events', events_handler)
+        app.router.add_post('/api/seed', seed_handler)
+        app.router.add_get('/metrics', metrics_handler)
+
+        # Store the event loop for cross-thread WebSocket sends
+        loop = asyncio.get_event_loop()
+        kitchen.set_loop(loop)
+
+        # Run the web server in background
+        runner = web.AppRunner(app)
+        loop.run_until_complete(runner.setup())
+        site = web.TCPSite(runner, '0.0.0.0', args.port)
+        loop.run_until_complete(site.start())
+
+        print(f"[API] HTTP + WebSocket server running on port {args.port}")
+        print(f"[API] WebSocket telemetry: ws://localhost:{args.port}/ws")
+        print(f"[API] DRAGON endpoint:     http://localhost:{args.port}/api/dragon")
+        print(f"[API] Seed endpoint:       POST http://localhost:{args.port}/api/seed")
+        print(f"[API] Health endpoint:     http://localhost:{args.port}/api/health")
         print()
 
     # Handle SIGTERM gracefully

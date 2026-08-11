@@ -5,6 +5,13 @@ import os
 # Ensure the project root is on the import path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+# Enable dev mode for tests that use mark_status()
+os.environ['XP_ARC_DEV_MODE'] = '1'
+# Provide test signing key for Aboyeur
+os.environ['XP_ARC_ABOYEUR_KEY'] = 'test-signing-key-for-unit-tests-only'
+# Enable SLA audit for tests
+os.environ['XP_ARC_SLA_AUDIT'] = '1'
+
 from xp_arc.core.pool import IntelligencePool
 
 def _fresh_pool():

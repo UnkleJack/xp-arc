@@ -40,6 +40,8 @@ class FractureProtocol:
         # Get the parent entity
         parent = self.pool.get_entity(entity_id)
         if not parent:
+            self.pool._log_event('fracture_failed', 'fracture_protocol',
+                                 f'Parent entity {entity_id} not found')
             return []
         
         # Generate fracture ID

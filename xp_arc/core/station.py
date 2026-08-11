@@ -7,6 +7,34 @@ explicit Compression authorization (Constitution Article VI).
 """
 
 from datetime import datetime, timezone
+import os
+
+
+# SLA Validation Constants (RT-13 mitigation)
+MIN_SLA_SECONDS = 1
+MAX_SLA_SECONDS = 3600  # 1 hour max - prevents SLA inflation gaming
+SLA_AUDIT_ENABLED = os.environ.get('XP_ARC_SLA_AUDIT', '1') != '0'
+
+
+def validate_sla(sla_seconds: int, station_id: str) -> int:
+    """Validate and clamp SLA seconds to prevent gaming.
+    
+    Args:
+        sla_seconds: The SLA value to validate
+        station_id: Station identifier for audit logging
+        
+    Returns:
+        Clamped SLA value within [MIN_SLA_SECONDS, MAX_SLA_SECONDS]
+    """
+    if sla_seconds < MIN_SLA_SECONDS:
+        if SLA_AUDIT_ENABLED:
+            print(f"[SLA-AUDIT] Station {station_id}: SLA {sla_seconds} below minimum {MIN_SLA_SECONDS}, clamping")
+        return MIN_SLA_SECONDS
+    if sla_seconds > MAX_SLA_SECONDS:
+        if SLA_AUDIT_ENABLED:
+            print(f"[SLA-AUDIT] Station {station_id}: SLA {sla_seconds} above maximum {MAX_SLA_SECONDS}, clamping")
+        return MAX_SLA_SECONDS
+    return sla_seconds
 
 
 class StationChef:
@@ -41,6 +69,8 @@ class StationChef:
             handles_types=self.handles_types,
             is_primary=self.is_primary,
         )
+        # Validate SLA on registration
+        self.sla_seconds = validate_sla(self.sla_seconds, self.station_id)
         self.writer = pool.station_writer(self.station_id)
 
     def can_handle(self, ent_type: str) -> bool:

@@ -330,9 +330,21 @@ class SQLiteBrokerExecutor:
         set_clause = ", ".join(f"{k} = ?" for k in updates)
         values = list(updates.values()) + [entity_id]
 
+        # Validate column names against whitelist to prevent SQL injection
+        valid_columns = {
+            'status', 'station', 'confidence', 'notes', 'assigned_at', 'completed_at',
+            'aboyeur_signature', 'fallback_role', 'rejection_count', 'sla_suspended'
+        }
+        invalid_cols = set(updates.keys()) - valid_columns
+        if invalid_cols:
+            raise ValueError(f"Invalid column names in execute_transition_status: {invalid_cols}")
+
         with self._lock:
             with self.conn:
-                self.conn.execute(f"UPDATE entities SET {set_clause} WHERE id = ?", values)
+                # nosec B608
+                self.conn.execute(
+                    f"UPDATE entities SET {set_clause} WHERE id = ?", values
+                )
                 self.conn.execute("""
                     INSERT INTO events (event_type, source, message, detail)
                     VALUES (?, ?, ?, ?)

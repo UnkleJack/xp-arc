@@ -13,6 +13,11 @@ import sys
 # Ensure xp_arc is on path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Test environment configuration - MUST BE SET BEFORE IMPORTING xp_arc modules
+os.environ['XP_ARC_DEV_MODE'] = '1'
+os.environ['XP_ARC_ABOYEUR_KEY'] = 'test-signing-key-for-unit-tests-only'
+os.environ['XP_ARC_SLA_AUDIT'] = '1'
+
 from xp_arc.core.pool import IntelligencePool
 from xp_arc.core.executive import ExecutiveChef
 from xp_arc.stations.forager import TheForager

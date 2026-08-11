@@ -11,25 +11,62 @@ import hmac
 import json
 import secrets
 import threading
+import os
+import base64
 from datetime import datetime, timezone
+from cryptography.fernet import Fernet
 
 
-# ─── Module-level HMAC Key Store ─────────────────────────────────────────────
+# ─── Module-level Encrypted HMAC Key Store ───────────────────────────────────
 
-HMAC_KEY_FILE = "station_keys.json"
+HMAC_KEY_FILE = "station_keys.json.enc"
+MASTER_KEY_ENV = "XP_ARC_MASTER_KEY"
+
+def _get_fernet() -> Fernet | None:
+    """Get Fernet instance from master key env var. Returns None if not configured."""
+    master_key = os.environ.get(MASTER_KEY_ENV)
+    if not master_key:
+        return None
+    # Derive a proper 32-byte Fernet key from the master key using SHA-256
+    import hashlib
+    derived_key = hashlib.sha256(master_key.encode()).digest()
+    key = base64.urlsafe_b64encode(derived_key)
+    return Fernet(key)
 
 def _load_station_keys(path: str = HMAC_KEY_FILE) -> dict:
-    """Load station HMAC keys from JSON file. Returns {} if not present."""
+    """Load station HMAC keys from encrypted JSON file. Returns {} if not present or no master key."""
+    fernet = _get_fernet()
+    if not fernet:
+        # No encryption configured - fall back to plaintext for backward compat
+        plain_path = path.replace('.enc', '')
+        try:
+            with open(plain_path) as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return {}
     try:
-        with open(path) as f:
-            return json.load(f)
+        with open(path, 'rb') as f:
+            encrypted = f.read()
+        decrypted = fernet.decrypt(encrypted)
+        return json.loads(decrypted.decode())
     except FileNotFoundError:
+        return {}
+    except Exception:
+        # Corrupted or wrong key - return empty
         return {}
 
 def _save_station_keys(keys: dict, path: str = HMAC_KEY_FILE):
-    """Persist station HMAC keys to JSON file."""
-    with open(path, 'w') as f:
-        json.dump(keys, f, indent=2)
+    """Persist station HMAC keys to encrypted JSON file."""
+    fernet = _get_fernet()
+    if not fernet:
+        # No encryption configured - fall back to plaintext
+        plain_path = path.replace('.enc', '')
+        with open(plain_path, 'w') as f:
+            json.dump(keys, f, indent=2)
+        return
+    encrypted = fernet.encrypt(json.dumps(keys, indent=2).encode())
+    with open(path, 'wb') as f:
+        f.write(encrypted)
 
 def get_station_hmac_key(station_id: str, key_file: str = HMAC_KEY_FILE) -> str | None:
     """Retrieve a station's HMAC key from the key store file.
@@ -231,8 +268,7 @@ class IntelligencePool:
 
     def register_station(self, station_id: str, name: str, handles_types: list,
                          is_primary: bool = True, hmac_key: str = None):
-        """Register a station in the DB. Use register_station_with_key() at
-        startup to persist the key to the key file for station retrieval."""
+        """Register a station in the DB. Also persists key to encrypted key file."""
         types_str = json.dumps(handles_types)
         if hmac_key is None:
             existing = self.get_station_key(station_id)
@@ -244,6 +280,8 @@ class IntelligencePool:
                     (station_id, name, handles_types, is_primary, hmac_key)
                     VALUES (?, ?, ?, ?, ?)
                 """, (station_id, name, types_str, int(is_primary), hmac_key))
+            # Also persist to encrypted key file
+            register_station_with_key(station_id, name, handles_types, is_primary, hmac_key)
             return hmac_key
         except sqlite3.IntegrityError:
             return None
@@ -350,7 +388,14 @@ class IntelligencePool:
         For child entities (parent_task_id set), lineage is computed from the
         actual parent entity in the DB — stations cannot spoof cascade_depth
         or root_task_id to bypass the depth limit.
+        
+        SLA Validation (RT-13 mitigation): SLA values are clamped to [1, 3600]
+        to prevent Zoran's Law gaming via SLA inflation/deflation.
         """
+        # SLA Validation - prevent gaming Zoran's Law
+        from .station import validate_sla
+        sla_seconds = validate_sla(sla_seconds, station_id or 'unknown')
+        
         if station_id is None:
             station_id = 'legacy_local'
         if station_id:
@@ -426,7 +471,17 @@ class IntelligencePool:
         set_clause = ", ".join(f"{k} = ?" for k in updates)
         values = list(updates.values()) + [entity_id]
 
+        # Validate column names against whitelist to prevent SQL injection
+        valid_columns = {
+            'status', 'station', 'confidence', 'notes', 'assigned_at', 'completed_at',
+            'aboyeur_signature', 'fallback_role', 'rejection_count', 'sla_suspended'
+        }
+        invalid_cols = set(updates.keys()) - valid_columns
+        if invalid_cols:
+            raise ValueError(f"Invalid column names in transition_status: {invalid_cols}")
+
         with self.conn:
+            # nosec B608
             self.conn.execute(
                 f"UPDATE entities SET {set_clause} WHERE id = ?", values
             )
@@ -454,7 +509,13 @@ class IntelligencePool:
     # ─── Backward-Compatible Aliases ──────────────────────────────────────────
 
     def mark_status(self, entity_id: int, status: str):
-        """Deprecated local compatibility alias."""
+        """Deprecated local compatibility alias. Guarded by XP_ARC_DEV_MODE env var."""
+        import os
+        if not os.environ.get('XP_ARC_DEV_MODE'):
+            raise RuntimeError(
+                "mark_status() is a development bypass and is disabled in production. "
+                "Set XP_ARC_DEV_MODE=1 to enable (not recommended for production)."
+            )
         if status == 'completed':
             self.transition_status(entity_id, 'processing', station_id='legacy_local')
             self.transition_status(entity_id, 'pending_qa', station_id='legacy_local')
@@ -626,10 +687,9 @@ class IntelligencePool:
         desc_ids = [d['id'] for d in descendants]
         placeholders = ','.join('?' * len(desc_ids))
         with self.conn:
-            self.conn.execute(
-                f"UPDATE entities SET status = ? WHERE id IN ({placeholders})",
-                [status] + desc_ids
-            )
+            # Use parameterized query with IN clause
+            query = f"UPDATE entities SET status = ? WHERE id IN ({placeholders})"
+            self.conn.execute(query, [status] + desc_ids)
         self._log_event('descendants_reset', 'pool',
                         f"Reset {len(desc_ids)} descendants of entity {entity_id} to {status}")
         return len(descendants)

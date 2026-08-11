@@ -93,8 +93,8 @@ class DetectionEngine:
             "gap_signals": {
                 "missing_integration": {
                     "description": "Users request integration competitor lacks",
-                    "sources": ["github", "reddit", "hackernews"],
-                    "event_types": ["issue", "discussion", "post", "comment"],
+                    "sources": ["github", "reddit", "hackernews", "website", "pypi", "npm"],
+                    "event_types": ["issue", "discussion", "post", "comment", "blog_post", "release"],
                     "patterns": [
                         r"integrat",
                         r"support\s+for",
@@ -109,8 +109,8 @@ class DetectionEngine:
                 },
                 "performance_complaint": {
                     "description": "Users complain about competitor performance",
-                    "sources": ["github", "reddit", "hackernews"],
-                    "event_types": ["issue", "discussion", "post", "comment"],
+                    "sources": ["github", "reddit", "hackernews", "website", "pypi", "npm"],
+                    "event_types": ["issue", "discussion", "post", "comment", "blog_post", "release"],
                     "patterns": [
                         r"slow",
                         r"latency",
@@ -126,8 +126,8 @@ class DetectionEngine:
                 },
                 "dx_friction": {
                     "description": "Developer experience complaints",
-                    "sources": ["github", "reddit", "hackernews"],
-                    "event_types": ["issue", "discussion", "post", "comment"],
+                    "sources": ["github", "reddit", "hackernews", "website", "pypi", "npm"],
+                    "event_types": ["issue", "discussion", "post", "comment", "blog_post", "release"],
                     "patterns": [
                         r"documentation",
                         r"docs",
@@ -143,8 +143,8 @@ class DetectionEngine:
                 },
                 "vendor_lockin": {
                     "description": "Users concerned about vendor lock-in",
-                    "sources": ["github", "reddit", "hackernews"],
-                    "event_types": ["issue", "discussion", "post", "comment"],
+                    "sources": ["github", "reddit", "hackernews", "website", "pypi", "npm"],
+                    "event_types": ["issue", "discussion", "post", "comment", "blog_post", "release"],
                     "patterns": [
                         r"lock.?in",
                         r"vendor",

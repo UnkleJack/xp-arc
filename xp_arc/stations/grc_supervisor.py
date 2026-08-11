@@ -11,6 +11,7 @@ reference-controls, evidences, policies.
 """
 
 import json
+import os
 import requests
 from datetime import datetime
 from ..core.station import StationChef
@@ -35,7 +36,7 @@ class GRCSupervisor(StationChef):
 
     # CISO Assistant API base (already includes /api)
     API_BASE = "https://localhost:8443/api"
-    TOKEN = "46fa00f0ade973f81056797f1eca52513083bab2bc932bcf3481c779382e86f1"
+    TOKEN = os.environ.get("XP_ARC_CISO_TOKEN", "dev-token-change-in-production")
 
     def __init__(self, pool):
         super().__init__(pool)
