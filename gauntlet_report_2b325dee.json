@@ -1,0 +1,402 @@
+{
+  "run_id": "2b325dee",
+  "started_at": "2026-08-01T21:09:46.794254+00:00",
+  "completed_at": "2026-08-01T21:09:47.842166+00:00",
+  "summary": {
+    "INFO": 23,
+    "MEDIUM": 3,
+    "CRITICAL": 1,
+    "HIGH": 4
+  },
+  "findings": [
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "null_byte: https://example.com\u0000",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "https://example.com\u0000",
+        "type": "null_byte"
+      },
+      "timestamp": "2026-08-01T21:09:46.797515+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "newline: https://example.com\n",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "https://example.com\n",
+        "type": "newline"
+      },
+      "timestamp": "2026-08-01T21:09:46.797850+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "carriage_return: https://example.com\r",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "https://example.com\r",
+        "type": "carriage_return"
+      },
+      "timestamp": "2026-08-01T21:09:46.798186+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "unit_separator: https://example.com\u001f",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "https://example.com\u001f",
+        "type": "unit_separator"
+      },
+      "timestamp": "2026-08-01T21:09:46.798503+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "url_length_bomb: https://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "https://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.com",
+        "type": "url_length_bomb"
+      },
+      "timestamp": "2026-08-01T21:09:46.798855+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "ftp_scheme: ftp://example.com",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "ftp://example.com",
+        "type": "ftp_scheme"
+      },
+      "timestamp": "2026-08-01T21:09:46.799188+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "javascript_scheme: javascript:alert(1)",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "javascript:alert(1)",
+        "type": "javascript_scheme"
+      },
+      "timestamp": "2026-08-01T21:09:46.799513+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "data_scheme: data:text/html,<script>alert(1)</script>",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "data:text/html,<script>alert(1)</script>",
+        "type": "data_scheme"
+      },
+      "timestamp": "2026-08-01T21:09:46.799875+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "file_scheme: file:///etc/passwd",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "file:///etc/passwd",
+        "type": "file_scheme"
+      },
+      "timestamp": "2026-08-01T21:09:46.800211+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "encoded_null: https://example.com/%00",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "https://example.com/%00",
+        "type": "encoded_null"
+      },
+      "timestamp": "2026-08-01T21:09:46.800600+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "encoded_crlf_injection: https://example.com/%0d%0aSet-Cookie:foo=bar",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "https://example.com/%0d%0aSet-Cookie:foo=bar",
+        "type": "encoded_crlf_injection"
+      },
+      "timestamp": "2026-08-01T21:09:46.800938+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "encoded_path_traversal: https://example.com/%2f%2e%2e%2f%2e%2e%2fetc%2fpas",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.2)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "https://example.com/%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd",
+        "type": "encoded_path_traversal"
+      },
+      "timestamp": "2026-08-01T21:09:46.817255+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "cyrillic_homograph: https://\u0435xample.com",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.2)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "https://\u0435xample.com",
+        "type": "cyrillic_homograph"
+      },
+      "timestamp": "2026-08-01T21:09:46.826900+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "ipv6_loopback: https://[::1]",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "https://[::1]",
+        "type": "ipv6_loopback"
+      },
+      "timestamp": "2026-08-01T21:09:46.827392+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "ipv4_with_port: https://127.0.0.1:80",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.2)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "https://127.0.0.1:80",
+        "type": "ipv4_with_port"
+      },
+      "timestamp": "2026-08-01T21:09:46.834844+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "port_overflow: https://example.com:99999",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.2)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "https://example.com:99999",
+        "type": "port_overflow"
+      },
+      "timestamp": "2026-08-01T21:09:46.842388+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "empty_string: ",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "",
+        "type": "empty_string"
+      },
+      "timestamp": "2026-08-01T21:09:46.842792+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "whitespace_only:    ",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "   ",
+        "type": "whitespace_only"
+      },
+      "timestamp": "2026-08-01T21:09:46.843203+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "scheme_only: https://",
+      "expected_behavior": "Forager sanitization rejects with confidence <= 0.3",
+      "actual_behavior": "Correctly rejected (confidence=0.0)",
+      "severity": "INFO",
+      "evidence": {
+        "input": "https://",
+        "type": "scheme_only"
+      },
+      "timestamp": "2026-08-01T21:09:46.843563+00:00"
+    },
+    {
+      "phase": "Phase 1: Input Poisoning",
+      "injection": "2MB domain value",
+      "expected_behavior": "Pool should have length limit or truncate",
+      "actual_behavior": "Pool accepted 2MB entity value",
+      "severity": "MEDIUM",
+      "evidence": {
+        "entity_id": 20,
+        "value_length": 2000000
+      },
+      "timestamp": "2026-08-01T21:09:46.870079+00:00"
+    },
+    {
+      "phase": "Phase 2: Byzantine Stations",
+      "injection": "LineageSpoofStation attempted to spawn 10 children",
+      "expected_behavior": "Executive cascade depth check blocks spawn (max depth 5)",
+      "actual_behavior": "No spawn_blocked_depth_limit events recorded - spoof may have succeeded",
+      "severity": "CRITICAL",
+      "evidence": {
+        "spawn_attempts": 10,
+        "blocked_events": 0
+      },
+      "timestamp": "2026-08-01T21:09:46.906408+00:00"
+    },
+    {
+      "phase": "Phase 4: Fracture Torture",
+      "injection": "Requested 50 shards",
+      "expected_behavior": "All 50 shards created",
+      "actual_behavior": "Only 0 shards created",
+      "severity": "HIGH",
+      "evidence": {
+        "requested": 50,
+        "created": 0
+      },
+      "timestamp": "2026-08-01T21:09:46.924154+00:00"
+    },
+    {
+      "phase": "Phase 4: Fracture Torture",
+      "injection": "50 shards, 3 failed Aboyeur, attempted stitch",
+      "expected_behavior": "Stitch fails - partial completion prohibited",
+      "actual_behavior": "Stitch correctly returned None",
+      "severity": "INFO",
+      "evidence": {
+        "completed_shards": 0,
+        "failed_shards": 0
+      },
+      "timestamp": "2026-08-01T21:09:46.924278+00:00"
+    },
+    {
+      "phase": "Phase 4: Fracture Torture",
+      "injection": "Partial fracture completion",
+      "expected_behavior": "Parent entity should be marked failed or have clear resolution path",
+      "actual_behavior": "Parent entity stuck in fractured with no automatic recovery",
+      "severity": "HIGH",
+      "evidence": {
+        "parent_id": 42,
+        "parent_status": "fractured"
+      },
+      "timestamp": "2026-08-01T21:09:46.924284+00:00"
+    },
+    {
+      "phase": "Phase 6: Writer Contention",
+      "injection": "5 concurrent processes writing to same SQLite DB",
+      "expected_behavior": "SQLite WAL handles concurrent writers; no stuck entities",
+      "actual_behavior": "250 entities stuck in processing",
+      "severity": "MEDIUM",
+      "evidence": {
+        "stuck_count": 250,
+        "results": {
+          "success": 250,
+          "locked": 0,
+          "errors": 0,
+          "corruption": 0
+        }
+      },
+      "timestamp": "2026-08-01T21:09:47.057266+00:00"
+    },
+    {
+      "phase": "Phase 6: Writer Contention",
+      "injection": "5 concurrent writers, 50 writes each",
+      "expected_behavior": "SQLite WAL handles contention gracefully",
+      "actual_behavior": "Low contention: 0 locks, 250 successes",
+      "severity": "INFO",
+      "evidence": {
+        "success": 250,
+        "locked": 0,
+        "errors": 0,
+        "corruption": 0
+      },
+      "timestamp": "2026-08-01T21:09:47.057271+00:00"
+    },
+    {
+      "phase": "Phase 7: Clock Drift / Time Travel",
+      "injection": "Zoran metrics with future timestamp",
+      "expected_behavior": "Zoran's Law uses database time for windowing, ignores future timestamps",
+      "actual_behavior": "Future timestamp accepted as latest measurement",
+      "severity": "MEDIUM",
+      "evidence": {
+        "latest_metric": {
+          "id": 1,
+          "stability_quotient": 0.8,
+          "primary_role_occupancy": 0.8,
+          "system_state": "degraded",
+          "active_stations": 5,
+          "primary_stations": 4,
+          "tasks_completed": 100,
+          "tasks_ingested": 120,
+          "measured_at": "2026-08-01T22:09:47.057773+00:00"
+        }
+      },
+      "timestamp": "2026-08-01T21:09:47.058565+00:00"
+    },
+    {
+      "phase": "Phase 9: Schema Drift",
+      "injection": "ALTER TABLE ADD COLUMN mid-run",
+      "expected_behavior": "Pool continues working with new column",
+      "actual_behavior": "Pool accepted new entity after schema change",
+      "severity": "INFO",
+      "evidence": {
+        "new_entity_id": 396
+      },
+      "timestamp": "2026-08-01T21:09:47.062812+00:00"
+    },
+    {
+      "phase": "Phase 9: Schema Drift",
+      "injection": "mark_status() dev bypass used to complete entity",
+      "expected_behavior": "mark_status() is dev-only bypass, should not be used in production",
+      "actual_behavior": "Entity completed WITHOUT Aboyeur signature via dev bypass",
+      "severity": "HIGH",
+      "evidence": {
+        "entity_id": 395,
+        "status": "completed",
+        "has_signature": false
+      },
+      "timestamp": "2026-08-01T21:09:47.063090+00:00"
+    },
+    {
+      "phase": "Phase 10: Sustained Soak",
+      "injection": "50 cycles, 2 seeds/cycle, random station kills",
+      "expected_behavior": "System degrades gracefully, failure rate < 20%",
+      "actual_behavior": "Failure rate: 26.8% (133/497)",
+      "severity": "HIGH",
+      "evidence": {
+        "total_entities": 497,
+        "failed": 133,
+        "raw": 0,
+        "cycles": 50,
+        "station_kills": 4,
+        "elapsed_sec": 0.7744438648223877
+      },
+      "timestamp": "2026-08-01T21:09:47.839789+00:00"
+    },
+    {
+      "phase": "Phase 10: Sustained Soak",
+      "injection": "Pool close after sustained load",
+      "expected_behavior": "Clean shutdown, no resource leaks",
+      "actual_behavior": "Pool closed successfully",
+      "severity": "INFO",
+      "evidence": {},
+      "timestamp": "2026-08-01T21:09:47.842159+00:00"
+    }
+  ]
+}

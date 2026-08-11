@@ -1,0 +1,216 @@
+name: XP-Arc Gauntlet — Adversarial Testing
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Daily at 03:00 UTC for regression detection
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      constitution-check:
+        description: 'Validate findings against Gauntlet Constitution'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  PYTHON_VERSION: '3.11'
+  GAUNTLET_DB: 'gauntlet'
+
+jobs:
+  gauntlet:
+    name: Gauntlet Adversarial Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need history for version detection
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[gauntlet,dev]
+          # Ensure system-reckoner auditor is available
+          if [ -d ~/.hermes/skills/system-reckoner/scripts ]; then
+            chmod +x ~/.hermes/skills/system-reckoner/scripts/auditor.sh
+          fi
+
+      - name: Run Gauntlet
+        id: gauntlet
+        run: |
+          # Run with constitution check on PRs and scheduled runs
+          if [[ "${{ github.event_name }}" == "pull_request" || "${{ github.event_name }}" == "schedule" || "${{ github.event.inputs.constitution-check }}" == "true" ]]; then
+            xp-arc-gauntlet --constitution-check
+          else
+            xp-arc-gauntlet
+          fi
+        env:
+          XP_ARC_LOG_LEVEL: INFO
+
+      - name: Upload Gauntlet Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gauntlet-report-${{ steps.gauntlet.outputs.run_id || github.run_id }}
+          path: gauntlet_report_*.json
+          retention-days: 30
+          compression-level: 6
+
+      - name: Upload Gauntlet DBs (for debugging)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: gauntlet-dbs-${{ github.run_id }}
+          path: |
+            gauntlet_phase*.db
+            gauntlet_phase*.db-wal
+            gauntlet_phase*.db-shm
+          retention-days: 7
+
+      - name: Comment on PR with Gauntlet Summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const glob = require('glob');
+            
+            // Find the latest report
+            const reports = glob.sync('gauntlet_report_*.json');
+            if (reports.length === 0) return;
+            
+            const latestReport = reports.sort().pop();
+            const report = JSON.parse(fs.readFileSync(latestReport, 'utf8'));
+            
+            const summary = report.summary || {};
+            const critical = summary.CRITICAL || 0;
+            const high = summary.HIGH || 0;
+            const medium = summary.MEDIUM || 0;
+            const low = summary.LOW || 0;
+            const info = summary.INFO || 0;
+            
+            const status = critical > 0 ? '❌ FAILED' : '✅ PASSED';
+            
+            const body = `## Gauntlet Adversarial Test Results
+            
+            **Status:** ${status}
+            **Run ID:** \`${report.run_id}\`
+            **Commit:** \`${context.sha.substring(0, 7)}\`
+            
+            ### Findings Summary
+            | Severity | Count |
+            |----------|-------|
+            | 🔴 CRITICAL | ${critical} |
+            | 🟠 HIGH | ${high} |
+            | 🟡 MEDIUM | ${medium} |
+            | 🔵 LOW | ${low} |
+            | ⚪ INFO | ${info} |
+            | **Total** | **${report.findings.length}** |
+            
+            ${critical > 0 ? '> ⚠️ **CRITICAL findings present** — Pipeline will fail until resolved.' : '> ✅ No CRITICAL findings'}
+            
+            [Full Report Artifact](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/artifacts)
+            `;
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+
+      - name: Fail Fast on Critical
+        if: steps.gauntlet.outcome == 'failure'
+        run: |
+          echo "::error::Gauntlet found CRITICAL findings — see uploaded report"
+          exit 1
+
+  gauntlet-constitution:
+    name: Gauntlet Constitution Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Gauntlet
+        run: |
+          pip install -e .[gauntlet]
+
+      - name: Run Constitution Validation
+        run: |
+          xp-arc-gauntlet --constitution-check --db gauntlet_ci
+        env:
+          XP_ARC_LOG_LEVEL: WARNING
+
+  unit-tests:
+    name: Unit & Load Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -e .[dev]
+
+      - name: Run tests
+        run: |
+          python -m pytest tests/ -v --tb=short -x
+        env:
+          PYTHONPATH: .
+
+  release-gate:
+    name: Release Gate (Tags)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [gauntlet, unit-tests, gauntlet-constitution]
+    steps:
+      - name: Verify all checks passed
+        run: |
+          echo "✅ All checks passed for release"
+          echo "Release tag: ${GITHUB_REF_NAME}"
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
+  notify:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name != 'schedule'
+    steps:
+      - name: Notify via webhook (if configured)
+        if: env.GAUNTLET_WEBHOOK_URL != ''
+        run: |
+          curl -X POST "${GAUNTLET_WEBHOOK_URL}" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\":\"Gauntlet failed on ${{ github.repository }}@${{ github.sha }}\",\"run_id\":\"${{ github.run_id }}\"}"

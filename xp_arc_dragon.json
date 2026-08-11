@@ -1,0 +1,456 @@
+{
+  "meta": {
+    "exported_at": "2026-08-10T02:13:25.848193+00:00",
+    "db_path": "xp_arc.db",
+    "version": "0.2.0",
+    "protocol": "XP-Arc"
+  },
+  "entities": [
+    {
+      "id": 1,
+      "type": "url",
+      "value": "https://httpbin.org/html",
+      "status": "completed",
+      "payload_hash": "67a51e4eaad5084982faecc95ab293bb0e56b5cfd8fdeabc6dca9fb2230aefb1",
+      "station": "forager",
+      "confidence": 0.85,
+      "notes": "Title: No title. Extracted 0 external domains.",
+      "sla_seconds": 60,
+      "assigned_at": "2026-08-10 02:13:25",
+      "completed_at": "2026-08-10T02:13:25.846375+00:00",
+      "created_at": "2026-08-10 02:13:25",
+      "aboyeur_signature": "ABOY-2473ef347c503bd9c228f3f4b591073bd783f21d7c22a13541c551743213604a",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0,
+      "crawl_depth": 0,
+      "max_crawl_depth": 3,
+      "root_task_id": 1,
+      "cascade_depth": 0,
+      "spawn_chain": null
+    }
+  ],
+  "edges": [],
+  "stations": [
+    {
+      "id": 1,
+      "station_id": "aboyeur",
+      "name": "The Aboyeur",
+      "handles_types": "[]",
+      "hmac_key": "68ecf02bbf507a2b7a0f8a4041be6d455e14d8d797349d46e0796676536b64d7",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 3,
+      "station_id": "forager",
+      "name": "The Forager",
+      "handles_types": "[\"url\"]",
+      "hmac_key": "cb28bf7b6bf4ce8fe7dc054357adacbd02f3b59ba3947c4d405874837b669e12",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 5,
+      "station_id": "analyst",
+      "name": "The Analyst",
+      "handles_types": "[\"domain\"]",
+      "hmac_key": "c325e29333d068e63a4d7f43f362a6cc061d57da6295d2f3d8907e1a3bc6bde4",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 7,
+      "station_id": "librarian",
+      "name": "The Librarian",
+      "handles_types": "[\"_dossier_request\"]",
+      "hmac_key": "9a30f07c91ac092df2e8fca99d811b4222cad3990f318a997c3b110d3c69dd9b",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 9,
+      "station_id": "cartographer",
+      "name": "The Cartographer",
+      "handles_types": "[\"_cartography_request\"]",
+      "hmac_key": "c1bdb597c4816a241691c273fe1b9f3b44080780bcb127261634348be9d5591a",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 11,
+      "station_id": "hydra",
+      "name": "The Hydra",
+      "handles_types": "[\"_pattern_scan\"]",
+      "hmac_key": "f0dccfeabaa09aca2972b481e6a0047710626a8ed781dba7c3814c89fd28e06a",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 13,
+      "station_id": "warden",
+      "name": "The Warden",
+      "handles_types": "[\"_risk_assessment\"]",
+      "hmac_key": "1721f28ccbd0c40fc38e5030dd26e4fdc7f6054b9cf84d9e23c5769778a6f5ae",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 15,
+      "station_id": "auditor",
+      "name": "The Auditor",
+      "handles_types": "[\"_audit_request\"]",
+      "hmac_key": "613614b08a4d7af6c502c5e7a74700bb277ce0a4d1b831997bca4b9b5ca661a3",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 17,
+      "station_id": "amphithere",
+      "name": "The Amphithere",
+      "handles_types": "[\"_dns_enrichment\"]",
+      "hmac_key": "cfc30ac757f18863b1b1f20c9fad327fa49421b7644910dd9af4a017b17a3669",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 19,
+      "station_id": "salamander",
+      "name": "The Salamander",
+      "handles_types": "[\"_normalization_pass\"]",
+      "hmac_key": "c08a9938d7bda132854000afdf9d31df84e83ea0c47cbeabe6f17ea215a57eaf",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 21,
+      "station_id": "herald",
+      "name": "The Herald",
+      "handles_types": "[\"_alert_check\"]",
+      "hmac_key": "840b3c711382ea111421f26060652c92280f91278d5cce3ca1c992afc2784420",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 23,
+      "station_id": "dossier",
+      "name": "The Dossier",
+      "handles_types": "[\"dossier_request\"]",
+      "hmac_key": "244965af31f6050e782931ecc0e0e7cbd7763b5f1425e973f852685c31feefea",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 25,
+      "station_id": "grc_supervisor",
+      "name": "GRC Supervisor",
+      "handles_types": "[\"risk\", \"control\", \"compliance_assessment\", \"audit_log\", \"policy\", \"evidence\"]",
+      "hmac_key": "095e7b9adb81e7306c9d0f960feaed3e39d920126057957f5fa91ccef86bd978",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 27,
+      "station_id": "grc_commis",
+      "name": "GRC Commis",
+      "handles_types": "[\"risk\", \"control\", \"compliance_assessment\", \"audit_log\", \"policy\", \"evidence\"]",
+      "hmac_key": "948f4b0458f0e92d49114c1ba7288b7051c32fdd66f3fd87490f463183b2630c",
+      "status": "active",
+      "is_primary": 0,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 28,
+      "station_id": "sentinel",
+      "name": "The Sentinel",
+      "handles_types": "[\"_sentinel_check\"]",
+      "hmac_key": "26633530c8ac7e1710e34de3695f6910c4a3ef3f74c1da73292ba78339c55c64",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 29,
+      "station_id": "plongeur",
+      "name": "The Plongeur",
+      "handles_types": "[\"_plongeur_sweep\"]",
+      "hmac_key": "ba4e2314a090a60654760398b41a59a32469ddd60f0f174297d07a097003fc33",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 02:13:25"
+    }
+  ],
+  "findings": [],
+  "zorans_metrics": [
+    {
+      "id": 1,
+      "stability_quotient": 1.0,
+      "primary_role_occupancy": 0.9333,
+      "system_state": "equilibrium",
+      "active_stations": 15,
+      "primary_stations": 14,
+      "tasks_completed": 1,
+      "tasks_ingested": 1,
+      "measured_at": "2026-08-10 02:13:25"
+    }
+  ],
+  "events": [
+    {
+      "id": 1,
+      "event_type": "entity_added",
+      "source": "legacy_local",
+      "message": "New url: https://httpbin.org/html",
+      "detail": "id=1, depth=0",
+      "created_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 2,
+      "event_type": "kitchen_open",
+      "source": "executive",
+      "message": "Brigade started. 13 stations registered. Max entities: 500",
+      "detail": null,
+      "created_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 3,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "Foraging target DOM: https://httpbin.org/html",
+      "detail": null,
+      "created_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 4,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  Foraged 0 domains from: https://httpbin.org/html",
+      "detail": null,
+      "created_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 5,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 1: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 6,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 1 approved. Station: forager. Confidence: 0.85",
+      "detail": null,
+      "created_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 7,
+      "event_type": "status_transition",
+      "source": "forager",
+      "message": "Entity 1: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 8,
+      "event_type": "kitchen_closed",
+      "source": "executive",
+      "message": "Processed 1 entities. Routed: 1. Unhandled: 0. Spawn created: 0. Spawn blocked: 0.",
+      "detail": null,
+      "created_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 9,
+      "event_type": "station_log",
+      "source": "plongeur",
+      "message": "Running sweep #1",
+      "detail": null,
+      "created_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 10,
+      "event_type": "station_log",
+      "source": "plongeur",
+      "message": "  Pool state: completed: 1",
+      "detail": null,
+      "created_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 11,
+      "event_type": "station_log",
+      "source": "sentinel",
+      "message": "Health check: All clear",
+      "detail": null,
+      "created_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 12,
+      "event_type": "zorans_measurement",
+      "source": "zorans_law",
+      "message": "S=1.000 PRO=93.3% State=equilibrium",
+      "detail": null,
+      "created_at": "2026-08-10 02:13:25"
+    },
+    {
+      "id": 13,
+      "event_type": "spazzmatic_review",
+      "source": "spazzmatic",
+      "message": "Review #1: 0 findings. Safe halt: False",
+      "detail": null,
+      "created_at": "2026-08-10 02:13:25"
+    }
+  ],
+  "stats": {
+    "completed": {
+      "count": 1,
+      "total_sla": 60
+    }
+  },
+  "summary": {
+    "cycles": 1,
+    "routed": 1,
+    "unhandled": 0,
+    "spawn_created": 0,
+    "spawn_blocked": 0,
+    "stations": [
+      {
+        "station_id": "forager",
+        "name": "The Forager",
+        "processed": 1,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      },
+      {
+        "station_id": "analyst",
+        "name": "The Analyst",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      },
+      {
+        "station_id": "librarian",
+        "name": "The Librarian",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      },
+      {
+        "station_id": "cartographer",
+        "name": "The Cartographer",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      },
+      {
+        "station_id": "hydra",
+        "name": "The Hydra",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      },
+      {
+        "station_id": "warden",
+        "name": "The Warden",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      },
+      {
+        "station_id": "auditor",
+        "name": "The Auditor",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      },
+      {
+        "station_id": "amphithere",
+        "name": "The Amphithere",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      },
+      {
+        "station_id": "salamander",
+        "name": "The Salamander",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      },
+      {
+        "station_id": "herald",
+        "name": "The Herald",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      },
+      {
+        "station_id": "dossier",
+        "name": "The Dossier",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      },
+      {
+        "station_id": "grc_supervisor",
+        "name": "GRC Supervisor",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": true
+      },
+      {
+        "station_id": "grc_commis",
+        "name": "GRC Commis",
+        "processed": 0,
+        "failed": 0,
+        "active": true,
+        "is_primary": false
+      }
+    ],
+    "aboyeur": {
+      "verifications": 1,
+      "approvals": 1,
+      "rejections": 0,
+      "approval_rate": 1.0,
+      "rejection_rate": 0.0
+    }
+  },
+  "zorans_latest": {
+    "id": 1,
+    "stability_quotient": 1.0,
+    "primary_role_occupancy": 0.9333,
+    "system_state": "equilibrium",
+    "active_stations": 15,
+    "primary_stations": 14,
+    "tasks_completed": 1,
+    "tasks_ingested": 1,
+    "measured_at": "2026-08-10 02:13:25"
+  }
+}

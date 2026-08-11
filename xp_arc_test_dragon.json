@@ -1,0 +1,375 @@
+{
+  "meta": {
+    "exported_at": "2026-08-10T05:29:43.016584+00:00",
+    "db_path": "xp_arc_test.db",
+    "version": "0.2.0",
+    "protocol": "XP-Arc"
+  },
+  "entities": [
+    {
+      "id": 1,
+      "type": "url",
+      "value": "https://example.com",
+      "status": "completed",
+      "payload_hash": "74e26bcd1cb0867455c5e8f0cef442d6e428e3c7606ed35e8c5e17382399d1d7",
+      "station": "forager",
+      "confidence": 0.85,
+      "notes": "Title: Example Domain. Extracted 1 external domains.",
+      "sla_seconds": 60,
+      "assigned_at": "2026-08-10 05:29:42",
+      "completed_at": "2026-08-10T05:29:42.829827+00:00",
+      "created_at": "2026-08-10 05:29:42",
+      "aboyeur_signature": "ABOY-26a7c69b68244097e20a6301688c3c23a4201aad162e1cfc97c3dba31e6f4fa2",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": null,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0,
+      "crawl_depth": 0,
+      "max_crawl_depth": 3,
+      "root_task_id": null,
+      "cascade_depth": 0,
+      "spawn_chain": null
+    },
+    {
+      "id": 2,
+      "type": "domain",
+      "value": "iana.org",
+      "status": "completed",
+      "payload_hash": "d45f19676da52c5225e25366444dc75f25bc8b9324d1d34ef849afd3bcdb0c03",
+      "station": "analyst",
+      "confidence": 0.7,
+      "notes": "Classification: organization. Reachable: False",
+      "sla_seconds": 60,
+      "assigned_at": "2026-08-10 05:29:42",
+      "completed_at": "2026-08-10T05:29:43.007994+00:00",
+      "created_at": "2026-08-10 05:29:42",
+      "aboyeur_signature": "ABOY-e29e2dc3fc9a228677dbe4b75e1e6989dd26902443f349dc4690ca357c6cff23",
+      "fallback_role": 0,
+      "fracture_id": null,
+      "parent_task_id": 1,
+      "rejection_count": 0,
+      "max_rejections": 3,
+      "sla_suspended": 0,
+      "crawl_depth": 0,
+      "max_crawl_depth": 3,
+      "root_task_id": 1,
+      "cascade_depth": 1,
+      "spawn_chain": "[1]"
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "source": "https://example.com",
+      "relationship": "links_to",
+      "target": "iana.org",
+      "created_at": "2026-08-10 05:29:42"
+    }
+  ],
+  "stations": [
+    {
+      "id": 1,
+      "station_id": "aboyeur",
+      "name": "The Aboyeur",
+      "handles_types": "[]",
+      "hmac_key": "32dbea4e90e1dd015e3c02e5770e98102e98d6f9e264441586262faedea51171",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 13,
+      "station_id": "forager",
+      "name": "The Forager",
+      "handles_types": "[\"url\"]",
+      "hmac_key": "85df1e3c6c7f962c20405741faf3ebdd06e725529f437dc34f5c3d741126182f",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 14,
+      "station_id": "analyst",
+      "name": "The Analyst",
+      "handles_types": "[\"domain\"]",
+      "hmac_key": "21a3a4cd46918515b39c4a4860af723adc001d029bcb5ef719ff147683a5fbb0",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 15,
+      "station_id": "librarian",
+      "name": "The Librarian",
+      "handles_types": "[\"_dossier_request\"]",
+      "hmac_key": "459abe381fbc72ddd4aea7ed02e83ab2219dd42e8d3f2ce1c997a0de52a6dcd9",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 16,
+      "station_id": "cartographer",
+      "name": "The Cartographer",
+      "handles_types": "[\"_cartography_request\"]",
+      "hmac_key": "cae24de8a32de44393a170f927ef2942d844829c7c7462ac8dd9ef47122fca72",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 17,
+      "station_id": "hydra",
+      "name": "The Hydra",
+      "handles_types": "[\"_pattern_scan\"]",
+      "hmac_key": "dd0905d9bcbbae313e919a366da60d54bdfd96b3fcca78229af4e094ddf466d9",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 18,
+      "station_id": "salamander",
+      "name": "The Salamander",
+      "handles_types": "[\"_normalization_pass\"]",
+      "hmac_key": "625ae3b9c8ea71c5e4a3c6004d791a5022d4552add99dbd6eff3a9a8e0c7f36e",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 19,
+      "station_id": "herald",
+      "name": "The Herald",
+      "handles_types": "[\"_alert_check\"]",
+      "hmac_key": "ba6f8abfd74dd1c37856bdf6cae7028065da37f31d410a7324317de91d935504",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 20,
+      "station_id": "dossier",
+      "name": "The Dossier",
+      "handles_types": "[\"dossier_request\"]",
+      "hmac_key": "2da722b158c87e230f740d919dfe1349b4d1496a2e9090255d4485d64eca4b07",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 21,
+      "station_id": "warden",
+      "name": "The Warden",
+      "handles_types": "[\"_risk_assessment\"]",
+      "hmac_key": "8fbbd4d06b814a43f53ee27e08a856a7140153faf40f976a92448ecbde8a5f13",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 22,
+      "station_id": "plongeur",
+      "name": "The Plongeur",
+      "handles_types": "[\"_plongeur_sweep\"]",
+      "hmac_key": "29afef2faedbd901f0599b3ae2a6311d80b1a339bdbe5b83e70a4c2e0ceb5fb2",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 23,
+      "station_id": "sentinel",
+      "name": "The Sentinel",
+      "handles_types": "[\"_sentinel_check\"]",
+      "hmac_key": "6dc72b929b6a82e31dff0ae98c49f01f3647882d4f0710d38d0e71f8df5bbec0",
+      "status": "active",
+      "is_primary": 1,
+      "registered_at": "2026-08-10 05:29:42"
+    }
+  ],
+  "findings": [],
+  "zorans_metrics": [
+    {
+      "id": 1,
+      "stability_quotient": 1.0,
+      "primary_role_occupancy": 1.0,
+      "system_state": "equilibrium",
+      "active_stations": 11,
+      "primary_stations": 11,
+      "tasks_completed": 2,
+      "tasks_ingested": 2,
+      "measured_at": "2026-08-10 05:29:43"
+    }
+  ],
+  "events": [
+    {
+      "id": 1,
+      "event_type": "entity_added",
+      "source": "legacy_local",
+      "message": "New url: https://example.com",
+      "detail": "id=1, depth=0",
+      "created_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 2,
+      "event_type": "daemon_start",
+      "source": "persistent",
+      "message": "Persistent kitchen started. Poll: 0.5s",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 3,
+      "event_type": "kitchen_open",
+      "source": "executive",
+      "message": "Brigade started. 11 stations registered. Max entities: 100",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 4,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "Foraging target DOM: https://example.com",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 5,
+      "event_type": "entity_added",
+      "source": "forager",
+      "message": "New domain: iana.org",
+      "detail": "id=2, depth=0",
+      "created_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 6,
+      "event_type": "edge_added",
+      "source": "forager",
+      "message": "https://example.com --(links_to)--> iana.org",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 7,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  + Extracted domain: iana.org",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 8,
+      "event_type": "station_log",
+      "source": "forager",
+      "message": "  Foraged 1 domains from: https://example.com",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 9,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 1: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 10,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 1 approved. Station: forager. Confidence: 0.85",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 11,
+      "event_type": "status_transition",
+      "source": "forager",
+      "message": "Entity 1: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 12,
+      "event_type": "station_log",
+      "source": "analyst",
+      "message": "Analyzing domain: iana.org",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:42"
+    },
+    {
+      "id": 13,
+      "event_type": "status_transition",
+      "source": "pool",
+      "message": "Entity 2: processing \u2192 pending_qa",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:43"
+    },
+    {
+      "id": 14,
+      "event_type": "aboyeur_approval",
+      "source": "aboyeur",
+      "message": "Entity 2 approved. Station: analyst. Confidence: 0.70",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:43"
+    },
+    {
+      "id": 15,
+      "event_type": "status_transition",
+      "source": "analyst",
+      "message": "Entity 2: pending_qa \u2192 completed",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:43"
+    },
+    {
+      "id": 16,
+      "event_type": "kitchen_closed",
+      "source": "executive",
+      "message": "Processed 2 entities. Routed: 2. Unhandled: 0. Spawn created: 0. Spawn blocked: 0.",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:43"
+    },
+    {
+      "id": 17,
+      "event_type": "zorans_measurement",
+      "source": "zorans_law",
+      "message": "S=1.000 PRO=100.0% State=equilibrium",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:43"
+    },
+    {
+      "id": 18,
+      "event_type": "spazzmatic_review",
+      "source": "spazzmatic",
+      "message": "Review #1: 0 findings. Safe halt: False",
+      "detail": null,
+      "created_at": "2026-08-10 05:29:43"
+    }
+  ],
+  "stats": {
+    "completed": {
+      "count": 2,
+      "total_sla": 120
+    }
+  },
+  "zorans_latest": {
+    "id": 1,
+    "stability_quotient": 1.0,
+    "primary_role_occupancy": 1.0,
+    "system_state": "equilibrium",
+    "active_stations": 11,
+    "primary_stations": 11,
+    "tasks_completed": 2,
+    "tasks_ingested": 2,
+    "measured_at": "2026-08-10 05:29:43"
+  },
+  "daemon": {
+    "running": true,
+    "cycles": 1,
+    "poll_interval": 0.5
+  }
+}
