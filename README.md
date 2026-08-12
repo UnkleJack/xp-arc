@@ -109,8 +109,15 @@ git clone https://github.com/unklejack/xp-arc.git
 cd xp-arc
 pip install -e .
 
+# Configure the Aboyeur signing key (use a managed secret in production)
+export XP_ARC_ABOYEUR_KEY='replace-with-a-long-random-secret'
+
 # Run default 5-target spread
 python run_kitchen.py
+
+# Serve the local DRAGON dashboard and observation API
+python run_persistent.py --port 8089
+# Open http://127.0.0.1:8089/ in a browser
 
 # Custom targets
 python run_kitchen.py https://example.com https://news.ycombinator.com
@@ -176,7 +183,7 @@ DRAGON (Dynamic Relational Asset Graph & Operations Network) visualizes the Inte
 - SpaZzMatiC adversarial findings and safe halt alerts
 - Full event timeline and Snowball cascade DAGs
 
-Open `dragon/index.html` in a browser after running the pipeline.
+Run `python run_persistent.py --port 8089` and open `http://127.0.0.1:8089/` for the live local dashboard. The static `dragon/index.html` remains available as an exported-JSON fallback.
 
 ## The Aboyeur Protocol
 

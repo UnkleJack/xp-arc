@@ -9,7 +9,6 @@ Whitepaper Section 4.4, Station #1.
 
 import re
 import json
-import urllib.request
 import urllib.parse
 import ssl
 try:
@@ -17,7 +16,7 @@ try:
     _CERTIFI_AVAILABLE = True
 except ImportError:
     _CERTIFI_AVAILABLE = False
-from ..core.station import StationChef
+from ..core.station import StationChef, StationRefusal
 from ..core.network_guard import open_public_url
 
 # ─── Input Sanitization (WHITEPAPER 5.5.2) ───────────────────────────────────
@@ -146,6 +145,7 @@ class TheForager(StationChef):
     name = "The Forager"
     handles_types = ['url']
     sla_seconds = 60
+    critical = True
 
     def __init__(self, pool, max_domains_per_target: int = 5, timeout: int = 8):
         super().__init__(pool)
@@ -164,13 +164,7 @@ class TheForager(StationChef):
                     f"URL sanitization rejected: {entity_value[:100]}",
                     "Input did not pass URL validation rules. Request logged for review."
                 )
-                return {
-                    'entity_type': 'url',
-                    'entity_value': entity_value,
-                    'relationships': [],
-                    'confidence': 0.0,
-                    'notes': f"Sanitization failed: URL format invalid.",
-                }
+                raise StationRefusal("malformed_url: input did not pass URL validation")
 
             # ─── Crawl depth gate (WHITEPAPER 5.5.3) ───────────────────────────
             # Per-seed crawl depth limit: reject if we have hit max depth for this subtree.
@@ -180,16 +174,9 @@ class TheForager(StationChef):
 
             if parent and parent_depth >= parent_max:
                 self.log(f"  [!] Depth limit reached ({parent_depth}/{parent_max}) — skipping extraction for {safe_url}")
-                return {
-                    'entity_type': 'url',
-                    'entity_value': safe_url,
-                    'relationships': [],
-                    'confidence': 0.3,
-                    'notes': f"Depth limit reached ({parent_depth}/{parent_max}). No further extraction.",
-                }
+                raise StationRefusal(f"crawl_depth_limit: reached {parent_depth}/{parent_max}")
 
             child_depth = parent_depth + 1  # children are one level deeper
-            child_max = parent_max           # inherit max_depth from parent unless configured otherwise
 
             extracted_domains = []
 
@@ -200,10 +187,6 @@ class TheForager(StationChef):
                 context = ssl.create_default_context()
 
             try:
-                req = urllib.request.Request(
-                    safe_url,   # ← sanitized, not entity_value
-                    headers={'User-Agent': 'Mozilla/5.0 (XP-Arc Forager/0.2)'}
-                )
                 with open_public_url(safe_url, timeout=self.timeout, context=context) as response:
                     html = response.read().decode('utf-8', errors='ignore')
 
@@ -256,18 +239,12 @@ class TheForager(StationChef):
 
                 return {
                     'entity_type': 'url',
-                    'entity_value': safe_url,   # ← canonical sanitized form
+                    'entity_value': entity_value,
                     'relationships': extracted_domains,
                     'confidence': 0.85,
                     'notes': f"Title: {title}. Extracted {len(extracted_domains)} external domains.",
                 }
 
-            except Exception as e:
-                self.log(f"  Failed to forage {safe_url}: {e}")
-                return {
-                    'entity_type': 'url',
-                    'entity_value': safe_url,
-                    'relationships': [],
-                    'confidence': 0.2,
-                    'notes': f"Forage failed: {str(e)}",
-                }
+            except Exception as exc:
+                self.log(f"  Failed to forage {safe_url}: {exc}")
+                raise StationRefusal(f"outbound_fetch_failed: {type(exc).__name__}: {exc}") from exc

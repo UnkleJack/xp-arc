@@ -25,6 +25,7 @@ class TheSentinel(StationChef):
     name = "The Sentinel"
     handles_types = ['_sentinel_check']  # Internal type, not from scraping
     sla_seconds = 30
+    critical = True
 
     # Thresholds
     MAX_ENTITIES_WARNING = 400

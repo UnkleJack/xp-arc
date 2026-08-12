@@ -343,7 +343,7 @@ class SQLiteBrokerExecutor:
             with self.conn:
                 # nosec B608
                 self.conn.execute(
-                    f"UPDATE entities SET {set_clause} WHERE id = ?", values
+                    f"UPDATE entities SET {set_clause} WHERE id = ?", values  # nosec B608 - fields are whitelist-validated above
                 )
                 self.conn.execute("""
                     INSERT INTO events (event_type, source, message, detail)
@@ -911,8 +911,8 @@ def run_api_server(view: MaterializedView, port: int = DEFAULT_API_PORT):
         def log_message(self, fmt, *args):
             pass  # Silent — avoid log spam at 500ms poll rate
 
-    server = HTTPServer(("0.0.0.0", port), StateHandler)
-    log.info(f"DRAGON API server listening on http://0.0.0.0:{port}")
+    server = HTTPServer(("127.0.0.1", port), StateHandler)
+    log.info(f"DRAGON API server listening on http://127.0.0.1:{port}")
     server.serve_forever()
 
 

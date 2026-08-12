@@ -34,6 +34,29 @@ from xp_arc.stations.dossier import TheDossier
 from xp_arc.stations.plongeur import ThePlongeur
 from xp_arc.stations.sentinel import TheSentinel
 from xp_arc.core.aboyeur import Aboyeur
+import xp_arc.stations.forager as forager_module
+
+
+class _FakeResponse:
+    """Deterministic response used for load verification; live retrieval has a separate acceptance run."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def read(self):
+        return b'<html><title>Load Fixture</title><a href="https://example.org/path">fixture</a></html>'
+
+
+def _fast_open_public_url(*_args, **_kwargs):
+    return _FakeResponse()
+
+
+# Keep the load suite deterministic and bounded. Network resilience is verified
+# separately in the live acceptance pipeline rather than 500 times per test run.
+forager_module.open_public_url = _fast_open_public_url
 
 
 # Override Forager timeout for load tests (avoid long DNS waits on .test TLD)
@@ -155,10 +178,11 @@ def test_brigade_routing_in_compressed_mode():
 
 
 def _complete_entity(pool, entity_id: int):
-    """Complete an entity via the correct status transition path."""
+    """Complete an entity through the constitutionally required QA gate."""
     pool.transition_status(entity_id, 'processing')
     pool.transition_status(entity_id, 'pending_qa')
-    pool.transition_status(entity_id, 'completed')
+    pool.station_writer('aboyeur').set_aboyeur_signature(entity_id, f'ABOY-TEST-{entity_id}')
+    assert pool.transition_status(entity_id, 'completed')
 
 
 def test_zorans_law_s_below_threshold_triggers_compression():
@@ -495,7 +519,6 @@ def test_bottleneck_detection():
     forager_stats = station_stats.get('forager', {})
     assert forager_stats.get('processed', 0) > 0, "Forager should process URL entities"
 
-    return m
 
 
 if __name__ == '__main__':

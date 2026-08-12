@@ -20,6 +20,7 @@ class ThePlongeur(StationChef):
     name = "The Plongeur"
     handles_types = ['_plongeur_sweep']  # Internal type
     sla_seconds = 45
+    critical = True
 
     def __init__(self, pool, orphan_threshold: int = 300):
         super().__init__(pool)
