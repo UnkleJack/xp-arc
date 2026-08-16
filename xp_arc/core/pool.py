@@ -16,7 +16,6 @@ import base64
 from datetime import datetime, timezone
 from cryptography.fernet import Fernet
 
-
 # ─── Module-level Encrypted HMAC Key Store ───────────────────────────────────
 
 HMAC_KEY_FILE = "station_keys.json.enc"
@@ -93,7 +92,6 @@ def register_station_with_key(station_id: str, name: str, handles_types: list,
     _save_station_keys(keys, key_file)
     return hmac_key
 
-
 # ─── Constitutional Constants ─────────────────────────────────────────────────
 
 # Constitutional status transitions (Article III, Section 3.2)
@@ -119,12 +117,10 @@ STATION_DEFAULTS_SLA = {
     'plongeur': 45,
 }
 
-
 def compute_payload_hash(entity_type: str, entity_value: str) -> str:
     """SHA-256 of the entity payload at ingestion. Immutable once sealed."""
     payload = json.dumps({'type': entity_type, 'value': entity_value}, sort_keys=True)
     return hashlib.sha256(payload.encode()).hexdigest()
-
 
 # ─── Intelligence Pool ────────────────────────────────────────────────────────
 
@@ -388,14 +384,14 @@ class IntelligencePool:
         For child entities (parent_task_id set), lineage is computed from the
         actual parent entity in the DB — stations cannot spoof cascade_depth
         or root_task_id to bypass the depth limit.
-        
+
         SLA Validation (RT-13 mitigation): SLA values are clamped to [1, 3600]
         to prevent Zoran's Law gaming via SLA inflation/deflation.
         """
         # SLA Validation - prevent gaming Zoran's Law
         from .station import validate_sla
         sla_seconds = validate_sla(sla_seconds, station_id or 'unknown')
-        
+
         if station_id is None:
             station_id = 'legacy_local'
         if station_id:
@@ -442,8 +438,9 @@ class IntelligencePool:
                                 f"HMAC rejected for transition_status: {entity_id}→{new_status}")
                 return False
 
+        # Fetch the current row with all needed fields for validation
         row = self.conn.execute(
-            "SELECT status FROM entities WHERE id = ?", (entity_id,)
+            "SELECT status, aboyeur_signature FROM entities WHERE id = ?", (entity_id,)
         ).fetchone()
 
         if not row:
@@ -456,13 +453,24 @@ class IntelligencePool:
                             f"entity_id={entity_id}")
             return False
 
+        # Constitutional checks per Article IV Section 4.3 and Article III Section 3.3
+        if new_status == 'completed' and current == 'pending_qa':
+            # Check that aboyeur_signature is present before allowing pending_qa -> completed
+            # Bypass in dev mode for testing
+            import os
+            if not os.environ.get('XP_ARC_DEV_MODE'):
+                aboyeur_sig = row['aboyeur_signature']
+                if not aboyeur_sig:
+                    self._log_event('status_violation', 'pool',
+                                    f"Aboyeur signature required for pending_qa -> completed transition",
+                                    f"entity_id={entity_id}")
+                    return False
+
         updates = {"status": new_status}
-        if new_status == 'processing':
-            updates["assigned_at"] = datetime.now(timezone.utc).isoformat()
-            if station:
-                updates["station"] = station
-        elif new_status in ('completed', 'mapped'):
-            updates["completed_at"] = datetime.now(timezone.utc).isoformat()
+        # NOTE: assigned_at and completed_at are set by SQLite DEFAULT (datetime('now'))
+        # per Constitution Article III Section 3.3 - never by agent Python code
+        if station:
+            updates["station"] = station
         if confidence is not None:
             updates["confidence"] = confidence
         if notes:
@@ -537,7 +545,6 @@ class IntelligencePool:
             "SELECT rejection_count FROM entities WHERE id = ?", (entity_id,)
         ).fetchone()
         return row['rejection_count'] if row else 0
-
 
     def claim_entity(self, entity_id: int, station: str):
         with self._write_lock, self.conn:
@@ -636,7 +643,7 @@ class IntelligencePool:
             "SELECT * FROM findings ORDER BY id DESC"
         ).fetchall()
 
-    # ─── Zoran Metrics ────────────────────────────────────────────────────────────
+    # ─── Zoran Metrics ──────────────────────────────────────────────────────────
 
     def record_zorans_metrics(self, s: float, pro: float, state: str,
                               active: int, primary: int, completed: int, ingested: int):
@@ -778,7 +785,7 @@ class IntelligencePool:
             stats[r['status']] = {'count': r['cnt'], 'total_sla': r['total_sla']}
         return stats
 
-    # ─── Export for DRAGON ─────────────────────────────────────────────────────
+    # ─── Export for DRAGON ────────────────────────────────────────────────────
 
     def export_state(self) -> dict:
         """Full pool state export as JSON-serializable dict."""
@@ -809,6 +816,7 @@ class IntelligencePool:
 
     def close(self):
         self.conn.close()
+
 class _StationWriter:
     def __init__(self, pool, station_id: str):
         self._pool = pool

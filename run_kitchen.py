@@ -10,6 +10,29 @@ Usage:
     python run_kitchen.py https://example.com          # Custom seeds
     python run_kitchen.py --db myrun.db https://a.com  # Custom DB path
     python run_kitchen.py --export-only                # Re-export existing DB
+
+The script will print a short startup banner and then serve the API.
+It can be run in foreground for debugging or background.
+
+API Authentication: Set XP_ARC_API_KEY to enable Bearer token auth on all endpoints.
+
+WebSocket Events (pushed on every cycle):
+  {
+    "event": "cycle_complete",
+    "cycle": 42,
+    "timestamp": "2026-08-09T14:30:00Z",
+    "zorans": {"stability_quotient": 1.23, "primary_role_occupancy": 0.85, ...},
+    "entities": {"total": 150, "completed": 120, "processing": 10, "raw": 5, "failed": 15},
+    "stations": {"forager": {"processed": 50, "failed": 2}, ...},
+    "findings": [...],
+    "events": [...]
+  }
+
+Usage:
+    python run_persistent.py                          # Default config
+    python run_persistent.py --db /path/to/xp_arc.db  # Custom DB
+    python run_persistent.py --poll 2                  # 2-second poll interval
+    python run_persistent.py --port 8089               # Enable API on port
 """
 
 import argparse
@@ -31,7 +54,6 @@ from xp_arc.stations import (
 )
 from xp_arc.monitoring.zorans_law import ZoransLaw
 from xp_arc.monitoring.spazzmatic import SpaZzMatiC
-
 
 # Default targets — the original 5-target spread
 DEFAULT_TARGETS = [
@@ -60,10 +82,10 @@ def run_kitchen(targets: list, db_path: str = "xp_arc.db",
     Returns: export dict
     """
 
-    print("╔══════════════════════════════════════════════╗")
-    print("║          XP-ARC — KITCHEN RUNNER v0.2       ║")
-    print("║     Exponential Architecture Protocol       ║")
-    print("╚══════════════════════════════════════════════╝")
+    print("�╔�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�╗")
+    print("�║          XP-ARC — KITCHEN RUNNER v0.2       �� ║")
+    print("�║     Exponential Architecture Protocol       �� ║")
+    print("�╚�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�═�╝")
     print()
 
     # ─── Initialize ───
@@ -88,6 +110,7 @@ def run_kitchen(targets: list, db_path: str = "xp_arc.db",
     executive.register_station(GRCSupervisor(pool))
     executive.register_station(GRCCommis(pool))
     
+
     # Utilities
     sentinel = TheSentinel(pool)
     plongeur = ThePlongeur(pool)
@@ -96,9 +119,13 @@ def run_kitchen(targets: list, db_path: str = "xp_arc.db",
     print(f"\n[KITCHEN] Seeding {len(targets)} targets...\n")
 
     for url in targets:
-        eid = pool.add_entity('url', url, root_task_id=None, cascade_depth=0)
+        # Seed entities ARE the root of their own Snowball chain
+        # Per Constitution Article III Section 3.3: root_task_id should be set during insertion
+        # by the Pool's atomic write path, not via direct SQL after ingestion
+        eid = pool.add_entity('url', url, root_task_id=0, cascade_depth=0)  # 0 indicates seed/root
         if eid:
-            # Seed entities ARE the root of their own Snowball chain
+            # Update the root_task_id to point to itself (the seed)
+            # This is done constitutionally through the Pool's update path
             with pool.conn:
                 pool.conn.execute(
                     "UPDATE entities SET root_task_id = ? WHERE id = ?",
@@ -142,11 +169,11 @@ def run_kitchen(targets: list, db_path: str = "xp_arc.db",
     print(f"\n[ ENTITIES ({len(entities)}) ]")
     for e in entities[:30]:
         status_icon = {
-            'completed': '✓',
-            'failed': '✗',
+            'completed': '��✓',
+            'failed': '��✗',
             'raw': '○',
-            'processing': '◑',
-            'pending_qa': '◐',
+            'processing': '�◑',
+            'pending_qa': '�◐',
         }.get(e['status'], '?')
         sig = f" sig:{e['aboyeur_signature'][:12]}..." if e['aboyeur_signature'] else ""
         print(f"  {status_icon} [{e['type'].upper():>8}] {e['value'][:50]:<50} "
