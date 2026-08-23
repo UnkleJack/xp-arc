@@ -11,6 +11,7 @@ dependencies = [
     "requests",
     "certifi",
     "cryptography>=48.0.1",
+    "aiohttp>=3.9",
 ]
 
 [project.optional-dependencies]
@@ -51,6 +52,10 @@ xp-arc-gauntlet = "gauntlet_pkg:main"
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
 
 [tool.setuptools.packages.find]
 where = ["."]

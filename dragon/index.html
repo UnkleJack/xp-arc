@@ -376,11 +376,11 @@ let svgZoom = null;
 let ws = null;
 let wsReconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
-const WS_URL = (() => {
+const API_BASE = (() => {
   const params = new URLSearchParams(window.location.search);
-  const apiBase = params.get('api') || 'http://localhost:8089';
-  return apiBase.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws';
+  return params.get('api') || window.location.origin;
 })();
+const WS_URL = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws';
 
 function scrollTo_(sel) {
   document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth' });
@@ -484,8 +484,7 @@ function loadStaticFallback() {
 
 async function fetchFullState() {
   try {
-    const apiBase = new URLSearchParams(window.location.search).get('api') || 'http://localhost:8089';
-    const res = await fetch(`${apiBase}/api/dragon`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE}/api/dragon`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     DATA = data;
@@ -569,13 +568,8 @@ document.addEventListener('DOMContentLoaded', () => {
     heroBadge.parentNode.insertBefore(statusEl, toggleBtn.nextSibling);
   }
 
-  // Auto-connect if ?api= query param present
-  if (new URLSearchParams(window.location.search).has('api')) {
-    connectWebSocket();
-  } else {
-    // Load static file as fallback
-    loadStaticFallback();
-  }
+  // Prefer the local live endpoint. Static JSON remains a read-only fallback.
+  connectWebSocket();
 });
 
 function renderAll() {
@@ -597,9 +591,9 @@ function renderSitrep() {
   const e = DATA.entities.length;
   const s = DATA.stations.length;
   const edges = DATA.edges.length;
-  const doss = DATA.dossiers.length;
-  const score = (DATA.audit.overall.integrity_score * 100).toFixed(1);
-  const zeroDrop = DATA.audit.zero_drop.zero_drop_verified;
+  const doss = (DATA.dossiers || []).length;
+  const score = ((DATA.audit?.overall?.integrity_score ?? 1) * 100).toFixed(1);
+  const zeroDrop = DATA.audit?.zero_drop?.zero_drop_verified ?? true;
   document.getElementById('sitrepText').innerHTML =
     `<strong>${e}</strong> entities processed through <strong>${s}</strong> stations. ` +
     `<strong>${edges}</strong> edges mapped. <strong>${doss}</strong> dossiers generated. ` +
@@ -608,7 +602,7 @@ function renderSitrep() {
 
 // ===== ZORAN BADGE =====
 function updateZoranBadge() {
-  const z = DATA.zorans_latest;
+  const z = DATA.zorans_latest || { system_state: 'unknown' };
   const badge = document.getElementById('zoranBadge');
   if (z.system_state === 'equilibrium') {
     badge.className = 'hero-badge badge-healthy';

@@ -26,6 +26,11 @@ class FractureProtocol:
     
     def __init__(self, pool):
         self.pool = pool
+        self.station_id = 'fracture_protocol'
+        self.pool.register_station(
+            self.station_id, 'Fracture Protocol', ['shard'], is_primary=False
+        )
+        self.writer = self.pool.station_writer(self.station_id)
     
     def authorize_fracture(self, entity_id: int, station_id: str,
                           complexity_notes: str) -> bool:
@@ -47,16 +52,13 @@ class FractureProtocol:
         # Generate fracture ID
         fracture_id = str(uuid.uuid4())
         
-        # Update parent entity to fractured status
-        self.pool.transition_status(entity_id, 'fractured',
-                                  notes=f"Fractured into {shard_count} shards")
-        
-        # Set fracture_id and parent_task_id on parent
-        with self.pool.conn:
-            self.pool.conn.execute("""
-                UPDATE entities 
-                SET fracture_id = ?, parent_task_id = ?
-                WHERE id = ?""", (fracture_id, entity_id, entity_id))
+        # The parent transitions and records fracture identity through the Pool.
+        if not self.writer.transition_status(
+            entity_id, 'fractured', notes=f"Fractured into {shard_count} shards"
+        ):
+            return []
+        if not self.writer.set_fracture_metadata(entity_id, fracture_id, parent_task_id=entity_id):
+            return []
         
         shard_ids = []
         
@@ -70,20 +72,14 @@ class FractureProtocol:
                 'shard_data': f"Shard {i+1} of {shard_count} from {entity_type}: {entity_value}"
             })
             
-            shard_id = self.pool.add_entity(
+            shard_id = self.writer.add_entity(
                 ent_type=shard_type,
                 value=shard_value,
                 parent_task_id=entity_id,
-                station_id='fracture_protocol'
             )
-            
             if shard_id:
-                # Set fracture_id on shard
-                with self.pool.conn:
-                    self.pool.conn.execute(
-                        "UPDATE entities SET fracture_id = ? WHERE id = ?",
-                        (fracture_id, shard_id)
-                    )
+                if not self.writer.set_fracture_metadata(shard_id, fracture_id):
+                    return []
                 shard_ids.append(shard_id)
                 
                 self.pool._log_event('shard_created', 'fracture_protocol',
@@ -159,14 +155,13 @@ class FractureProtocol:
             'fracture_id': fracture_id,
             'shard_count': len(shards),
             'shard_results': shard_results,
-            'stitched_at': datetime.now(timezone.utc).isoformat(),
             'notes': f"Stitched {len(shards)} shards from fracture {fracture_id}"
         })
-        
-        if not self.pool.transition_status(parent_id, 'stitchable',
-                                           station='fracture_protocol',
-                                           station_id='fracture_protocol',
-                                           notes=f"All {len(shards)} shards completed, ready for stitching"):
+
+        if not self.writer.transition_status(
+            parent_id, 'stitchable', station=self.station_id,
+            notes=f"All {len(shards)} shards completed, ready for stitching"
+        ):
             return None
         
         # Create mapped entity (this represents the stitched result)
@@ -175,43 +170,46 @@ class FractureProtocol:
         if not parent:
             return None
         
-        mapped_id = self.pool.add_entity(
-            ent_type=parent['type'],
-            value=stitched_value,
-            parent_task_id=parent_id,
-            station_id='fracture_protocol'
+        mapped_id = self.writer.add_entity(
+            ent_type=parent['type'], value=stitched_value, parent_task_id=parent_id
         )
-        
+
         if mapped_id:
-            # Set fracture_id on mapped entity
-            with self.pool.conn:
-                self.pool.conn.execute(
-                    "UPDATE entities SET fracture_id = ? WHERE id = ?",
-                    (fracture_id, mapped_id)
-                )
-            
-            # Transition mapped entity: raw -> processing -> pending_qa -> completed
-            self.pool.transition_status(mapped_id, 'processing', station='fracture_protocol', station_id='fracture_protocol')
-            self.pool.transition_status(mapped_id, 'pending_qa', station_id='fracture_protocol')
-            
-            # Generate and set Aboyeur signature for stitched entity
-            sig_uuid = uuid.uuid4().hex[:16]
-            signature = f"ABOY-STITCH-{sig_uuid}"
-            self.pool.set_aboyeur_signature(mapped_id, signature, station_id='aboyeur')
-            
-            self.pool.transition_status(mapped_id, 'completed',
-                                      station='fracture_protocol',
-                                      station_id='fracture_protocol',
-                                      confidence=1.0,
-                                      notes=f"Stitched result from fracture {fracture_id}")
-            
-            # Transition parent entity: stitchable -> mapped -> completed
-            self.pool.transition_status(parent_id, 'mapped',
-                                      station_id='fracture_protocol',
-                                      notes=f"Stitched into entity {mapped_id}")
-            self.pool.transition_status(parent_id, 'completed',
-                                      station_id='fracture_protocol',
-                                      notes=f"Stitched into entity {mapped_id}")
+            if not self.writer.set_fracture_metadata(mapped_id, fracture_id):
+                return None
+            if not self.writer.transition_status(mapped_id, 'processing', station=self.station_id):
+                return None
+            if not self.writer.transition_status(mapped_id, 'pending_qa'):
+                return None
+
+            # A stitched output is still labor and must receive a real QA seal.
+            from .aboyeur import Aboyeur
+            aboyeur = Aboyeur(self.pool)
+            output = {
+                'entity_type': parent['type'],
+                'entity_value': stitched_value,
+                'relationships': [],
+                'confidence': 1.0,
+                'notes': f"Stitched result from fracture {fracture_id}",
+            }
+            qa_result = aboyeur.validate_and_sign(mapped_id, self.station_id, output)
+            if not qa_result['approved']:
+                self.writer.transition_status(mapped_id, 'failed', notes=qa_result['rejection_reason'])
+                self.writer.transition_status(parent_id, 'failed', notes='Stitched output rejected by Aboyeur')
+                return None
+            if not self.writer.transition_status(
+                mapped_id, 'completed', station=self.station_id, confidence=1.0,
+                notes=f"Stitched result from fracture {fracture_id}"
+            ):
+                return None
+
+            # The original task is completed only after its mapped child is sealed.
+            if not self.writer.transition_status(parent_id, 'mapped', notes=f"Stitched into entity {mapped_id}"):
+                return None
+            if not self.writer.set_aboyeur_signature(parent_id, qa_result['signature']):
+                return None
+            if not self.writer.transition_status(parent_id, 'completed', notes=f"Stitched into entity {mapped_id}"):
+                return None
             
             self.pool._log_event('shards_stitched', 'fracture_protocol',
                                f"Stitched {len(shards)} shards into entity {mapped_id}")

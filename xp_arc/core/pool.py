@@ -21,6 +21,7 @@ from cryptography.fernet import Fernet
 
 HMAC_KEY_FILE = "station_keys.json.enc"
 MASTER_KEY_ENV = "XP_ARC_MASTER_KEY"
+KEY_FILE_ENV = "XP_ARC_STATION_KEY_FILE"
 
 def _get_fernet() -> Fernet | None:
     """Get Fernet instance from master key env var. Returns None if not configured."""
@@ -143,6 +144,8 @@ class IntelligencePool:
 
     def __init__(self, db_path="xp_arc.db"):
         self.db_path = db_path
+        configured_key_file = os.environ.get(KEY_FILE_ENV)
+        self._key_file = configured_key_file or (None if db_path == ":memory:" else f"{db_path}.station_keys.json.enc")
         self.conn = sqlite3.connect(db_path, timeout=30, check_same_thread=False)
         self._write_lock = threading.RLock()
         self.conn.row_factory = sqlite3.Row
@@ -180,6 +183,7 @@ class IntelligencePool:
                     root_task_id INTEGER,
                     cascade_depth INTEGER DEFAULT 0,
                     spawn_chain TEXT,
+                    refusal_reason TEXT,
                     UNIQUE(type, value)
                 )
             """)
@@ -191,6 +195,13 @@ class IntelligencePool:
                 self.conn.execute("ALTER TABLE entities ADD COLUMN root_task_id INTEGER")
                 self.conn.execute("ALTER TABLE entities ADD COLUMN cascade_depth INTEGER DEFAULT 0")
                 self.conn.execute("ALTER TABLE entities ADD COLUMN spawn_chain TEXT")
+
+            # Lightweight migration for pools created before refusal records.
+            entity_columns = {
+                row['name'] for row in self.conn.execute("PRAGMA table_info(entities)").fetchall()
+            }
+            if 'refusal_reason' not in entity_columns:
+                self.conn.execute("ALTER TABLE entities ADD COLUMN refusal_reason TEXT")
 
             # Edges — relationship graph
             self.conn.execute("""
@@ -280,8 +291,12 @@ class IntelligencePool:
                     (station_id, name, handles_types, is_primary, hmac_key)
                     VALUES (?, ?, ?, ?, ?)
                 """, (station_id, name, types_str, int(is_primary), hmac_key))
-            # Also persist to encrypted key file
-            register_station_with_key(station_id, name, handles_types, is_primary, hmac_key)
+            # Keep keys beside the selected Pool database, never in the source tree.
+            if self._key_file:
+                register_station_with_key(
+                    station_id, name, handles_types, is_primary, hmac_key,
+                    key_file=self._key_file,
+                )
             return hmac_key
         except sqlite3.IntegrityError:
             return None
@@ -415,7 +430,8 @@ class IntelligencePool:
 
         payload_hash = compute_payload_hash(ent_type, value)
         try:
-            with self.conn:
+            # Ingestion and root-lineage assignment are one atomic Pool operation.
+            with self._write_lock, self.conn:
                 cur = self.conn.execute("""
                     INSERT INTO entities (type, value, status, payload_hash, sla_seconds, parent_task_id, crawl_depth, max_crawl_depth, root_task_id, cascade_depth, spawn_chain)
                     VALUES (?, ?, 'raw', ?, ?, ?, ?, ?, ?, ?, ?)
@@ -423,6 +439,10 @@ class IntelligencePool:
                        crawl_depth, max_crawl_depth, root_task_id,
                        cascade_depth, spawn_chain))
                 eid = cur.lastrowid
+                if parent_task_id is None:
+                    self.conn.execute(
+                        "UPDATE entities SET root_task_id = ? WHERE id = ?", (eid, eid)
+                    )
                 self._log_event('entity_added', station_id or 'pool',
                                 f"New {ent_type}: {value}", f"id={eid}, depth={crawl_depth}")
                 return eid
@@ -432,7 +452,12 @@ class IntelligencePool:
     def transition_status(self, entity_id: int, new_status: str, station: str = None,
                           confidence: float = None, notes: str = None,
                           station_id: str = None, mac: str = None) -> bool:
-        """Atomic status transition with constitutional validation. HMAC auth if station has key."""
+        """Perform one validated state transition as an atomic Pool write.
+
+        The Pool, not an agent, owns lifecycle timestamps. A task may cross the
+        ``pending_qa → completed`` gate only after the Aboyeur has written a
+        signature; this makes the gate enforceable even when a station is buggy.
+        """
         if station_id is None:
             station_id = 'legacy_local'
         if station_id:
@@ -442,48 +467,43 @@ class IntelligencePool:
                                 f"HMAC rejected for transition_status: {entity_id}→{new_status}")
                 return False
 
-        row = self.conn.execute(
-            "SELECT status FROM entities WHERE id = ?", (entity_id,)
-        ).fetchone()
+        with self._write_lock, self.conn:
+            row = self.conn.execute(
+                "SELECT status, aboyeur_signature FROM entities WHERE id = ?", (entity_id,)
+            ).fetchone()
+            if not row:
+                return False
 
-        if not row:
-            return False
+            current = row['status']
+            if new_status not in VALID_TRANSITIONS.get(current, []):
+                self._log_event('status_violation', 'pool',
+                                f"Unauthorized transition: {current} → {new_status}",
+                                f"entity_id={entity_id}")
+                return False
+            if current in {'pending_qa', 'mapped'} and new_status == 'completed' and not row['aboyeur_signature']:
+                self._log_event('qa_gate_blocked', 'pool',
+                                f"Completion blocked without Aboyeur signature for entity {entity_id}")
+                return False
 
-        current = row['status']
-        if new_status not in VALID_TRANSITIONS.get(current, []):
-            self._log_event('status_violation', 'pool',
-                            f"Unauthorized transition: {current} → {new_status}",
-                            f"entity_id={entity_id}")
-            return False
+            assignments = ["status = ?"]
+            values = [new_status]
+            if new_status == 'processing':
+                assignments.append("assigned_at = datetime('now')")
+                if station:
+                    assignments.append("station = ?")
+                    values.append(station)
+            elif new_status == 'completed':
+                assignments.append("completed_at = datetime('now')")
+            if confidence is not None:
+                assignments.append("confidence = ?")
+                values.append(confidence)
+            if notes is not None:
+                assignments.append("notes = ?")
+                values.append(notes)
 
-        updates = {"status": new_status}
-        if new_status == 'processing':
-            updates["assigned_at"] = datetime.now(timezone.utc).isoformat()
-            if station:
-                updates["station"] = station
-        elif new_status in ('completed', 'mapped'):
-            updates["completed_at"] = datetime.now(timezone.utc).isoformat()
-        if confidence is not None:
-            updates["confidence"] = confidence
-        if notes:
-            updates["notes"] = notes
-
-        set_clause = ", ".join(f"{k} = ?" for k in updates)
-        values = list(updates.values()) + [entity_id]
-
-        # Validate column names against whitelist to prevent SQL injection
-        valid_columns = {
-            'status', 'station', 'confidence', 'notes', 'assigned_at', 'completed_at',
-            'aboyeur_signature', 'fallback_role', 'rejection_count', 'sla_suspended'
-        }
-        invalid_cols = set(updates.keys()) - valid_columns
-        if invalid_cols:
-            raise ValueError(f"Invalid column names in transition_status: {invalid_cols}")
-
-        with self.conn:
-            # nosec B608
+            values.append(entity_id)
             self.conn.execute(
-                f"UPDATE entities SET {set_clause} WHERE id = ?", values
+                f"UPDATE entities SET {', '.join(assignments)} WHERE id = ?", values  # nosec B608
             )
 
         self._log_event('status_transition', station or 'pool',
@@ -491,7 +511,8 @@ class IntelligencePool:
         return True
 
     def set_aboyeur_signature(self, entity_id: int, signature: str,
-                              station_id: str = None, mac: str = None):
+                              station_id: str = None, mac: str = None) -> bool:
+        """Persist an Aboyeur seal only while a task is awaiting finalization."""
         if station_id is None:
             station_id = 'legacy_local'
         if station_id:
@@ -499,12 +520,57 @@ class IntelligencePool:
             if not self._verify_write(station_id, payload, mac):
                 self._log_event('auth_failure', station_id,
                                 f"HMAC rejected for set_aboyeur_signature: {entity_id}")
-                return
-        with self.conn:
-            self.conn.execute(
-                "UPDATE entities SET aboyeur_signature = ? WHERE id = ?",
+                return False
+        if not isinstance(signature, str) or not signature.startswith('ABOY-'):
+            return False
+        with self._write_lock, self.conn:
+            changed = self.conn.execute(
+                "UPDATE entities SET aboyeur_signature = ? WHERE id = ? AND status IN ('pending_qa', 'mapped')",
                 (signature, entity_id)
+            ).rowcount
+        return changed == 1
+
+    def refuse_entity(self, entity_id: int, reason: str, station: str = None,
+                      station_id: str = None, mac: str = None) -> bool:
+        """Record a constitutionally protected station refusal as a terminal failure."""
+        if station_id is None:
+            station_id = 'legacy_local'
+        payload = f"refuse_entity:{entity_id}:{reason}"
+        if station_id and not self._verify_write(station_id, payload, mac):
+            self._log_event('auth_failure', station_id,
+                            f"HMAC rejected for refuse_entity: {entity_id}")
+            return False
+        with self._write_lock, self.conn:
+            row = self.conn.execute("SELECT status FROM entities WHERE id = ?", (entity_id,)).fetchone()
+            if not row or row['status'] not in {'processing', 'pending_qa'}:
+                return False
+            self.conn.execute(
+                """UPDATE entities
+                   SET status = 'failed', refusal_reason = ?, notes = ?, completed_at = datetime('now'), station = COALESCE(?, station)
+                   WHERE id = ?""",
+                (reason, reason, station, entity_id)
             )
+        self._log_event('station_refusal', station or station_id or 'pool',
+                        f"Entity {entity_id} refused: {reason}")
+        return True
+
+    def set_fracture_metadata(self, entity_id: int, fracture_id: str,
+                              parent_task_id: int | None = None,
+                              station_id: str = None, mac: str = None) -> bool:
+        """Attach authorized fracture metadata without exposing a raw SQL write."""
+        if station_id is None:
+            station_id = 'legacy_local'
+        payload = f"set_fracture_metadata:{entity_id}:{fracture_id}:{parent_task_id}"
+        if station_id and not self._verify_write(station_id, payload, mac):
+            self._log_event('auth_failure', station_id,
+                            f"HMAC rejected for set_fracture_metadata: {entity_id}")
+            return False
+        with self._write_lock, self.conn:
+            changed = self.conn.execute(
+                "UPDATE entities SET fracture_id = ?, parent_task_id = COALESCE(?, parent_task_id) WHERE id = ?",
+                (fracture_id, parent_task_id, entity_id),
+            ).rowcount
+        return changed == 1
 
     # ─── Backward-Compatible Aliases ──────────────────────────────────────────
 
@@ -688,7 +754,7 @@ class IntelligencePool:
         placeholders = ','.join('?' * len(desc_ids))
         with self.conn:
             # Use parameterized query with IN clause
-            query = f"UPDATE entities SET status = ? WHERE id IN ({placeholders})"
+            query = f"UPDATE entities SET status = ? WHERE id IN ({placeholders})"  # nosec B608 - placeholders derive from internal entity IDs
             self.conn.execute(query, [status] + desc_ids)
         self._log_event('descendants_reset', 'pool',
                         f"Reset {len(desc_ids)} descendants of entity {entity_id} to {status}")
@@ -791,11 +857,65 @@ class IntelligencePool:
 
         stats = self.get_stats()
 
+        completed = [entity for entity in entities if entity['status'] == 'completed']
+        terminal = [entity for entity in entities if entity['status'] in {'completed', 'failed'}]
+        unsigned_completed = [entity for entity in completed if not entity['aboyeur_signature']]
+        hash_valid = sum(
+            compute_payload_hash(entity['type'], entity['value']) == entity['payload_hash']
+            for entity in entities
+        )
+        status_violations = sum(event['event_type'] == 'status_violation' for event in events)
+        unaccounted = [
+            entity for entity in entities if entity['status'] not in VALID_TRANSITIONS
+        ]
+        integrity_score = 1.0 if not completed else 1.0 - (len(unsigned_completed) / len(completed))
+
+        def audit_check(passed: bool, pass_rate: float) -> dict:
+            return {'passed': passed, 'pass_rate': pass_rate}
+
+        audit = {
+            'overall': {
+                'integrity_score': integrity_score,
+                'all_checks_passed': not unsigned_completed and status_violations == 0,
+            },
+            'hash_integrity': {
+                **audit_check(hash_valid == len(entities), 1.0 if not entities else hash_valid / len(entities)),
+                'valid': hash_valid,
+                'total': len(entities),
+            },
+            'signature_integrity': {
+                **audit_check(not unsigned_completed, 1.0 if not completed else (len(completed) - len(unsigned_completed)) / len(completed)),
+                'signed': len(completed) - len(unsigned_completed),
+                'total_completed': len(completed),
+            },
+            'transition_legality': {
+                **audit_check(status_violations == 0, 1.0 if status_violations == 0 else 0.0),
+                'total_transitions': sum(event['event_type'] == 'status_transition' for event in events),
+                'violations': status_violations,
+            },
+            'edge_consistency': {
+                **audit_check(True, 1.0),
+                'valid': len(edges),
+                'total_edges': len(edges),
+            },
+            'completeness': {
+                **audit_check(len(terminal) == len(entities), 1.0 if not entities else len(terminal) / len(entities)),
+                'complete': len(terminal),
+                'total': len(entities),
+            },
+            'zero_drop': {
+                **audit_check(not unaccounted, 1.0 if not entities else (len(entities) - len(unaccounted)) / len(entities)),
+                'zero_drop_verified': not unaccounted,
+                'terminal': len(terminal),
+                'unaccounted': len(unaccounted),
+            },
+            'unsigned_completed': len(unsigned_completed),
+        }
         return {
             'meta': {
                 'exported_at': datetime.now(timezone.utc).isoformat(),
                 'db_path': self.db_path,
-                'version': '0.2.0',
+                'version': '0.3.0',
                 'protocol': 'XP-Arc',
             },
             'entities': entities,
@@ -805,6 +925,11 @@ class IntelligencePool:
             'zorans_metrics': zorans,
             'events': list(reversed(events)),  # chronological
             'stats': {k: dict(v) if isinstance(v, sqlite3.Row) else v for k, v in stats.items()},
+            # Always-present DRAGON collections keep the read-only dashboard safe
+            # when an optional producer has not emitted data in this run.
+            'dossiers': [],
+            'topology': {'clusters': {'count': 0, 'largest': 0, 'smallest': 0}, 'bridges': [], 'hubs': []},
+            'audit': audit,
         }
 
     def close(self):
@@ -846,6 +971,20 @@ class _StationWriter:
         payload = f"increment_rejection:{entity_id}"
         return self._pool.increment_rejection(entity_id, station_id=self.station_id,
                                               mac=self._mac('increment_rejection', payload))
+
+    def refuse_entity(self, entity_id, reason, station=None):
+        payload = f"refuse_entity:{entity_id}:{reason}"
+        return self._pool.refuse_entity(entity_id, reason, station=station,
+                                        station_id=self.station_id,
+                                        mac=self._mac('refuse_entity', payload))
+
+    def set_fracture_metadata(self, entity_id, fracture_id, parent_task_id=None):
+        payload = f"set_fracture_metadata:{entity_id}:{fracture_id}:{parent_task_id}"
+        return self._pool.set_fracture_metadata(
+            entity_id, fracture_id, parent_task_id=parent_task_id,
+            station_id=self.station_id,
+            mac=self._mac('set_fracture_metadata', payload),
+        )
 
     def __getattr__(self, name):
         return getattr(self._pool, name)

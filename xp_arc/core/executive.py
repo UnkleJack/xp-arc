@@ -11,6 +11,7 @@ CONSTITUTION Article II + Article VII.
 import time
 from .aboyeur import Aboyeur
 from .fracture import FractureRequest
+from .station import StationRefusal
 from .pool import MAX_CASCADE_DEPTH
 
 
@@ -195,6 +196,14 @@ class ExecutiveChef:
                     if self.verbose:
                         print(f"  [✗] Aboyeur rejected: {result['rejection_reason']}")
 
+            except StationRefusal as refusal:
+                handler._tasks_failed += 1
+                self.pool.station_writer(handler.station_id).refuse_entity(
+                    entity_id, refusal.reason, station=handler.station_id
+                )
+                if self.verbose:
+                    print(f"  [!] {handler.name} refused: {refusal.reason}")
+
             except FractureRequest as fr:
                 if self.verbose:
                     print(f"  [i] {handler.name} requested fracture: {fr.complexity_notes}")
@@ -284,7 +293,6 @@ class ExecutiveChef:
                 sla_seconds=target.get('sla_seconds', 60),
                 parent_task_id=parent_id,
                 root_task_id=parent_root,
-                station_id='executive',
                 cascade_depth=parent_depth + 1,
                 spawn_chain=json.dumps(new_chain)
             )

@@ -33,6 +33,7 @@ class TheAnalyst(StationChef):
     name = "The Analyst"
     handles_types = ['domain']
     sla_seconds = 180
+    critical = True
 
     # Known domain classifications
     CLASSIFICATIONS = {
