@@ -1,0 +1,26 @@
+XP-Arc
+Copyright 2026 David J. Riedl
+
+This product includes software developed as part of the XP-Arc project
+(https://github.com/UnkleJack/xp-arc).
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License. You may obtain a copy
+of the License at http://www.apache.org/licenses/LICENSE-2.0.
+
+--------------------------------------------------------------------------
+
+TRADEMARK NOTICE
+
+"XP-Arc," "DRAGON," "Aboyeur," "Zoran's Law," and "SpaZzMatiC" are trademarks
+of David J. Riedl. The Apache License, Version 2.0 governing this repository
+grants broad rights to use, modify, and redistribute the code, the
+specification, and the protocol schema — it does not grant any right to use
+these names, or any confusingly similar name, to describe a modified or
+redistributed version of this software, or to imply certification,
+endorsement, sponsorship, or official status by David J. Riedl, without
+separate written permission.
+
+This reservation exists so that anyone may freely build on, fork, and deploy
+XP-Arc, while "XP-Arc Certified" and equivalent claims of official status
+remain meaningful and controlled by the project's maintainer.

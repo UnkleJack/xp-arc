@@ -2,7 +2,7 @@
 **Version:** 1.0.0
 **Status:** Ratified
 **Authors:** BATMAN, Jack (DRAGON)
-**License:** MIT
+**License:** Apache-2.0
 
 ---
 

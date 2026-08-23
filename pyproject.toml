@@ -5,7 +5,10 @@ description = "Constitutional multi-agent orchestration protocol"
 readme = "README.md"
 authors = [{name = "David J. Riedl", email = "david@unclejack.xyz"}]
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+]
 dependencies = [
     "pytz",
     "requests",

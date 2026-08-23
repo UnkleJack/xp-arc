@@ -232,7 +232,7 @@ xp-arc/
 | Component | Version | Notes |
 |---|---|---|
 | XP-Arc Protocol | 0.2.1 | Consolidated subpackages |
-| Constitution | 1.4 | MIT license, SQLite WAL substrate |
+| Constitution | 1.6 | Apache 2.0 license, SQLite WAL substrate |
 | Pool Schema | v2 | Includes cascade lineage columns |
 | Aboyeur Protocol | 1.0 | Schema in `docs/aboyeur-protocol-v1.json` |
 | Asset Engine | 0.1.0 | Subpackage under `xp_arc.asset_engine` |

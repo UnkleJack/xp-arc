@@ -3,7 +3,7 @@
 **Version:** 0.2.1
 **Authors:** Jack (unklejack), Claude (Anthropic), Zo.Computer, Gemini (Google)
 **Repository:** github.com/unklejack/xp-arc
-**License:** MIT
+**License:** Apache-2.0
 **Changelog:** See Section 12
 
 ---
@@ -774,7 +774,7 @@ as actionable alerts with a 60-second veto countdown.
 ## Section 9 — The Open Specification
 
 XP-Arc is open. The specification, the protocol schema, the reference
-implementation, and this whitepaper are published under the MIT License.
+implementation, and this whitepaper are published under the Apache License, Version 2.0.
 
 The history of infrastructure software is a history of open specifications
 winning. TCP/IP. HTTP. Git. Linux. The pattern is consistent: when the protocol
@@ -793,7 +793,10 @@ repository, and the Aboyeur Protocol JSON schema constitute a dated, public,
 citable record of XP-Arc's architecture as of its v0.1 release (March 16, 2026).
 v0.2 extends that record.
 
-MIT. No commercial license required. No four-year conversion wait.
+Apache 2.0. No commercial license required, no waiting period, plus an express
+patent grant MIT does not provide. The trademark reservation in `NOTICE` — not
+the license terms — is what backs the "certified implementation" revenue line:
+the code is unrestricted, the XP-Arc name is not.
 
 ---
 

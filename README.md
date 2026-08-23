@@ -214,7 +214,7 @@ See [WHITEPAPER.md §2](./WHITEPAPER.md) for the full positioning argument.
 ## Documentation
 
 - [WHITEPAPER.md](./WHITEPAPER.md) — Full protocol specification (v0.2)
-- [CONSTITUTION.MD](./CONSTITUTION.MD) — Operational law (v1.4)
+- [CONSTITUTION.MD](./CONSTITUTION.MD) — Operational law (v1.6)
 - [LEGAL.md](./LEGAL.md) — Legal framework and operator responsibilities
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — Canonical architecture spec
 - [STATUS.md](./STATUS.md) — Code status map
@@ -222,8 +222,10 @@ See [WHITEPAPER.md §2](./WHITEPAPER.md) for the full positioning argument.
 
 ## License
 
-MIT License. Free to use for any purpose including commercial production.
-No license fee, no attribution requirement beyond the copyright notice.
+Apache License 2.0. Free to use for any purpose including commercial production,
+with an express patent grant. See `NOTICE` — "XP-Arc," "DRAGON," "Aboyeur,"
+"Zoran's Law," and "SpaZzMatiC" are reserved trademarks; the code is unrestricted,
+using these names to claim official/certified status is not.
 
 **Version:** 0.2.1
 **Author:** David J. Riedl (UnkleJack)
