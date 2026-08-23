@@ -49,6 +49,8 @@ import signal
 import sys
 import time
 import logging
+import threading
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Set, Dict, Any, List
 from aiohttp import web, WSMsgType
@@ -151,6 +153,11 @@ class PersistentKitchen:
 
         self.pool._log_event('daemon_start', 'persistent',
                              f"Persistent kitchen started. Poll: {self.poll_interval}s")
+        # DRAGON must surface health immediately, even if this persisted Pool
+        # contains no new raw entities for the first polling cycle.
+        self.zorans.measure()
+        self.spazz.run_review()
+        self._export_dragon_state()
 
         try:
             while self._running:
@@ -453,6 +460,16 @@ def check_auth(request: web.Request) -> bool:
 
 
 @web.middleware
+async def cors_middleware(request: web.Request, handler):
+    """Allow local DRAGON files and same-machine tools to read the observation API."""
+    response = await handler(request)
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    return response
+
+
+@web.middleware
 async def auth_middleware(request: web.Request, handler):
     """Middleware to enforce API key auth on protected routes."""
     # Skip auth for WebSocket upgrade, health, and metrics
@@ -461,6 +478,45 @@ async def auth_middleware(request: web.Request, handler):
     if not check_auth(request):
         return web.json_response({'error': 'Unauthorized - invalid or missing Bearer token'}, status=401)
     return await handler(request)
+
+
+def create_app(kitchen: PersistentKitchen) -> web.Application:
+    """Create the single-machine dashboard and observation API host."""
+    app = web.Application(middlewares=[cors_middleware, auth_middleware])
+    app['kitchen'] = kitchen
+    dragon_dir = Path(__file__).resolve().parent / 'dragon'
+
+    async def dashboard_handler(_request: web.Request):
+        return web.FileResponse(dragon_dir / 'index.html')
+
+    async def start_kitchen(_app: web.Application):
+        kitchen.set_loop(asyncio.get_running_loop())
+        worker = threading.Thread(target=kitchen.start, name='xp-arc-kitchen', daemon=True)
+        _app['kitchen_worker'] = worker
+        worker.start()
+
+    async def stop_kitchen(app_to_stop: web.Application):
+        kitchen.stop()
+        worker = app_to_stop.get('kitchen_worker')
+        if worker:
+            worker.join(timeout=max(5, kitchen.poll_interval * 4))
+
+    app.on_startup.append(start_kitchen)
+    app.on_shutdown.append(stop_kitchen)
+    app.router.add_get('/', dashboard_handler)
+    app.router.add_static('/dragon', dragon_dir)
+    app.router.add_get('/ws', ws_handler)
+    app.router.add_get('/api/health', health_handler)
+    app.router.add_get('/api/dragon', dragon_handler)
+    app.router.add_get('/api/pool', dragon_handler)
+    app.router.add_get('/api/entities', entities_handler)
+    app.router.add_get('/api/edges', edges_handler)
+    app.router.add_get('/api/findings', findings_handler)
+    app.router.add_get('/api/events', events_handler)
+    app.router.add_post('/api/seed', seed_handler)
+    app.router.add_get('/metrics', metrics_handler)
+    app.router.add_get('/pool_state.json', dragon_handler)
+    return app
 
 
 def main():
@@ -494,50 +550,21 @@ def main():
             result = kitchen.seed(url)
             print(f"  [SEED] {result['status']}: {url}")
 
-    # Start HTTP + WebSocket server if port specified
+    # The dashboard server owns the asyncio event loop; the kitchen runs in a
+    # dedicated worker so polling never starves the HTTP or WebSocket surface.
     if args.port > 0:
-        app = web.Application(middlewares=[auth_middleware])
-        app['kitchen'] = kitchen
-
-        # WebSocket endpoint
-        app.router.add_get('/ws', ws_handler)
-
-        # HTTP API endpoints
-        app.router.add_get('/api/health', health_handler)
-        app.router.add_get('/api/dragon', dragon_handler)
-        app.router.add_get('/api/pool', dragon_handler)  # alias
-        app.router.add_get('/api/entities', entities_handler)
-        app.router.add_get('/api/edges', edges_handler)
-        app.router.add_get('/api/findings', findings_handler)
-        app.router.add_get('/api/events', events_handler)
-        app.router.add_post('/api/seed', seed_handler)
-        app.router.add_get('/metrics', metrics_handler)
-
-        # Store the event loop for cross-thread WebSocket sends
-        loop = asyncio.get_event_loop()
-        kitchen.set_loop(loop)
-
-        # Run the web server in background
-        runner = web.AppRunner(app)
-        loop.run_until_complete(runner.setup())
-        site = web.TCPSite(runner, '0.0.0.0', args.port)
-        loop.run_until_complete(site.start())
-
-        print(f"[API] HTTP + WebSocket server running on port {args.port}")
-        print(f"[API] WebSocket telemetry: ws://localhost:{args.port}/ws")
-        print(f"[API] DRAGON endpoint:     http://localhost:{args.port}/api/dragon")
-        print(f"[API] Seed endpoint:       POST http://localhost:{args.port}/api/seed")
-        print(f"[API] Health endpoint:     http://localhost:{args.port}/api/health")
+        app = create_app(kitchen)
+        print(f"[API] DRAGON dashboard:     http://127.0.0.1:{args.port}/")
+        print(f"[API] WebSocket telemetry: ws://127.0.0.1:{args.port}/ws")
+        print(f"[API] DRAGON endpoint:     http://127.0.0.1:{args.port}/api/dragon")
+        print(f"[API] Seed endpoint:       POST http://127.0.0.1:{args.port}/api/seed")
+        print(f"[API] Health endpoint:     http://127.0.0.1:{args.port}/api/health")
         print()
+        web.run_app(app, host='127.0.0.1', port=args.port)
+        return
 
-    # Handle SIGTERM gracefully
-    def handle_sigterm(signum, frame):
-        print("\n[PERSISTENT] SIGTERM received. Shutting down...")
-        kitchen.stop()
-
-    signal.signal(signal.SIGTERM, handle_sigterm)
-
-    # Start the persistent loop
+    # Without the local observation server, retain a foreground CLI mode.
+    signal.signal(signal.SIGTERM, lambda _signum, _frame: kitchen.stop())
     kitchen.start()
 
 
