@@ -32,6 +32,8 @@ asset-engine = [
 competitive-intel = [
     "pyyaml>=6.0",
     "jinja2>=3.1",
+    "feedparser>=6.0",
+    "httpx>=0.27",
 ]
 gauntlet = [
     "pytest>=8.2",
