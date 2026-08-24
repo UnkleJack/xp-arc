@@ -10,6 +10,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 
+MAX_SHARD_COUNT = 20  # RT-15: upper bound to prevent fracture shard-flood DoS
+
+
 class FractureRequest(Exception):
     """
     Exception raised by a station to indicate that the entity needs to be fractured.
@@ -42,6 +45,12 @@ class FractureProtocol:
                        entity_value: str, shard_count: int = 3,
                        shard_type: str = 'shard') -> List[int]:
         """Create cognitive shards from a parent entity."""
+        if shard_count > MAX_SHARD_COUNT:
+            self.pool._log_event('fracture_shard_capped', 'fracture_protocol',
+                                 f'shard_count {shard_count} capped to {MAX_SHARD_COUNT}',
+                                 f'entity_id={entity_id}')
+            shard_count = MAX_SHARD_COUNT
+
         # Get the parent entity
         parent = self.pool.get_entity(entity_id)
         if not parent:
