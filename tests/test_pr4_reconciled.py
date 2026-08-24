@@ -6,7 +6,14 @@ main, since PR #4 itself was never merged (base commit diverged, mergeable_state
 removal per standing ruling).
 
 Covers the fixes that ARE code-testable from Python:
-  RT-11 — export_state() must not leak station hmac_key
+  RT-11 — export_state() must not leak station hmac_key. NOTE: while
+          reconciling this branch, main had already independently fixed RT-11
+          twice (PUBLIC_STATION_COLUMNS in get_active_stations(), plus a
+          defense-in-depth pop() in export_state() itself) between the local
+          clone this branch's other fixes were verified against and the
+          moment this branch was actually created from main. No RT-11 code
+          change was needed here — this test just confirms that protection
+          still holds.
   RT-14 — Executive._process_spawns() caps spawn_targets at MAX_SPAWN_PER_ENTITY
   RT-15 — FractureProtocol.create_shards() caps shard_count at MAX_SHARD_COUNT
   RT-10 — Forager strips HTML tags from extracted page titles
