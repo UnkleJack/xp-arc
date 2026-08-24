@@ -44,6 +44,20 @@ class ZoransLaw:
 
     PRO_MINIMUM = 0.70  # 70% primary role occupancy
 
+    # PRO measures "agents operating in their primary role" (Article VIII 8.1).
+    # Infrastructure that registers with the pool purely to obtain an HMAC write
+    # key is not an agent in a role and must not dilute the denominator. The
+    # Aboyeur was already excluded; the Fracture Protocol and the competitive
+    # intel bridge register the same way and were silently dragging PRO down —
+    # the acceptance run reported 66.7% and a spurious compression_review with a
+    # perfectly healthy two-station brigade, purely because the bridge was
+    # counted as a non-primary agent.
+    NON_LABOR_STATIONS = frozenset({
+        'aboyeur',
+        'fracture_protocol',
+        'competitive_intel_bridge',
+    })
+
     # Article VIII, Section 8.4 — rolling 60s window, 10s floor.
     DEFAULT_WINDOW_SECONDS = 60
     MIN_WINDOW_SECONDS = 10
@@ -68,7 +82,8 @@ class ZoransLaw:
         Records to pool and returns the measurement.
         """
         stats = self.pool.get_stats()
-        stations = [s for s in self.pool.get_active_stations() if s['station_id'] != 'aboyeur']
+        stations = [s for s in self.pool.get_active_stations()
+                    if s['station_id'] not in self.NON_LABOR_STATIONS]
 
         # ─── Stability Quotient (S) — windowed rate ratio ───
         flow = self.pool.windowed_sla_flow(self.window_seconds)
