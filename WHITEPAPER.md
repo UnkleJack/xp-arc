@@ -703,7 +703,7 @@ when DRAGON becomes interactive.
 
 ### 7.6 Legal Surface
 
-XP-Arc has undergone legal review. The framework — as a multi-agent orchestration system — is not itself a violation of the Computer Fraud and Abuse Act (CFAA) or GDPR. The review confirmed:
+This section is founder-drafted guidance, not the product of a licensed-attorney legal review. It reflects the following non-professional analysis of how the framework relates to the CFAA and GDPR:
 
 - **In the United States:** The CFAA prohibits unauthorized access to "computer[s] without authorization or exceeding authorized access." XP-Arc, as a piece of software, does not itself violate the CFAA. Any individual deployment of XP-Arc against a specific target must comply with the CFAA's terms. Operators are responsible for ensuring their specific use cases are lawful before deployment. Authorized OSINT collection, public data aggregation, and research use cases fall within legal bounds when conducted against systems where the operator has legitimate access rights.
 
@@ -713,7 +713,7 @@ XP-Arc has undergone legal review. The framework — as a multi-agent orchestrat
 
 - **Safe harbor:** XP-Arc stores no personal data by design. Entity values are URLs, domains, and relationship metadata. No identity data, no financial records, no healthcare records. This reduces but does not eliminate GDPR exposure.
 
-- **Jurisdictions vary.** The legal review was conducted under US and EU law. Operators deploying XP-Arc in other jurisdictions bear responsibility for understanding local requirements.
+- **Jurisdictions vary.** This analysis considers only US and EU law and was not conducted or reviewed by an attorney. Operators deploying XP-Arc in any jurisdiction should obtain independent legal counsel before relying on it.
 
 XP-Arc is published as an open research framework. Operators assume full legal responsibility for their specific deployments. When in doubt, obtain independent legal counsel before deployment.
 
