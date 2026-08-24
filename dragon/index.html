@@ -895,12 +895,12 @@ function renderGraph() {
   node.on('mouseover', (event, d) => {
     tooltip.style.display = 'block';
     tooltip.innerHTML = `
-      <div class="tt-label">Value</div><div class="tt-value">${d.id}</div>
-      <div class="tt-label" style="margin-top:6px">Type</div><div>${d.type}</div>
-      <div class="tt-label" style="margin-top:6px">Status</div><div>${d.status}</div>
+      <div class="tt-label">Value</div><div class="tt-value">${escapeHtml(d.id)}</div>
+      <div class="tt-label" style="margin-top:6px">Type</div><div>${escapeHtml(d.type)}</div>
+      <div class="tt-label" style="margin-top:6px">Status</div><div>${escapeHtml(d.status)}</div>
       <div class="tt-label" style="margin-top:6px">Confidence</div><div>${d.confidence}</div>
-      <div class="tt-label" style="margin-top:6px">Station</div><div>${d.station}</div>
-      ${d.signature ? `<div class="tt-label" style="margin-top:6px">Signature</div><div style="font-size:9px">${d.signature}</div>` : ''}
+      <div class="tt-label" style="margin-top:6px">Station</div><div>${escapeHtml(d.station)}</div>
+      ${d.signature ? `<div class="tt-label" style="margin-top:6px">Signature</div><div style="font-size:9px">${escapeHtml(d.signature)}</div>` : ''}
       ${d.isBridge ? '<div style="margin-top:6px;color:#4ade80;font-weight:600">BRIDGE NODE</div>' : ''}
     `;
   }).on('mousemove', (event) => {
@@ -966,10 +966,10 @@ function renderDossiers() {
     if (d.intelligence_gaps.unsigned_count > 0) gapTags.push(`<span class="tag tag-amber">Unsigned: ${d.intelligence_gaps.unsigned_count}</span>`);
     if (gapTags.length === 0) gapTags.push('<span class="tag">No gaps detected</span>');
     const topConns = (d.top_connections || []).slice(0, 6).map(c =>
-      `<li><span>${c.value}</span><span class="conn-rel">${c.relationship}</span></li>`
+      `<li><span>${escapeHtml(c.value)}</span><span class="conn-rel">${escapeHtml(c.relationship)}</span></li>`
     ).join('');
 
-    const seedDisplay = d.seed_url.replace(/^https?:\/\//, '');
+    const seedDisplay = escapeHtml(d.seed_url.replace(/^https?:\/\//, ''));
     const confPercent = (d.confidence * 100).toFixed(0);
     const confColor = d.confidence >= 0.7 ? 'var(--green)' : d.confidence >= 0.4 ? 'var(--amber)' : 'var(--red)';
 
