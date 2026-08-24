@@ -301,9 +301,28 @@ class IntelligencePool:
         except sqlite3.IntegrityError:
             return None
 
+    # Station registry columns that are safe to expose outside the Pool.
+    # Deliberately excludes hmac_key (see get_active_stations / RT-11).
+    PUBLIC_STATION_COLUMNS = (
+        'id', 'station_id', 'name', 'handles_types',
+        'status', 'is_primary', 'registered_at',
+    )
+
     def get_active_stations(self):
+        """Active station registry rows, WITHOUT the hmac_key column.
+
+        RT-11: this was previously `SELECT *`, so every consumer received each
+        station's HMAC write-auth secret. Those consumers include
+        `export_state()` (served to any DRAGON API client) and SpaZzMatiC's
+        Gemini review path (shipped to an external LLM API).
+
+        No caller needs the key — `get_station_key()` is the dedicated
+        accessor. Columns are enumerated explicitly so that adding a future
+        secret column cannot silently re-open this leak.
+        """
         return self.conn.execute(
-            "SELECT * FROM station_registry WHERE status = 'active'"
+            f"SELECT {', '.join(self.PUBLIC_STATION_COLUMNS)} "  # nosec B608 - fixed internal constant, no user input
+            "FROM station_registry WHERE status = 'active'"
         ).fetchall()
 
     def set_station_status(self, station_id: str, status: str):
@@ -850,7 +869,14 @@ class IntelligencePool:
         """Full pool state export as JSON-serializable dict."""
         entities = [dict(row) for row in self.get_all_entities()]
         edges = [dict(row) for row in self.get_all_edges()]
-        stations = [dict(row) for row in self.get_active_stations()]
+        # RT-11 defense in depth: get_active_stations() already excludes
+        # hmac_key, but this export is the public DRAGON surface — strip any
+        # secret column again here so a regression upstream cannot leak it.
+        stations = []
+        for row in self.get_active_stations():
+            station = dict(row)
+            station.pop('hmac_key', None)
+            stations.append(station)
         findings = [dict(row) for row in self.get_findings()]
         zorans = [dict(row) for row in self.get_zorans_history()]
         events = [dict(row) for row in self.get_events(500)]
