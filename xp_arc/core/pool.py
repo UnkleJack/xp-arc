@@ -369,7 +369,16 @@ class IntelligencePool:
             # the parent is transitioned to 'fractured' *before* shards are attempted,
             # and 'fractured' can only advance to 'stitchable' (which requires real
             # shards), every fracture permanently bricked its parent entity.
-            return station_id in {'legacy_local', 'executive', 'aboyeur', 'fracture_protocol'}
+            allowed = station_id in {'legacy_local', 'executive', 'aboyeur', 'fracture_protocol'}
+            if allowed:
+                # RT-18: audit every unkeyed/legacy write so the bypass is
+                # visible. Closing it outright (requiring real keys for these
+                # four station_ids) is a bigger auth-contract change needing
+                # its own ruling.
+                self._log_event('legacy_write', station_id,
+                                f"Unkeyed write allowed via legacy allowlist "
+                                f"for station '{station_id}'")
+            return allowed
         if provided_mac is None:
             return False  # station has key but provided no MAC — reject
         expected = hmac.new(
