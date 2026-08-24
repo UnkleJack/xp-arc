@@ -101,18 +101,16 @@ The pool database and DRAGON export JSON live under `/data` inside the
 container, backed by the `xp-arc-pool-data` named volume, so they survive
 container recreation.
 
-**Known limitation:** `run_persistent.py` currently hardcodes
-`web.run_app(app, host='127.0.0.1', ...)` with no `--host`/env override. That
-means the HTTP/WebSocket API binds to the container's loopback interface
-only, and a normal `-p 8089:8089` port publish will **not** reach it from
-outside the container — Docker forwards published ports to the bridge
-interface, not loopback. The `HEALTHCHECK` in the Dockerfile still works
-because it runs *inside* the container's network namespace. Until
-`run_persistent.py` is updated to bind `0.0.0.0` (or read an `XP_ARC_HOST`
-env var), the practical options for reaching the API from the host are:
+**Bind address:** `run_persistent.py` now accepts `--host` / `XP_ARC_HOST`
+(default `127.0.0.1`, unchanged for local/non-container use). A container
+needs a non-loopback bind for a published port to reach the daemon, so set
+`XP_ARC_HOST=0.0.0.0` (or pass `--host 0.0.0.0`) in the container environment.
+Do this only with `XP_ARC_API_KEY` set — binding to all interfaces without an
+API key leaves every endpoint, including the `/ws` telemetry stream,
+unauthenticated, and the daemon prints an explicit warning at startup in that
+case. The `HEALTHCHECK` in the Dockerfile works regardless, since it runs
+*inside* the container's network namespace against loopback.
 
-- run the container with `network_mode: host` (Linux only; commented out in
-  `docker-compose.yml`), or
-- fix the bind address upstream in `run_persistent.py` (tracked as a
-  follow-up, intentionally out of scope for this release-infrastructure
-  change set).
+This was previously a hardcoded-loopback limitation that made a plain
+`-p 8089:8089` port publish unreachable from the host; the `--host` flag
+introduced alongside this release infrastructure removes that constraint.

@@ -1,6 +1,6 @@
 # THE COGNITIVE LABOR CONSTITUTION
 ## XP-Arc Multi-Agent Orchestration Framework
-### Ratified: March 2026 | Version 1.6 | Apache License 2.0
+### Ratified: March 2026 | Version 1.7 | Apache License 2.0
 ### Authored under the direction of Jack (David J. Riedl)
 
 ---
@@ -151,9 +151,18 @@ Every task MUST traverse the Pool according to the following authorized status t
 raw → processing → pending_qa → [failed | fractured | completed]
 failed → processing  (retry, authorized)
 fractured → stitchable → mapped → [completed | failed]
+fractured → failed   (escalation exit only — see Article V, Section 5.5)
 stitchable → failed  (if stitching fails)
 mapped → failed      (if synthesis write fails or stitcher crashes)
 ```
+
+**On `fractured → failed`.** A parent task is moved to `fractured` *before* its
+shards exist, and `stitchable` requires every shard completed. A single
+permanently-failed shard therefore left the parent with no reachable state — it
+was stranded in `fractured` for the life of the Pool, holding lineage and
+blocking GC, with no record of why. This transition is the escalation exit and is
+authorized **only** for the Chef de Cuisine escalation path (Article V, Section
+5.5). Ordinary station labor MUST NOT take it.
 
 **Unauthorized transitions** — state jumps that skip intermediate statuses — are constitutional violations and must be rejected by the Pool's write layer.
 
@@ -294,7 +303,22 @@ If any shard enters `failed` status after retry exhaustion, or if the `mapped �
 3. The failed shard may be retried (shard `failed → processing`)
 4. If retry fails, the fracture group is **escalated to Chef de Cuisine**
 
+5. The stranded parent is released `fractured → failed` with the escalation
+   reason recorded (see Article III, Section 3.2)
+
 **Chef de Cuisine escalation is a human-in-the-loop notification, not autonomous resolution.** The Chef de Cuisine station emits a structured escalation record to DRAGON and fires an external alert to Jack. The system does not expect an LLM to autonomously repair a broken payload schema.
+
+**Implementation note (v1.7).** Steps 3 through 5 were specified here but were
+never built, and the omission was wider than this Article: the retry in step 3
+did not exist for shards *or for any other entity*. The Aboyeur's circuit breaker
+only fails a task once `rejection_count` reaches `max_rejections`, and nothing
+re-processed a rejected task, so the Article I 1.2 three-strike budget never ran
+once in the project's history — every task failed on strike one. A shard is an
+ordinary task, so the shard-retry gap recorded here was a symptom of that, not a
+separate defect. Retry is now driven by the Executive's QA gate, bounded by the
+task's own budget and an absolute hard cap. A shard sitting in `failed` with
+strikes remaining is live work and does **not** trigger escalation; only a group
+whose failures have all exhausted their budgets is stranded.
 
 Upon escalation, the affected task's `sla_suspended` flag is set to `true`. SLA timer and Cognitive Debt accrual are paused for the duration of human review. Zoran's Law metrics exclude `sla_suspended` tasks from the debt calculation. The suspension is lifted when Jack either resolves the escalation or explicitly closes it as unresolvable.
 
@@ -391,9 +415,41 @@ If a Snowball chain generates more than **N tasks per second** (N is deployment-
 > A stable XP-Arc brigade maintains a **Stability Quotient (S) greater than 1.0** and a **Primary Role Occupancy (PRO) of at least 70%** at all times during active execution.
 
 ```
-S   = Σ(sla_seconds for completed tasks) / Σ(sla_seconds for ingested tasks)
+S   = Σ(sla_seconds COMPLETED within the window)
+      ────────────────────────────────────────────
+      Σ(sla_seconds INGESTED within the same window)
+
 PRO = agents_operating_in_primary_role / total_active_agents
 ```
+
+**S is a rate ratio, measured over the Section 8.4 window — not a cumulative
+ratio.** This distinction is constitutional, not an implementation detail.
+
+Earlier revisions of this Article stated the formula without the windowing
+qualifier, and the reference implementation read it literally: cumulative
+completed SLA-seconds over cumulative ingested SLA-seconds. Every completed task
+is also an ingested task, so the numerator was a strict subset of the
+denominator and **S was bounded at ≤ 1.0 by construction**. The `S > 1.0`
+HEALTHY state defined in Section 8.1 was mathematically unreachable. A brigade
+that ingested ten tasks and completed all ten scored exactly 1.0 —
+"equilibrium / watch closely" — which was the best score the system could
+physically produce.
+
+Measured as flows over a rolling window, `S > 1` means what this Article says it
+means: the brigade is draining cognitive labor faster than it is arriving, and
+is therefore paying down backlog rather than accumulating it.
+
+Tasks with `sla_suspended` set are excluded from **both** sides of the ratio: a
+suspended task accrues no cognitive debt (Article VI, Section 6.4), so it is
+neither arriving work nor drained work. A window with drains and zero arrivals is
+the healthiest possible state and is reported at a finite ceiling rather than as
+infinity, so that stored metrics and DRAGON charts remain well-formed.
+
+**PRO counts agents, not plumbing.** Components that register with the Pool
+solely to obtain an HMAC write key — the Aboyeur, the Fracture Protocol, ingress
+bridges — are not agents operating in a role and MUST be excluded from the PRO
+denominator. Counting them reports a spurious Compression Review over a healthy
+brigade.
 
 **S is weighted by cognitive labor expectation** (`sla_seconds`), not raw task count. An unweighted count allows high-volume micro-tasks (e.g., Plongeur GC sweeps) to mask dying heavy-reasoning tasks (e.g., Saucier logic trees), producing a false healthy S reading while the system degrades. The weighted formula ensures a 300-second Saucier task contributes proportionally more to S than a 45-second Plongeur sweep.
 
@@ -668,6 +724,7 @@ POOL SOVEREIGNTY:       All state lives in the Pool. All transitions are atomic.
 SUBSTRATE:              SQLite WAL. Zero external deps for core. No Write Broker.
 TIMESTAMPS:             DB-generated only. Agent timestamps constitutionally prohibited.
 STATUS CANON:           raw → processing → pending_qa → [failed|fractured|completed]
+                        fractured → failed authorized for Chef escalation only (5.5)
 FRACTURE LIMIT:         Depth 1 only. Self-reported overload requires Aboyeur countersign.
 SNOWBALL LIMIT:         Fires only from completed+signed. Depth broker-enforced. Max 5.
 ZORAN'S LAW:            S = Σsla_seconds(completed) / Σsla_seconds(ingested) > 1.0 | PRO ≥ 70%
@@ -695,4 +752,6 @@ LICENSE:                Apache 2.0. Patent grant + trademark reservation. See LI
 *v1.3: processing_checkpoint, sla_suspended, Plongeur descendant GC check, SLA suspension on human escalation.*
 *v1.4: Redis-buffered HA Write Broker, DRAGON materialized view, DB-generated timestamps only, Aboyeur rejection circuit breaker (max_rejections), weighted S formula (Σsla_seconds), debt grace window hard cap, broker-enforced cascade depth.*
 *v1.5: Substrate corrected from DuckDB+Redis Write Broker to SQLite WAL. MIT license. All DuckDB/Write Broker/Materialized View references removed. No infrastructure dependencies for core.*
+*v1.7: Zoran's Law corrected — Article VIII 8.1 restated as a windowed RATE ratio; the cumulative form made the S > 1.0 HEALTHY state mathematically unreachable. sla_suspended excluded from both sides; non-agent infrastructure excluded from the PRO denominator. Article III 3.2 gains `fractured → failed` as the Chef de Cuisine escalation exit, closing the stranded-parent dead end. Article V 5.5 retry and escalation implemented (the retry gap was pool-wide, not shard-specific). Chef de Cuisine station built as a CRITICAL member surviving Brigade Compression.*
+
 *v1.6: Relicensed from MIT to Apache License 2.0 (Dragon's ruling, 2026-08-19). Rationale: express patent grant (§3) and trademark reservation (§6) support the certified-implementation/consulting monetization model without BSL's adoption-suppression tradeoff. See NOTICE for the trademark reservation list.*

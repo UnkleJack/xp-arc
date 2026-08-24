@@ -71,7 +71,14 @@ def test_pyproject_license_is_apache():
 
 def test_constitution_asserts_apache():
     text = _read("CONSTITUTION.MD")
-    assert "Version 1.6 | Apache License 2.0" in text
+    # Match the licence in the ratification header WITHOUT pinning the version
+    # number. This test exists to stop the live licence silently reverting to
+    # MIT or BSL; coupling it to a version string instead made every legitimate
+    # constitutional amendment fail a licence-conformance test, which trains
+    # people to edit the assertion rather than read it.
+    assert re.search(r"^### Ratified:.*\| Version \d+\.\d+ \| Apache License 2\.0\s*$",
+                     text, re.MULTILINE), \
+        "Constitution ratification header must declare Apache License 2.0"
     assert "Apache License, Version 2.0" in text
     # Section 11.2 must not still say MIT/BSL is the live license.
     section_112 = text.split("### Section 11.2", 1)[1].split("---", 1)[0]

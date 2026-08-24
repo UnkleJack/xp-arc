@@ -66,6 +66,12 @@ nohup python3 run_persistent.py --db xp_arc.db --port 8089 &
 ./start.sh
 ```
 
+For a containerized deployment (Dockerfile, docker-compose, and the PyPI release
+workflow), see `docs/RELEASING.md`. Note that the Docker image build has been
+desk-checked but not executed in CI or locally as of this writing — Docker was
+not available in the sandbox that built it — while the wheel/sdist build (`python
+-m build`) has been run and passes.
+
 ### 4. Seed URLs into the running daemon
 
 ```bash
@@ -269,8 +275,17 @@ Retrieves a JSON payload containing the complete state of the pool, edges, regis
 - **Response**: Full JSON-serializable pool state dump matching `pool.export_state()`.
 
 ### Configuration Rules & Path Constraints
-- **`station_keys.json` Path**: Keys are loaded from `station_keys.json`. This is resolved relative to the current working directory of the execution process. Always run `run_persistent.py` or script triggers from the repository root directory to ensure the keys file is parsed successfully.
-- **Aboyeur QA Key Configuration**: Default signing key is set to `"xp-arc-aboyeur-v1"` in `aboyeur.py`. This key must be changed in a secure production context.
+- **Station key file path**: There is no fixed `station_keys.json` anymore. Each Pool derives its key file path from its own DB path: `{db_path}.station_keys.json.enc` (e.g. `xp_arc.db.station_keys.json.enc`), next to the database rather than in the repo. Override with `XP_ARC_STATION_KEY_FILE` if you need a different location. Set `XP_ARC_MASTER_KEY` to encrypt that file at rest (Fernet); without it, the loader falls back to a plaintext file at the same path with `.enc` stripped. Either way, run `run_persistent.py` / `run_kitchen.py` from a working directory you control — the key file is written relative to `--db`.
+- **Aboyeur QA Key Configuration**: Default signing key is set to `"xp-arc-aboyeur-v1"` in `aboyeur.py`. This key must be changed in a secure production context (`XP_ARC_ABOYEUR_KEY`).
+
+### API Authentication & Network Exposure
+
+- **`--host` / `XP_ARC_HOST`**: `run_persistent.py` binds to `127.0.0.1` (loopback only) by default — unchanged from before. Pass `--host 0.0.0.0` or set `XP_ARC_HOST=0.0.0.0` to accept connections from outside the process's own machine (containers need this for a published port to reach the daemon). If you bind to `0.0.0.0` without `XP_ARC_API_KEY` set, the daemon prints an explicit warning at startup: every endpoint, including the `/ws` telemetry stream, is unauthenticated in that configuration. Bind to `0.0.0.0` only behind a trusted network boundary, with `XP_ARC_API_KEY` set.
+- **`/ws` and `/metrics` now require auth** when `XP_ARC_API_KEY` is set. They used to be unconditionally exempt from `auth_middleware`, which meant `/ws` — a live feed of the full pool telemetry payload — was reachable by anyone who could reach the port even with the REST API locked down. Only `/api/health` (a credential-free liveness probe that returns no pool data) is still exempt.
+- **WebSocket auth via query parameter**: browsers cannot set an `Authorization` header on a WebSocket handshake, so `/ws` additionally accepts the API key as `?token=...`. Same secret, same constant-time comparison as the `Bearer` header path — e.g. `ws://host:8089/ws?token=<XP_ARC_API_KEY>`.
+- **`POST /api/seed` is rate-limited**: 30 requests per minute per client (fixed window, in-process — see `RateLimiter` in `run_persistent.py`), returning `429` with a `Retry-After` header once exceeded. This guards a single-machine daemon against a runaway script, not a distributed attacker; a real deployment behind a reverse proxy should also rate-limit there.
+- **`POST /api/seed` validates the URL** before ingestion: only `http`/`https` schemes, a length cap, and the same SSRF check the Forager uses (`network_guard.public_url()`) — the endpoint cannot be used to point the brigade at an internal address. Invalid or unresolvable-to-public URLs are rejected with `400` and never reach the pool.
+- **GRC stations are opt-in**: `run_kitchen.py --grc` registers `GRCSupervisor` and `GRCCommis`. Both now read their CISO Assistant token from `XP_ARC_CISO_TOKEN` at construction and raise `RuntimeError` if it is unset — there is no more hardcoded fallback token, so an unconfigured GRC station fails loudly instead of silently looking configured.
 
 ---
 
