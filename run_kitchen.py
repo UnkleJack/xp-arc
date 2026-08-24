@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from xp_arc.core.pool import IntelligencePool
 from xp_arc.core.executive import ExecutiveChef
 from xp_arc.stations import (
-    TheForager, TheAnalyst, TheSentinel, ThePlongeur,
+    TheForager, TheAnalyst, TheSentinel, ThePlongeur, ChefDeCuisine,
     TheLibrarian, TheCartographer, TheAuditor, TheWarden,
     TheAmphithere, TheHydra, TheSalamander, TheHerald, TheDossier,
     GRCSupervisor, GRCCommis
@@ -44,7 +44,8 @@ DEFAULT_TARGETS = [
 
 
 def run_kitchen(targets: list, db_path: str = "xp_arc.db",
-                max_entities: int = 500, verbose: bool = True) -> dict:
+                max_entities: int = 500, verbose: bool = True,
+                enable_grc: bool = False) -> dict:
     """
     Full pipeline execution.
 
@@ -84,9 +85,15 @@ def run_kitchen(targets: list, db_path: str = "xp_arc.db",
     executive.register_station(TheSalamander(pool))
     executive.register_station(TheHerald(pool))
     executive.register_station(TheDossier(pool))
-    # GRC Stations
-    executive.register_station(GRCSupervisor(pool))
-    executive.register_station(GRCCommis(pool))
+    # Escalation authority. CRITICAL: survives Brigade Compression, because a
+    # degraded brigade is exactly when escalations are most likely.
+    executive.register_station(ChefDeCuisine(pool))
+    # GRC Stations — opt-in. They require XP_ARC_CISO_TOKEN and now raise at
+    # construction if it is unset (no hardcoded fallback credential), so they
+    # are only built when the operator asks for them.
+    if enable_grc:
+        executive.register_station(GRCSupervisor(pool))
+        executive.register_station(GRCCommis(pool))
     
     # Utilities
     sentinel = TheSentinel(pool)
@@ -191,6 +198,8 @@ def main():
     parser.add_argument('--db', default='xp_arc.db', help='Database path (default: xp_arc.db)')
     parser.add_argument('--max-entities', type=int, default=500, help='Max entities (default: 500)')
     parser.add_argument('--quiet', action='store_true', help='Suppress verbose output')
+    parser.add_argument('--grc', action='store_true',
+                        help='Enable the GRC stations (requires XP_ARC_CISO_TOKEN)')
     parser.add_argument('--export-only', action='store_true', help='Re-export existing DB without running pipeline')
 
     args = parser.parse_args()
@@ -211,6 +220,7 @@ def main():
         db_path=args.db,
         max_entities=args.max_entities,
         verbose=not args.quiet,
+        enable_grc=args.grc,
     )
 
 

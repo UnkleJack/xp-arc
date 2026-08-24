@@ -10,6 +10,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 
+from .pool import MAX_SHARD_COUNT
+
 class FractureRequest(Exception):
     """
     Exception raised by a station to indicate that the entity needs to be fractured.
@@ -23,7 +25,11 @@ class FractureRequest(Exception):
 
 class FractureProtocol:
     """Manages cognitive sharding and recombination."""
-    
+
+    # RT-15: a station declares shard_count when it raises FractureRequest.
+    # Unbounded, one entity multiplies into arbitrarily many shards.
+    MAX_SHARD_COUNT = MAX_SHARD_COUNT
+
     def __init__(self, pool):
         self.pool = pool
         self.station_id = 'fracture_protocol'
@@ -42,6 +48,25 @@ class FractureProtocol:
                        entity_value: str, shard_count: int = 3,
                        shard_type: str = 'shard') -> List[int]:
         """Create cognitive shards from a parent entity."""
+        # RT-15 shard-flood cap. Clamp rather than refuse: a fracture request has
+        # already passed the Aboyeur, and refusing outright would strand the
+        # parent, which is transitioned to 'fractured' below and can only advance
+        # via shards. A clamped fracture still decomposes the work.
+        if shard_count > self.MAX_SHARD_COUNT:
+            self.pool._log_event(
+                'shard_count_clamped', 'fracture_protocol',
+                f"Requested shard_count={shard_count} exceeds MAX_SHARD_COUNT="
+                f"{self.MAX_SHARD_COUNT}; clamped.",
+                f"entity_id={entity_id}"
+            )
+            shard_count = self.MAX_SHARD_COUNT
+        if shard_count < 1:
+            self.pool._log_event(
+                'fracture_failed', 'fracture_protocol',
+                f"Rejected fracture of entity {entity_id}: shard_count={shard_count} < 1"
+            )
+            return []
+
         # Get the parent entity
         parent = self.pool.get_entity(entity_id)
         if not parent:
@@ -218,6 +243,45 @@ class FractureProtocol:
         
         return None
     
+    def check_failed_shards(self, fracture_id: str) -> Dict[str, Any]:
+        """Detect a fracture group that can never complete and report it.
+
+        A parent is transitioned to 'fractured' BEFORE its shards are created,
+        and 'fractured' can only advance to 'stitchable', which requires every
+        shard completed. So a single permanently-failed shard strands the parent
+        forever. This detects that state; escalation is the Executive's call
+        (see ExecutiveChef._escalate_stranded_fracture).
+
+        A shard counts as permanently failed only once it has exhausted its own
+        rejection budget — a shard sitting in 'failed' with retries remaining is
+        still live work, and the retry driver will pick it back up.
+        """
+        completion = self.check_shard_completion(fracture_id)
+        shards = completion.get('shards', [])
+        if not shards:
+            return {'stranded': False, 'fracture_id': fracture_id,
+                    'parent_id': completion.get('parent_id'),
+                    'failed_shards': [], 'pending_shards': []}
+
+        failed, pending = [], []
+        for shard in shards:
+            if shard['status'] == 'completed':
+                continue
+            row = self.pool.get_entity(shard['id'])
+            if row is None:
+                continue
+            exhausted = (row['status'] == 'failed'
+                         and row['rejection_count'] >= row['max_rejections'])
+            (failed if exhausted else pending).append(shard['id'])
+
+        return {
+            'stranded': bool(failed) and not pending,
+            'fracture_id': fracture_id,
+            'parent_id': completion.get('parent_id'),
+            'failed_shards': failed,
+            'pending_shards': pending,
+        }
+
     def get_fracture_groups(self) -> List[Dict[str, Any]]:
         """Get all active fracture groups for monitoring."""
         rows = self.pool.conn.execute("""

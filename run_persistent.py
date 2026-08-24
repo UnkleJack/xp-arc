@@ -45,6 +45,7 @@ import argparse
 import asyncio
 import json
 import os
+import secrets
 import signal
 import sys
 import time
@@ -68,7 +69,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger('xp_arc')
 
+from urllib.parse import urlparse
+
 from xp_arc.core.pool import IntelligencePool
+from xp_arc.core.network_guard import public_url
 from xp_arc.core.executive import ExecutiveChef
 from xp_arc.stations.forager import TheForager
 from xp_arc.stations.analyst import TheAnalyst
@@ -81,6 +85,7 @@ from xp_arc.stations.dossier import TheDossier
 from xp_arc.stations.warden import TheWarden
 from xp_arc.stations.plongeur import ThePlongeur
 from xp_arc.stations.sentinel import TheSentinel
+from xp_arc.stations.chef_de_cuisine import ChefDeCuisine
 from xp_arc.monitoring.zorans_law import ZoransLaw
 from xp_arc.monitoring.spazzmatic import SpaZzMatiC
 
@@ -130,10 +135,13 @@ class PersistentKitchen:
         self.warden = TheWarden(self.pool)
         self.plongeur = ThePlongeur(self.pool)
         self.sentinel = TheSentinel(self.pool)
+        # Escalation authority. CRITICAL: survives Brigade Compression.
+        self.chef_de_cuisine = ChefDeCuisine(self.pool)
 
         for station in [self.forager, self.analyst, self.librarian, self.cartographer,
                         self.hydra, self.salamander, self.herald, self.dossier,
-                        self.warden, self.plongeur, self.sentinel]:
+                        self.warden, self.plongeur, self.sentinel,
+                        self.chef_de_cuisine]:
             self.executive.register_station(station)
 
     def start(self):
@@ -324,8 +332,41 @@ class PersistentKitchen:
         for ws in dead_connections:
             self._ws_connections.discard(ws)
 
+    # An operator-supplied seed is the one place untrusted input reaches the
+    # pool directly, so it is validated before ingestion rather than trusted.
+    MAX_SEED_URL_LEN = 2048
+
+    def validate_seed_url(self, url: str) -> str | None:
+        """Return a rejection reason, or None if the URL is acceptable.
+
+        network_guard.public_url() is the same SSRF check the Forager uses when
+        it fetches: it rejects private, loopback, link-local and reserved
+        addresses, and the .test/.invalid/.example/.localhost suffixes. Reusing
+        it here means the seed endpoint cannot be used to point the brigade at
+        an internal service.
+        """
+        if not isinstance(url, str) or not url.strip():
+            return 'url must be a non-empty string'
+        url = url.strip()
+        if len(url) > self.MAX_SEED_URL_LEN:
+            return f'url exceeds {self.MAX_SEED_URL_LEN} characters'
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return f'unsupported scheme {parsed.scheme!r}: only http and https are accepted'
+        if not parsed.netloc:
+            return 'url has no host'
+        if not public_url(url):
+            return 'host does not resolve to a public address (SSRF guard)'
+        return None
+
     def seed(self, url: str) -> dict:
         """Inject a seed URL into the pool. Returns entity info."""
+        reason = self.validate_seed_url(url)
+        if reason:
+            self.pool._log_event('seed_rejected', 'dragon_api',
+                                 f"Seed rejected: {reason}", f"url={str(url)[:256]}")
+            return {'status': 'rejected', 'url': url, 'reason': reason}
+        url = url.strip()
         eid = self.pool.add_entity('url', url)
         if eid:
             return {'status': 'seeded', 'entity_id': eid, 'url': url}
@@ -423,23 +464,31 @@ async def events_handler(request: web.Request):
 
 
 async def seed_handler(request: web.Request):
-    """Inject a seed URL."""
-    # Check auth
-    if API_KEY:
-        auth_header = request.headers.get('Authorization', '')
-        if not auth_header.startswith('Bearer ') or auth_header[7:] != API_KEY:
-            return web.json_response({'error': 'Unauthorized - invalid or missing Bearer token'}, status=401)
+    """Inject a seed URL. Authenticated (via middleware), rate limited, validated."""
+    allowed, retry_after = SEED_RATE_LIMITER.allow(client_key(request))
+    if not allowed:
+        return web.json_response(
+            {'error': 'Rate limit exceeded', 'retry_after': retry_after},
+            status=429, headers={'Retry-After': str(retry_after)},
+        )
 
     try:
         data = await request.json()
-        url = data.get('url')
-        if not url:
-            return web.json_response({'error': 'Missing "url" field'}, status=400)
-        kitchen = request.app['kitchen']
-        result = kitchen.seed(url)
-        return web.json_response(result)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, ValueError):
         return web.json_response({'error': 'Invalid JSON'}, status=400)
+
+    if not isinstance(data, dict):
+        return web.json_response({'error': 'Body must be a JSON object'}, status=400)
+
+    url = data.get('url')
+    if not url:
+        return web.json_response({'error': 'Missing "url" field'}, status=400)
+
+    kitchen = request.app['kitchen']
+    result = kitchen.seed(url)
+    if result['status'] == 'rejected':
+        return web.json_response(result, status=400)
+    return web.json_response(result)
 
 
 async def metrics_handler(request: web.Request):
@@ -451,12 +500,64 @@ async def metrics_handler(request: web.Request):
     return web.Response(text=metrics_text, content_type='text/plain; version=0.0.4')
 
 
+class RateLimiter:
+    """Fixed-window per-client limiter for write endpoints.
+
+    Deliberately simple and in-process: this guards a single-machine daemon
+    against an unattended script hammering /api/seed, not against a distributed
+    attacker. A real deployment behind a reverse proxy should rate limit there
+    too. Windows are pruned on access so the dict cannot grow without bound.
+    """
+
+    def __init__(self, max_requests: int = 30, window_seconds: float = 60.0):
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self._hits: dict = {}
+        self._lock = threading.Lock()
+
+    def allow(self, client: str) -> tuple:
+        """Return (allowed, retry_after_seconds)."""
+        now = time.monotonic()
+        cutoff = now - self.window_seconds
+        with self._lock:
+            for key in [k for k, v in self._hits.items() if not v or v[-1] < cutoff]:
+                del self._hits[key]
+            hits = [t for t in self._hits.get(client, []) if t >= cutoff]
+            if len(hits) >= self.max_requests:
+                self._hits[client] = hits
+                return False, max(1, int(hits[0] + self.window_seconds - now) + 1)
+            hits.append(now)
+            self._hits[client] = hits
+            return True, 0
+
+
+SEED_RATE_LIMITER = RateLimiter(max_requests=30, window_seconds=60.0)
+
+
+def client_key(request: web.Request) -> str:
+    """Identify the caller for rate limiting. Peer address, not a spoofable header."""
+    peer = request.transport.get_extra_info('peername') if request.transport else None
+    if isinstance(peer, tuple) and peer:
+        return str(peer[0])
+    return request.remote or 'unknown'
+
+
 def check_auth(request: web.Request) -> bool:
     """Check Bearer token auth if API_KEY is configured."""
     if not API_KEY:
         return True
     auth_header = request.headers.get('Authorization', '')
-    return auth_header.startswith('Bearer ') and auth_header[7:] == API_KEY
+    if auth_header.startswith('Bearer ') and secrets.compare_digest(auth_header[7:], API_KEY):
+        return True
+    # Browsers cannot set an Authorization header on a WebSocket handshake, so
+    # /ws additionally accepts the key as a query parameter. Same secret, same
+    # constant-time comparison — this is a transport accommodation, not a
+    # weaker check.
+    if request.path == '/ws':
+        token = request.query.get('token', '')
+        if token and secrets.compare_digest(token, API_KEY):
+            return True
+    return False
 
 
 @web.middleware
@@ -471,9 +572,20 @@ async def cors_middleware(request: web.Request, handler):
 
 @web.middleware
 async def auth_middleware(request: web.Request, handler):
-    """Middleware to enforce API key auth on protected routes."""
-    # Skip auth for WebSocket upgrade, health, and metrics
-    if request.path in ('/ws', '/api/health', '/metrics'):
+    """Middleware to enforce API key auth on protected routes.
+
+    Only /api/health is unauthenticated, and only because a liveness probe must
+    work without credentials; it returns no pool data.
+
+    Previously this also exempted '/ws' and '/metrics' unconditionally. /ws
+    streams the FULL pool telemetry payload, so that exemption meant setting
+    XP_ARC_API_KEY protected the REST surface while leaving a complete live feed
+    of the same data open to anyone who could reach the port — directly
+    contradicting this module's own docstring. /metrics leaks entity counts.
+    Both are now gated. When XP_ARC_API_KEY is unset, auth is disabled
+    everywhere exactly as before, so this changes nothing for local dev.
+    """
+    if request.path == '/api/health':
         return await handler(request)
     if not check_auth(request):
         return web.json_response({'error': 'Unauthorized - invalid or missing Bearer token'}, status=401)
@@ -534,6 +646,13 @@ def main():
     parser.add_argument('--port', type=int,
                         default=int(os.environ.get('XP_ARC_PORT', '8089')),
                         help='HTTP/WebSocket API port (0=disabled)')
+    parser.add_argument('--host', default=os.environ.get('XP_ARC_HOST', '127.0.0.1'),
+                        help='Bind address for the observation API. Defaults to '
+                             '127.0.0.1 (loopback only). Set to 0.0.0.0 to accept '
+                             'external connections — do that ONLY behind a trusted '
+                             'network boundary and with XP_ARC_API_KEY set. '
+                             'Containers need 0.0.0.0 for published ports to reach '
+                             'the daemon; the container boundary is the isolation.')
     parser.add_argument('--seeds', nargs='*', help='Initial seed URLs')
 
     args = parser.parse_args()
@@ -554,13 +673,19 @@ def main():
     # dedicated worker so polling never starves the HTTP or WebSocket surface.
     if args.port > 0:
         app = create_app(kitchen)
-        print(f"[API] DRAGON dashboard:     http://127.0.0.1:{args.port}/")
-        print(f"[API] WebSocket telemetry: ws://127.0.0.1:{args.port}/ws")
-        print(f"[API] DRAGON endpoint:     http://127.0.0.1:{args.port}/api/dragon")
-        print(f"[API] Seed endpoint:       POST http://127.0.0.1:{args.port}/api/seed")
-        print(f"[API] Health endpoint:     http://127.0.0.1:{args.port}/api/health")
+        shown = 'localhost' if args.host in ('127.0.0.1', '0.0.0.0') else args.host
+        print(f"[API] Bind address:        {args.host}:{args.port}")
+        if args.host == '0.0.0.0' and not API_KEY:  # nosec B104 - operator opt-in, warned
+            print("[API] *** WARNING: bound to all interfaces with XP_ARC_API_KEY "
+                  "unset. Every endpoint, including the /ws telemetry stream, is "
+                  "unauthenticated. ***")
+        print(f"[API] DRAGON dashboard:     http://{shown}:{args.port}/")
+        print(f"[API] WebSocket telemetry: ws://{shown}:{args.port}/ws")
+        print(f"[API] DRAGON endpoint:     http://{shown}:{args.port}/api/dragon")
+        print(f"[API] Seed endpoint:       POST http://{shown}:{args.port}/api/seed")
+        print(f"[API] Health endpoint:     http://{shown}:{args.port}/api/health")
         print()
-        web.run_app(app, host='127.0.0.1', port=args.port)
+        web.run_app(app, host=args.host, port=args.port)
         return
 
     # Without the local observation server, retain a foreground CLI mode.

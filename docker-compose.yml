@@ -1,0 +1,53 @@
+# Local/dev orchestration for the XP-Arc persistent kitchen daemon.
+#
+# Secrets are sourced from the host environment only — nothing here is a
+# literal value. Export them in your shell (or an untracked .env file that
+# Compose reads automatically) before running `docker compose up`:
+#
+#   export XP_ARC_API_KEY=...
+#   export XP_ARC_ABOYEUR_KEY=...
+#   export XP_ARC_MASTER_KEY=...
+#
+# NOTE: see the "KNOWN LIMITATION" comment at the top of Dockerfile —
+# run_persistent.py currently binds its HTTP/WebSocket server to 127.0.0.1
+# with no configurable override, so the `ports:` mapping below will not
+# actually reach the daemon from the host until that's fixed upstream.
+# `network_mode: host` is offered as a commented-out fallback for Linux
+# hosts that need access today.
+
+services:
+  xp-arc-daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: xp-arc:local
+    container_name: xp-arc-daemon
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    # Uncomment on Linux if you need the API reachable today, in place of
+    # the `ports:` mapping above (host networking bypasses the 127.0.0.1
+    # bind limitation but also removes container network isolation):
+    # network_mode: host
+    environment:
+      XP_ARC_DB: /data/xp_arc.db
+      XP_ARC_PORT: "8089"
+      XP_ARC_POLL: "0.5"
+      XP_ARC_MAX: "500"
+      XP_ARC_LOG_LEVEL: INFO
+      # Sourced from the host shell / .env — never hardcode real values here.
+      XP_ARC_API_KEY: ${XP_ARC_API_KEY:?XP_ARC_API_KEY must be set in the host environment}
+      XP_ARC_ABOYEUR_KEY: ${XP_ARC_ABOYEUR_KEY:?XP_ARC_ABOYEUR_KEY must be set in the host environment}
+      XP_ARC_MASTER_KEY: ${XP_ARC_MASTER_KEY:?XP_ARC_MASTER_KEY must be set in the host environment}
+    volumes:
+      - xp-arc-pool-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8089/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  xp-arc-pool-data:
+    name: xp-arc-pool-data

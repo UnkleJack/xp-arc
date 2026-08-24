@@ -1,0 +1,66 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg-info
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Secrets / key material — never bake these into an image
+.env
+.env.*
+station_keys.json
+station_keys.json.enc
+*.pem
+*.key
+
+# Runtime databases and generated state (mount as a volume instead)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+gauntlet.db*
+gauntlet_phase*.db*
+xp_arc.db
+xp_arc_*.db
+*_dragon.json
+pool_state.json
+proof_of_work_log.jsonl
+batch_log.txt
+
+# Test / report output
+tests/
+test_*.py
+gauntlet_report_*.json
+htmlcov/
+.coverage
+.coverage.*
+
+# Docs and repo scaffolding not needed at runtime
+docs/
+examples/
+specs/
+*.md
+LICENSE
+NOTICE
+
+# Editor / OS cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# CI / release infra (not needed inside the image)
+.github/
+Dockerfile
+.dockerignore
+docker-compose.yml

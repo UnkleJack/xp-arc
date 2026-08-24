@@ -107,8 +107,11 @@ The reference implementation supports **13 core stations** plus **3 subpackage s
 | `salamander` | `TheSalamander` | `xp_arc/stations/salamander.py` | Fallback (Librarian)| `document`, `text` | False |
 | `herald` | `TheHerald` | `xp_arc/stations/herald.py` | Primary | `notification` | False |
 | `dossier` | `TheDossier` | `xp_arc/stations/dossier.py` | Primary | `identity_profile`| False |
+| `chef_de_cuisine` | `ChefDeCuisine` | `xp_arc/stations/chef_de_cuisine.py` | Primary | `escalation` | True |
 
 *Note: In Brigade Compression mode, all stations marked `Critical: False` are unregistered, leaving only `Critical: True` stations active.*
+
+`chef_de_cuisine` did not exist before commit `5c67e42`. It is the terminal authority the Executive hands an entity to when labor cannot proceed on its own — currently the only case wired up is a stranded fracture group (Article V 5.5). It is marked `Critical: True` deliberately: a degraded brigade under Brigade Compression is exactly when escalations are most likely, so the escalation handler must survive compression rather than being one of the stations stripped out.
 
 ### 3.2 Subpackage Stations
 
@@ -124,9 +127,10 @@ The reference implementation supports **13 core stations** plus **3 subpackage s
 
 ### 4.1 Write Authentication (HMAC-SHA256)
 - **Mechanism**: Every writing call (`add_entity`, `transition_status`, `add_edge`, etc.) is signed using HMAC-SHA256.
-- **Key Store**: Station keys are generated and persisted in `station_keys.json`.
+- **Key Store**: There is no single tracked `station_keys.json` anymore. Each `IntelligencePool` instance derives its own key file path from its DB path — `IntelligencePool._key_file`, default `{db_path}.station_keys.json.enc` (e.g. `xp_arc.db.station_keys.json.enc`), overridable via `XP_ARC_STATION_KEY_FILE` — so keys live beside the database they authenticate, not in the source tree. If `XP_ARC_MASTER_KEY` is set, the file is Fernet-encrypted at rest (`_get_fernet()` in `xp_arc/core/pool.py`); if it is unset, the loader falls back to a plaintext file at the same path with the `.enc` suffix removed. The plaintext root-level `station_keys.json` that used to ship in the repo has been untracked and gitignored — but untracking does not scrub it from git history, so any key that was ever committed there should be treated as compromised until rotated.
 - **Validation**: If a station has no key registered, writes proceed unsigned (development mode). If a key exists, all writes must supply a timing-safe MAC computed over the payload string:
   `{method_name}:{arg1}:{arg2}...`
+- **Station ID validation**: `register_station()` now runs the station id through `sanitize_station_id()` (`^[A-Za-z0-9_-]{1,64}$`), which raises rather than rewrites — a rewritten id could silently bind two stations onto the same key. See `xp_arc/core/sanitization.py`.
 
 ### 4.2 Aboyeur QA Signatures
 - **Approved entities** are signed by the Expeditor using a HMAC signature prefixed with `ABOY-`.

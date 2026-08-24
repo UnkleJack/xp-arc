@@ -7,7 +7,7 @@ import json
 import logging
 import sqlite3
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import yaml
@@ -582,9 +582,100 @@ class CompetitiveIntelStation:
         logger.info(f"Report generated at {report_path}")
 
     async def snapshot_competitor(self, competitor_id: str):
-        """Create a snapshot for a specific competitor."""
-        logger.info(f"Creating snapshot for {competitor_id}")
-        # Implementation would query current state and store in competitor_snapshots
+        """Create a point-in-time snapshot row for one competitor.
+
+        Was a stub that logged and stored nothing, which is why
+        competitor_snapshots rendered empty in every weekly report.
+
+        The snapshot is assembled from two sources: static profile fields the
+        operator declared in the watchlist (pricing tier, market position,
+        funding stage, team size), and live metrics derived from raw_events
+        already collected this cycle. Nothing here performs a network fetch —
+        fetch_all_sources() owns that, and duplicating it would double every
+        competitor's API rate-limit consumption.
+
+        Idempotent per day: the schema declares UNIQUE(competitor, snapshot_date),
+        so re-running on the same date updates that day's row rather than
+        appending a duplicate.
+        """
+        profile = {}
+        for comp in self.watchlist.get("competitors", []):
+            if comp.get("id") == competitor_id:
+                profile = comp
+                break
+
+        if not profile:
+            logger.warning("No watchlist entry for competitor %s; skipping snapshot",
+                           competitor_id)
+            return None
+
+        if self.dry_run:
+            logger.info(f"[DRY RUN] Would snapshot {competitor_id}")
+            return None
+
+        snapshot_date = datetime.now(timezone.utc).date().isoformat()
+        conn = self.get_connection()
+        try:
+            # Latest release-shaped event gives the current version.
+            row = conn.execute(
+                """SELECT title FROM raw_events
+                   WHERE competitor = ? AND source_type IN ('release', 'tag')
+                   ORDER BY timestamp DESC LIMIT 1""",
+                (competitor_id,),
+            ).fetchone()
+            version = row["title"] if row else None
+
+            metrics = conn.execute(
+                """SELECT COUNT(*) AS events_30d
+                   FROM raw_events
+                   WHERE competitor = ? AND fetched_at >= datetime('now', '-30 days')""",
+                (competitor_id,),
+            ).fetchone()
+
+            features = profile.get("key_features") or []
+            notes = (f"Auto-snapshot. {metrics['events_30d']} raw events collected "
+                     f"in the trailing 30 days.")
+
+            conn.execute(
+                """INSERT INTO competitor_snapshots
+                       (competitor, snapshot_date, version, pricing_tier,
+                        pricing_details, key_features, market_position,
+                        funding_stage, team_size, github_stars, github_forks,
+                        pypi_downloads_monthly, npm_downloads_weekly, notes)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(competitor, snapshot_date) DO UPDATE SET
+                       version = excluded.version,
+                       pricing_tier = excluded.pricing_tier,
+                       pricing_details = excluded.pricing_details,
+                       key_features = excluded.key_features,
+                       market_position = excluded.market_position,
+                       funding_stage = excluded.funding_stage,
+                       team_size = excluded.team_size,
+                       github_stars = excluded.github_stars,
+                       github_forks = excluded.github_forks,
+                       pypi_downloads_monthly = excluded.pypi_downloads_monthly,
+                       npm_downloads_weekly = excluded.npm_downloads_weekly,
+                       notes = excluded.notes""",
+                (
+                    competitor_id, snapshot_date, version,
+                    profile.get("pricing_tier"),
+                    json.dumps(profile.get("pricing_details") or {}),
+                    json.dumps(features),
+                    profile.get("market_position"),
+                    profile.get("funding_stage"),
+                    profile.get("team_size"),
+                    profile.get("github_stars"),
+                    profile.get("github_forks"),
+                    profile.get("pypi_downloads_monthly"),
+                    profile.get("npm_downloads_weekly"),
+                    notes,
+                ),
+            )
+            conn.commit()
+            logger.info("Snapshot recorded for %s on %s", competitor_id, snapshot_date)
+            return snapshot_date
+        finally:
+            conn.close()
 
     async def snapshot_all_competitors(self):
         """Create snapshots for all competitors."""

@@ -16,6 +16,8 @@ import base64
 from datetime import datetime, timezone
 from cryptography.fernet import Fernet
 
+from .sanitization import sanitize_station_id, sanitize_display_name
+
 
 # ─── Module-level Encrypted HMAC Key Store ───────────────────────────────────
 
@@ -103,7 +105,12 @@ VALID_TRANSITIONS = {
     'processing': ['pending_qa', 'failed', 'fractured'],
     'pending_qa': ['completed', 'failed'],
     'failed': ['processing'],  # retry
-    'fractured': ['stitchable'],
+    # 'fractured' -> 'failed' is the escalation exit. Without it, a fracture whose
+    # shards can never all complete strands its parent permanently: the parent is
+    # moved to 'fractured' BEFORE its shards exist, and 'stitchable' requires
+    # every shard completed. Taken only by the Chef de Cuisine escalation path
+    # (ExecutiveChef._check_stranded_fracture), never by ordinary station labor.
+    'fractured': ['stitchable', 'failed'],
     'stitchable': ['mapped', 'failed'],
     'mapped': ['completed', 'failed'],
     'completed': [],  # terminal
@@ -132,6 +139,16 @@ def compute_payload_hash(entity_type: str, entity_value: str) -> str:
 # Cascade depth limit (CONSTITUTION Article VII, Section 7.3)
 # Declared here so pool-level lineage verification can enforce it directly.
 MAX_CASCADE_DEPTH = 5
+
+# Entity-flood cap (RT-14). A single process() returning a huge spawn_targets
+# list could otherwise flood the pool from one entity. Enforced by the
+# Executive when republishing spawn directives.
+MAX_SPAWN_PER_ENTITY = 50
+
+# Shard-flood cap (RT-15). A station requesting fracture declares shard_count;
+# an unbounded value multiplies one entity into arbitrarily many shards, each
+# of which is itself a fracture candidate. Enforced by the Fracture Protocol.
+MAX_SHARD_COUNT = 20
 
 class IntelligencePool:
     """
@@ -279,7 +296,16 @@ class IntelligencePool:
 
     def register_station(self, station_id: str, name: str, handles_types: list,
                          is_primary: bool = True, hmac_key: str = None):
-        """Register a station in the DB. Also persists key to encrypted key file."""
+        """Register a station in the DB. Also persists key to encrypted key file.
+
+        station_id is VALIDATED, not rewritten: it is the HMAC write-auth lookup
+        key and a component of the encrypted keystore, so silently rewriting a
+        malformed id could bind two distinct stations onto one key. An invalid
+        id raises ValueError. The human-readable name is inert and is sanitized
+        in place instead (control characters stripped, length capped).
+        """
+        station_id = sanitize_station_id(station_id)
+        name = sanitize_display_name(name)
         types_str = json.dumps(handles_types)
         if hmac_key is None:
             existing = self.get_station_key(station_id)
@@ -869,6 +895,53 @@ class IntelligencePool:
         for r in rows:
             stats[r['status']] = {'count': r['cnt'], 'total_sla': r['total_sla']}
         return stats
+
+    # Article VIII, Section 8.4 — measurement interval.
+    ZORAN_WINDOW_SECONDS = 60
+    ZORAN_MIN_WINDOW_SECONDS = 10
+
+    def windowed_sla_flow(self, window_seconds: int = None) -> dict:
+        """SLA-seconds ingested and completed inside a rolling window.
+
+        This is the input to Zoran's Law as a RATE ratio (Article VIII 8.4).
+        Both figures are flows measured over the same interval, not cumulative
+        totals — cumulative totals are what made S mathematically incapable of
+        exceeding 1.0, since every completed task had also been ingested.
+
+        `sla_suspended` rows are excluded from both sides: a task whose SLA is
+        suspended is not accruing cognitive debt (Article VI 6.4) and must not
+        count as either arriving work or drained work.
+        """
+        if window_seconds is None:
+            window_seconds = self.ZORAN_WINDOW_SECONDS
+        window_seconds = max(int(window_seconds), self.ZORAN_MIN_WINDOW_SECONDS)
+        modifier = f'-{window_seconds} seconds'
+
+        ingested = self.conn.execute(
+            """SELECT COALESCE(SUM(sla_seconds), 0) AS total, COUNT(*) AS cnt
+               FROM entities
+               WHERE COALESCE(sla_suspended, 0) = 0
+                 AND created_at >= datetime('now', ?)""",
+            (modifier,)
+        ).fetchone()
+
+        completed = self.conn.execute(
+            """SELECT COALESCE(SUM(sla_seconds), 0) AS total, COUNT(*) AS cnt
+               FROM entities
+               WHERE status = 'completed'
+                 AND COALESCE(sla_suspended, 0) = 0
+                 AND completed_at IS NOT NULL
+                 AND completed_at >= datetime('now', ?)""",
+            (modifier,)
+        ).fetchone()
+
+        return {
+            'window_seconds': window_seconds,
+            'ingested_sla': ingested['total'],
+            'ingested_count': ingested['cnt'],
+            'completed_sla': completed['total'],
+            'completed_count': completed['cnt'],
+        }
 
     # ─── Export for DRAGON ─────────────────────────────────────────────────────
 
