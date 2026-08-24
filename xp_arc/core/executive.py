@@ -23,6 +23,7 @@ class ExecutiveChef:
     """
 
     MAX_CASCADE_DEPTH = MAX_CASCADE_DEPTH  # class-level alias to module constant
+    MAX_SPAWN_PER_ENTITY = 50  # RT-14: cap spawns from a single process() call to prevent entity-flood DoS
 
     def __init__(self, pool, max_entities: int = 500, verbose: bool = True):
         self.pool = pool
@@ -266,6 +267,14 @@ class ExecutiveChef:
                 parent_chain = []
         else:
             parent_chain = []
+
+        if len(spawn_targets) > self.MAX_SPAWN_PER_ENTITY:
+            self.pool._log_event(
+                'spawn_flood_capped', 'executive',
+                f"spawn_targets truncated from {len(spawn_targets)} to {self.MAX_SPAWN_PER_ENTITY}",
+                f"parent_id={parent_id}"
+            )
+            spawn_targets = spawn_targets[:self.MAX_SPAWN_PER_ENTITY]
 
         for target in spawn_targets:
             ent_type = target.get('ent_type') or target.get('type') or 'url'
