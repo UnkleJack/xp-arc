@@ -203,6 +203,8 @@ xp-arc/
 ├── WHITEPAPER.md                # Full protocol spec
 ├── CONSTITUTION.MD              # Operational law
 ├── LEGAL.md                     # Legal framework
+├── LICENSE                      # Apache License 2.0
+├── NOTICE                       # Copyright + trademark reservation
 ├── SPEC.md                      # Asset Engine spec
 ├── PROMPT_LIBRARY.md            # Asset Engine prompts
 ├── FILTER_SAFE_PROMPTS.md       # Asset Engine safe prompts
@@ -232,14 +234,15 @@ xp-arc/
 | Component | Version | Notes |
 |---|---|---|
 | XP-Arc Protocol | 0.2.1 | Consolidated subpackages |
-| Constitution | 1.4 | MIT license, SQLite WAL substrate |
+| Constitution | 1.6 | Apache 2.0 license, SQLite WAL substrate |
 | Pool Schema | v2 | Includes cascade lineage columns |
 | Aboyeur Protocol | 1.0 | Schema in `docs/aboyeur-protocol-v1.json` |
 | Asset Engine | 0.1.0 | Subpackage under `xp_arc.asset_engine` |
 | Competitive Intel | 0.1.0 | Subpackage under `xp_arc.competitive_intel` |
 | DRAGON Dashboard | 0.2.0 | Live polling via `run_persistent.py` |
 | Broker | 0.0.0 | OBSOLETE — remove in v0.3 |
+| License | Apache-2.0 | Relicensed from MIT 2026-08-19; see WHITEPAPER §13 |
 
 ---
 
-*Last updated: 2026-07-21 — v0.2.1 consolidation complete*
+*Last updated: 2026-08-23 — license row updated to Apache-2.0; see WHITEPAPER.md §13 for the relicense changelog. Other sections carried forward from the 2026-07-21 v0.2.1 consolidation and known to be stale against current code — see STATUS.md.*

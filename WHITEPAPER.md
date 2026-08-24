@@ -3,7 +3,7 @@
 **Version:** 0.2.1
 **Authors:** Jack (unklejack), Claude (Anthropic), Zo.Computer, Gemini (Google)
 **Repository:** github.com/unklejack/xp-arc
-**License:** MIT
+**License:** Apache License 2.0
 **Changelog:** See Section 12
 
 ---
@@ -774,18 +774,25 @@ as actionable alerts with a 60-second veto countdown.
 ## Section 9 — The Open Specification
 
 XP-Arc is open. The specification, the protocol schema, the reference
-implementation, and this whitepaper are published under the MIT License.
+implementation, and this whitepaper are published under the Apache License,
+Version 2.0.
 
 The history of infrastructure software is a history of open specifications
 winning. TCP/IP. HTTP. Git. Linux. The pattern is consistent: when the protocol
 is open, adoption is frictionless, the ecosystem builds itself, and value
 concentrates in what's built around the protocol — not in the protocol itself.
 
-XP-Arc follows the Red Hat model explicitly. The spec is the commons. The
-monetizable surface is everything built on it: managed deployments, enterprise
-integrations, certified station implementations, the DRAGON dashboard, the
-Aboyeur validation service, CPP prompt packs, and the consulting layer that
-helps organizations point the brigade at their actual problems.
+XP-Arc follows the Red Hat model explicitly, and Apache 2.0 is the license
+that structurally supports it: the code grant (§2) and patent grant (§3) are
+unrestricted, while trademark rights (§6) are reserved separately and are
+not licensed by using the code. The spec and code are the commons. The
+monetizable surface is everything built on and named around it: managed
+deployments, enterprise integrations, certified station implementations
+(certified specifically because they may use the reserved "XP-Arc"/"DRAGON"
+marks — see NOTICE), the DRAGON dashboard, the Aboyeur validation service,
+CPP prompt packs, and the consulting layer that helps organizations point
+the brigade at their actual problems. This is the same structure that lets
+CentOS legally exist while being unable to call itself Red Hat.
 
 Open-sourcing the spec also serves the originality claim. Prior art is
 established by publication date, not patent filing. This whitepaper, the GitHub
@@ -793,7 +800,8 @@ repository, and the Aboyeur Protocol JSON schema constitute a dated, public,
 citable record of XP-Arc's architecture as of its v0.1 release (March 16, 2026).
 v0.2 extends that record.
 
-MIT. No commercial license required. No four-year conversion wait.
+Apache 2.0. No commercial license required to use the code. No four-year
+conversion wait. Patent grant included. Trademark reserved.
 
 ---
 
@@ -932,6 +940,36 @@ and outputs none of them could have produced alone.
 - **Load Test Harness (`tests/test_load.py`):** Full brigade stress tests at 500 entities. 500-entity Snowball: 26.45 entities/sec, 18.9s exec, 0 failures. 300-entity: 51.66 entities/sec, 5.8s exec. Cascade depth limit verified enforced at all scales. SQLite WAL confirmed not a bottleneck. Forager HTTP I/O is primary throughput constraint.
 - **Brigade Compression (`ExecutiveChef.compress_brigade()` / `expand_brigade()`):** Graceful degradation mechanism. Stations declare `critical=True` (default False). When `compress_brigade()` is called, non-critical stations are removed from active routing but preserved in a backup. `expand_brigade()` restores all stations. `is_compressed()` reports current state. Idempotent. Events logged to pool event log.
 - **Zoran's Law Enforcement (SpaZzMatiC → Brigade Compression integration):** SpaZzMatiC now triggers automatic brigade compression when `PRO < 70%` or when `S < 0.5` for 2 consecutive measurements. `set_executive()` injects the ExecutiveChef; `_review_zorans_law()` calls `compress_brigade()` directly. Safe halt recommendation fires on the second consecutive S < 0.5 measurement, with brigade compression as the first automated response. Recovery (S >= 0.5) resets the violation streak and clears `safe_halt_recommended`.
+
+---
+
+## Section 13 — Changelog: Relicense to Apache 2.0 (2026-08-19)
+
+XP-Arc relicensed from MIT to the Apache License, Version 2.0. No third-party
+contribution had been accepted at the time of relicensing, so the change was
+unilateral; any future license change now requires contributor consent under
+Apache 2.0 §5.
+
+**Rationale:** the project's monetization strategy is Red Hat-style (open
+code, monetized expertise and certification), which Apache 2.0 supports
+structurally in ways MIT does not:
+
+- **Patent grant (§3)** with a litigation-retaliation termination clause — MIT
+  has neither.
+- **Trademark reservation (§6)** — the code grant does not include the right
+  to use the "XP-Arc," "DRAGON," "Aboyeur," "Zoran's Law," or "SpaZzMatiC"
+  names. This is the mechanism behind "certified" and "official" XP-Arc
+  implementations: forks and deployments are unrestricted, but only the
+  Maintainer's implementations may carry the name.
+
+BSL 1.1 was considered and rejected: it is not OSI-recognized, is
+auto-rejected in some procurement processes, and suppresses the adoption
+that consulting and course revenue depend on — defending against a
+hyperscaler-cloning threat that only materializes after adoption exists,
+which XP-Arc does not yet have.
+
+See `LICENSE` (canonical Apache 2.0 text) and `NOTICE` (trademark
+reservation) in the repository root.
 
 ---
 

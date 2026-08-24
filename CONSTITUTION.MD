@@ -1,6 +1,6 @@
 # THE COGNITIVE LABOR CONSTITUTION
 ## XP-Arc Multi-Agent Orchestration Framework
-### Ratified: March 2026 | Version 1.5 | MIT License
+### Ratified: March 2026 | Version 1.6 | Apache License 2.0
 ### Authored under the direction of Jack (David J. Riedl)
 
 ---
@@ -476,17 +476,17 @@ Every task output MUST record the `prompt_version` used, enabling post-hoc quali
 XP-Arc adopts an open-source-first monetization model: **open-source the spec, monetize the expertise**. Revenue streams:
 
 1. **Consulting** — architecture review, certified implementation guidance
-2. **Certified Implementations** — BSL-protected stamped deployments
+2. **Certified Implementations** — Apache 2.0 licensed code, trademark-controlled certified/official deployments
 3. **CPP Prompt Packs** — per-station cognitive prompt packs
 4. **Courses** — structured education on XP-Arc deployment
 
 ### Section 11.2 — Licensing and IP
 
-XP-Arc is released under the **MIT License**. The MIT license permits unrestricted use, modification, distribution, and commercial deployment without any royalty or additional licensing requirements.
+XP-Arc is released under the **Apache License, Version 2.0**. Apache 2.0 permits unrestricted use, modification, distribution, and commercial deployment without royalty, and additionally grants an express patent license (§3) with a defensive termination clause, and reserves trademark rights (§6) separately from the code grant.
 
-This aligns with the `LICENSE` file in the repository, which is the definitive legal instrument for the project.
+This aligns with the `LICENSE` file (canonical Apache 2.0 text) and the `NOTICE` file (copyright plus named trademark reservation for XP-Arc, DRAGON, Aboyeur, Zoran's Law, and SpaZzMatiC) in the repository, which are the definitive legal instruments for the project.
 
-No additional commercial licensing is required; forking, studying, and contributing are fully permitted under MIT terms.
+The trademark reservation is the mechanism behind "certified" and "official" XP-Arc implementations: the code is unrestricted, but only the XP-Arc Maintainer may use the XP-Arc name, DRAGON name, and related marks to describe a deployment as certified or official. Forking, studying, modifying, and commercially deploying the code are fully permitted under Apache 2.0 terms; using the reserved names to imply endorsement or certification is not.
 
 ---
 
@@ -682,16 +682,17 @@ SAFE HALT:              Suspends ingestion, debt accrual, Plongeur sweeps. Grace
 GRACE CAP:              max(300s, 2× longest station SLA). No open-ended safety blackouts.
 AGENT LAW:              Zero sycophancy. Direct positions. Productive friction.
 SPAZZMATIС LAW:         Independent. Cannot be silenced. 60s veto window on safe halt trigger.
-LICENSE:                MIT. No commercial restrictions; the MIT license permits unrestricted use, modification, distribution, and commercial deployment.
+LICENSE:                Apache 2.0. Patent grant + trademark reservation. See LICENSE and NOTICE.
 ```
 
 ---
 
 *This document is part of the XP-Arc open-source multi-agent orchestration framework.*
-*© 2026 David J. Riedl. MIT License. Hosted at github.com/UnkleJack/xp-arc*
+*© 2026 David J. Riedl. Licensed under the Apache License, Version 2.0. Hosted at github.com/UnkleJack/xp-arc*
 *Version 1.5 — Substrate correction: SQLite WAL replaces DuckDB + Write Broker. MIT license. All BSL references removed.*
 *v1.1: Agent identity, SpaZzMatiC authority, universal principles, DuckDB substrate.*
 *v1.2: pending_qa gate, orphan detection, Aboyeur deadlock fix, mapped→failed, safe halt grace window, SLA schema, serialized write queue, BSL license, dependency tiers, SpaZzMatiC safe halt authority.*
 *v1.3: processing_checkpoint, sla_suspended, Plongeur descendant GC check, SLA suspension on human escalation.*
 *v1.4: Redis-buffered HA Write Broker, DRAGON materialized view, DB-generated timestamps only, Aboyeur rejection circuit breaker (max_rejections), weighted S formula (Σsla_seconds), debt grace window hard cap, broker-enforced cascade depth.*
 *v1.5: Substrate corrected from DuckDB+Redis Write Broker to SQLite WAL. MIT license. All DuckDB/Write Broker/Materialized View references removed. No infrastructure dependencies for core.*
+*v1.6: Relicensed from MIT to Apache License 2.0 (Dragon's ruling, 2026-08-19). Rationale: express patent grant (§3) and trademark reservation (§6) support the certified-implementation/consulting monetization model without BSL's adoption-suppression tradeoff. See NOTICE for the trademark reservation list.*

@@ -23,10 +23,12 @@ XP-Arc is published as an open research framework. Operators assume full legal r
 
 ## License
 
-XP-Arc is released under the **MIT License**.
+XP-Arc is released under the **Apache License, Version 2.0**.
 
 - Free to use for any purpose, including commercial production.
-- No restrictions on deployment, modification, or commercial use.
-- No license fee, no attribution requirement beyond the copyright notice.
+- No restrictions on deployment, modification, or commercial use of the code.
+- Includes an express patent grant (§3) and a patent-litigation retaliation clause.
+- Reserves trademark rights (§6) separately from the code grant — see the `NOTICE` file for the list of reserved names ("XP-Arc," "DRAGON," "Aboyeur," "Zoran's Law," "SpaZzMatiC") and what "certified"/"official" means in that context.
+- No license fee for the code; attribution requirements are limited to preserving copyright, patent, and NOTICE content per §4.
 
-See the `LICENSE` file for the full MIT license text.
+See the `LICENSE` file for the full Apache 2.0 text and the `NOTICE` file for the trademark reservation.
