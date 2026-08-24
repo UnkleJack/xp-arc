@@ -336,7 +336,14 @@ class IntelligencePool:
         """Verify HMAC of a write payload."""
         key = self.get_station_key(station_id)
         if key is None:
-            return station_id in {'legacy_local', 'executive', 'aboyeur'}
+            # 'fracture_protocol' is the internal writer FractureProtocol.create_shards()
+            # uses for pool.add_entity(station_id='fracture_protocol', ...). It was
+            # missing from this set since inception, so every shard write returned
+            # None (HMAC rejected) and create_shards() always returned []. Because
+            # the parent is transitioned to 'fractured' *before* shards are attempted,
+            # and 'fractured' can only advance to 'stitchable' (which requires real
+            # shards), every fracture permanently bricked its parent entity.
+            return station_id in {'legacy_local', 'executive', 'aboyeur', 'fracture_protocol'}
         if provided_mac is None:
             return False  # station has key but provided no MAC — reject
         expected = hmac.new(
