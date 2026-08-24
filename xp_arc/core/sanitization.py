@@ -211,3 +211,50 @@ def edge_to_d2(source: str, relationship: str, target: str,
 
     label_part = f'label: "{rel_label}"' if rel_label else ""
     return f"{src_id} -> {tgt_id}: {{ {label_part} }}"
+
+# ─── Identity Sanitization ───────────────────────────────────────────────────
+
+# station_id is not a display value. It is the HMAC key lookup key, a filename
+# component in the encrypted keystore, and a foreign key in station_registry.
+# A lossy rewrite would silently bind a station to the wrong key, so this is a
+# validator that REJECTS rather than a sanitizer that rewrites.
+_STATION_ID_VALID = re.compile(r'^[A-Za-z0-9_-]{1,64}$')
+
+# Display names are inert — they never index anything — so they are rewritten
+# rather than rejected. Control characters are stripped and length is capped.
+_CONTROL_CHARS = re.compile(r'[\x00-\x1f\x7f-\x9f]')
+
+STATION_ID_MAX_LEN = 64
+DISPLAY_NAME_MAX_LEN = 128
+
+
+def sanitize_station_id(value: str) -> str:
+    """Validate a station_id, returning it unchanged, or raise ValueError.
+
+    Must match ^[A-Za-z0-9_-]{1,64}$. Deliberately strict: station_id is the
+    HMAC write-auth lookup key and a keystore filename component, so accepting
+    a rewritten form would let two distinct stations collapse onto one key.
+    """
+    if not isinstance(value, str):
+        raise ValueError(f"station_id must be a string, got {type(value).__name__}")
+    if not _STATION_ID_VALID.match(value):
+        raise ValueError(
+            f"Invalid station_id {value!r}: must match ^[A-Za-z0-9_-]{{1,{STATION_ID_MAX_LEN}}}$. "
+            "External adapters (A2A, MCP, ExternalStation) must slugify their "
+            "identifier before registering."
+        )
+    return value
+
+
+def sanitize_display_name(value: str, max_len: int = DISPLAY_NAME_MAX_LEN) -> str:
+    """Strip control characters from a station display name and cap its length.
+
+    Never raises — display names are inert and a station should not fail to
+    register because its human-readable label contained a stray character.
+    """
+    if value is None:
+        return ""
+    cleaned = _CONTROL_CHARS.sub('', str(value)).strip()
+    if len(cleaned) > max_len:
+        cleaned = cleaned[:max_len].rstrip()
+    return cleaned
