@@ -233,7 +233,10 @@ class TheForager(StationChef):
 
                 # Extract page title
                 title_match = re.search(r'<title[^>]*>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
-                title = title_match.group(1).strip()[:200] if title_match else "No title"
+                raw_title = title_match.group(1).strip() if title_match else "No title"
+                # RT-10: strip HTML tags from extracted title before it flows into
+                # notes / downstream rendering (dossier cards render notes verbatim upstream)
+                title = re.sub(r'<[^>]*>', '', raw_title)[:200]
 
                 self.log(f"  Foraged {len(extracted_domains)} domains from: {safe_url}")
 
