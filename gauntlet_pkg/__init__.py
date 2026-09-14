@@ -41,7 +41,7 @@ from xp_arc.core.pool import IntelligencePool, compute_payload_hash, VALID_TRANS
 from xp_arc.core.executive import ExecutiveChef
 from xp_arc.core.aboyeur import Aboyeur
 from xp_arc.core.fracture import FractureRequest, FractureProtocol
-from xp_arc.core.station import StationChef
+from xp_arc.core.station import StationChef, StationRefusal
 from xp_arc.stations.forager import TheForager
 from xp_arc.stations.analyst import TheAnalyst
 from xp_arc.stations.sentinel import TheSentinel
@@ -271,7 +271,11 @@ class Gauntlet:
                     expected_behavior="Phase should complete and report findings",
                     actual_behavior=f"Uncaught exception: {e}",
                     severity="CRITICAL",
-                    evidence={'exception': str(e), 'traceback': str(e.__traceback__)}
+                    evidence={
+                        'exception': str(e),
+                        'traceback': str(e.__traceback__),
+                        'path': self._phase_db_path(),
+                    }
                 ))
                 print(f"  [CRITICAL] Phase crashed: {e}")
 
@@ -332,7 +336,39 @@ class Gauntlet:
             if eid:
                 entity = pool.get_entity(eid)
                 # Forager should reject at sanitization
-                output = forager.process(eid, 'url', poison_value)
+                try:
+                    output = forager.process(eid, 'url', poison_value)
+                except StationRefusal as refusal:
+                    self.report.add_finding(GauntletFinding(
+                        phase='Phase 1: Input Poisoning',
+                        injection=f'{poison_type}: {poison_value[:50]}',
+                        expected_behavior='Forager sanitization rejects malformed input',
+                        actual_behavior=f'Correctly refused malformed input ({refusal.reason})',
+                        severity='INFO',
+                        evidence={
+                            'entity_id': eid,
+                            'input': poison_value,
+                            'type': poison_type,
+                            'refusal_reason': refusal.reason,
+                        }
+                    ))
+                    continue
+                except Exception as e:
+                    self.report.add_finding(GauntletFinding(
+                        phase='Phase 1: Input Poisoning',
+                        injection=f'{poison_type}: {poison_value[:50]}',
+                        expected_behavior='Forager sanitization contains malformed input without crashing',
+                        actual_behavior=f'Unhandled exception in input-poisoning probe: {e}',
+                        severity='CRITICAL',
+                        evidence={
+                            'entity_id': eid,
+                            'input': poison_value,
+                            'type': poison_type,
+                            'exception': str(e),
+                            'path': self._phase_db_path(),
+                        }
+                    ))
+                    continue
 
                 # Check: confidence should be low (0.0-0.3) for rejected inputs
                 if output['confidence'] > 0.3:

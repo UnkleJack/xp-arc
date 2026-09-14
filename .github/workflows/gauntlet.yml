@@ -143,6 +143,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: github.event_name == 'pull_request' || github.event_name == 'schedule'
+    env:
+      XP_ARC_ABOYEUR_KEY: gauntlet-ci-signing-key
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
