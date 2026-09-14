@@ -59,6 +59,7 @@ jobs:
           fi
         env:
           XP_ARC_LOG_LEVEL: INFO
+          XP_ARC_ABOYEUR_KEY: ${{ secrets.XP_ARC_ABOYEUR_KEY }}
 
       - name: Upload Gauntlet Report
         uses: actions/upload-artifact@v4
