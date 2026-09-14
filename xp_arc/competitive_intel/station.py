@@ -206,7 +206,7 @@ class CompetitiveIntelStation:
                 event_ids = [e["id"] for e in events]
                 placeholders = ",".join("?" * len(event_ids))
                 conn.execute(  # nosec B608
-                    f"UPDATE raw_events SET processed = 1 WHERE id IN ({placeholders})",
+                    f"UPDATE raw_events SET processed = 1 WHERE id IN ({placeholders})",  # nosec B608
                     event_ids
                 )
                 conn.commit()
@@ -245,7 +245,7 @@ class CompetitiveIntelStation:
                 event_ids = [e["id"] for e in events]
                 placeholders = ",".join("?" * len(event_ids))
                 conn.execute(  # nosec B608
-                    f"UPDATE raw_events SET processed = 1 WHERE id IN ({placeholders})",
+                    f"UPDATE raw_events SET processed = 1 WHERE id IN ({placeholders})",  # nosec B608
                     event_ids
                 )
                 conn.commit()

@@ -15,7 +15,7 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          pip install -r requirements.txt
+          pip install -e ".[dev,competitive-intel]"
       - name: Run tests
         run: |
           source .venv/bin/activate
