@@ -68,7 +68,12 @@ jobs:
           fi
         env:
           XP_ARC_LOG_LEVEL: INFO
-          XP_ARC_ABOYEUR_KEY: ${{ secrets.XP_ARC_ABOYEUR_KEY }}
+          # An undefined repository secret expands to an EMPTY string, not an
+          # error. The Aboyeur then rejects every signature it checks and the
+          # run reports 7 CRITICAL findings that look like a code defect rather
+          # than a missing configuration value. The fallback is the same literal
+          # the gauntlet-constitution job already uses successfully.
+          XP_ARC_ABOYEUR_KEY: ${{ secrets.XP_ARC_ABOYEUR_KEY || 'gauntlet-ci-signing-key' }}
 
       - name: Upload Gauntlet Report
         uses: actions/upload-artifact@v4

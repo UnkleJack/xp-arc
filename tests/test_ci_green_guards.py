@@ -1,5 +1,5 @@
 """
-Guards for the three defects that made PR #12's CI red, and for the
+Guards for the four defects that made PR #12's CI red, and for the
 path-resolution bug found while fixing them.
 
 Each test here pins a failure that was *silent* -- nothing raised at the time
@@ -24,6 +24,13 @@ missing file:
    calls, resolving to the directory *above* the repo root. Every joined path
    (``config/``, ``sql/``, ``templates/``) missed, and the callers fell through
    to defaults or empty renders rather than erroring.
+
+4. The ``gauntlet`` job read its signing key as a bare
+   ``${{ secrets.XP_ARC_ABOYEUR_KEY }}``. An undefined secret expands to an
+   empty string rather than an error, so the Aboyeur rejected every signature
+   and the run reported 7 CRITICAL findings that read like a code defect.
+   Reproduced: an empty key yields 7 CRITICAL and exit 1, while the literal
+   used by the constitution job yields 0 CRITICAL and exit 0.
 """
 
 import os
@@ -217,3 +224,51 @@ def test_every_support_file_resolves_from_project_root():
     assert not missing, (
         f"PROJECT_ROOT={config.PROJECT_ROOT} cannot resolve: {missing}"
     )
+
+
+# ─── 4. workflow secrets must not silently expand to empty ──────────────────
+
+def test_gauntlet_signing_key_has_a_fallback():
+    """An undefined secret expands to an empty string, not an error.
+
+    With an empty XP_ARC_ABOYEUR_KEY the Aboyeur rejects every signature it
+    checks and the gauntlet reports 7 CRITICAL findings, which read like a code
+    defect rather than a missing configuration value. Every assignment in the
+    gauntlet workflow must therefore be a literal or carry a `||` fallback.
+    """
+    import re
+
+    wf = (REPO_ROOT / ".github" / "workflows" / "gauntlet.yml").read_text()
+    assignments = re.findall(r"XP_ARC_ABOYEUR_KEY:\s*(.*)$", wf, re.MULTILINE)
+    assert assignments, "no XP_ARC_ABOYEUR_KEY assignment found in gauntlet.yml"
+
+    unsafe = []
+    for raw in assignments:
+        value = raw.strip()
+        if not value or value in ("''", '""'):
+            unsafe.append(value or "(empty)")
+        elif "${{" in value and "||" not in value:
+            unsafe.append(value)
+
+    hint = "use a literal, or ${{ secrets.NAME || 'fallback-literal' }}"
+    assert not unsafe, (
+        f"signing key can expand to empty when the secret is undefined: "
+        f"{unsafe} -- {hint}"
+    )
+
+
+def test_gauntlet_workflow_key_sources_agree():
+    """Both gauntlet jobs must be able to sign; one literal, one bare secret,
+    is how the constitution job passed while the adversarial job failed."""
+    import re
+
+    wf = (REPO_ROOT / ".github" / "workflows" / "gauntlet.yml").read_text()
+    assignments = [a.strip() for a in
+                   re.findall(r"XP_ARC_ABOYEUR_KEY:\s*(.*)$", wf, re.MULTILINE)]
+    assert len(assignments) >= 2, (
+        "expected both gauntlet jobs to set a signing key"
+    )
+    # every assignment must be non-empty-capable (the previous test enforces
+    # the mechanism); this one just pins that there is more than one job
+    # setting it, so a future edit cannot leave a job keyless by deletion.
+    assert all(a for a in assignments)
