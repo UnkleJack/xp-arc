@@ -10,7 +10,10 @@ from typing import Dict, Any
 logger = logging.getLogger(__name__)
 
 # Module-level reference to project root
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+# repo root: .../xp-arc  (file -> competitive_intel -> xp_arc -> repo root).
+# Was four .parent calls, which resolved to the directory ABOVE the repo,
+# so every joined path (config/, sql/, templates/) silently missed.
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 
 def load_station_config(config_path: str = "config/competitive-intelligence-station.yaml") -> Dict[str, Any]:

@@ -20,6 +20,15 @@ on:
 env:
   PYTHON_VERSION: '3.11'
   GAUNTLET_DB: 'gauntlet'
+  # Phase 9 (Schema Drift) deliberately calls pool.mark_status(), which is the
+  # deprecated dev bypass and raises RuntimeError unless this is set. Without it
+  # the phase dies on an uncaught exception, run_all_phases() records a CRITICAL
+  # whose evidence is {'exception','traceback'} -- no entity_id or path -- which
+  # then trips the Article IV.2 gate ("CRITICAL should cite on-disk artifact")
+  # and fails this workflow. This is the harness exercising a documented bypass
+  # on purpose, not the bypass being enabled in production: the guard in
+  # pool.mark_status() is unchanged and still refuses by default.
+  XP_ARC_DEV_MODE: '1'
 
 jobs:
   gauntlet:
