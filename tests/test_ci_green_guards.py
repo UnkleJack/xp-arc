@@ -363,3 +363,54 @@ def test_github_script_does_not_require_uninstalled_packages():
         "these npm packages are not installed on the runner: "
         + "; ".join(offenders)
     )
+
+
+# ─── 6. an informational step must not be able to fail the gate ─────────────
+
+def _load_workflow(name="gauntlet.yml"):
+    import yaml
+
+    return yaml.safe_load((REPO_ROOT / ".github" / "workflows" / name).read_text())
+
+
+def test_gauntlet_job_declares_write_permission_for_pr_comments():
+    """Inheriting the repo default left the token read-only, so createComment
+    raised "Resource not accessible by integration" and reddened a job whose
+    gauntlet run had already succeeded.
+    """
+    wf = _load_workflow()
+    job = wf["jobs"]["gauntlet"]
+    perms = job.get("permissions") or wf.get("permissions") or {}
+    assert perms.get("pull-requests") == "write", (
+        f"the gauntlet job cannot post PR comments with permissions={perms}"
+    )
+    assert perms.get("contents") == "read", "least privilege: contents should be read-only"
+
+
+def test_pr_comment_step_is_non_fatal():
+    """The summary comment is cosmetic; the gauntlet run is the gate.
+
+    This step has failed the job twice for reasons unrelated to the code under
+    test. A step that can only add information must never be able to subtract
+    it by impersonating a gate failure.
+    """
+    wf = _load_workflow()
+    steps = wf["jobs"]["gauntlet"]["steps"]
+    comment = [s for s in steps if "Comment on PR" in str(s.get("name", ""))]
+    assert comment, "the PR-comment step was removed; this guard is stale"
+    assert comment[0].get("continue-on-error") is True, (
+        "the informational PR-comment step can still fail the whole job"
+    )
+
+
+def test_the_gauntlet_gate_step_is_still_fatal():
+    """Guarding against the opposite over-correction: making the actual
+    gauntlet run non-fatal would leave the job permanently green and the
+    adversarial gate testing nothing."""
+    wf = _load_workflow()
+    steps = wf["jobs"]["gauntlet"]["steps"]
+    run = [s for s in steps if str(s.get("name", "")).strip() == "Run Gauntlet"]
+    assert run, "the Run Gauntlet step was renamed or removed; guard is stale"
+    assert run[0].get("continue-on-error") is not True, (
+        "Run Gauntlet must remain fatal -- that is the gate"
+    )
