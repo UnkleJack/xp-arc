@@ -272,3 +272,94 @@ def test_gauntlet_workflow_key_sources_agree():
     # the mechanism); this one just pins that there is more than one job
     # setting it, so a future edit cannot leave a job keyless by deletion.
     assert all(a for a in assignments)
+
+
+# ─── 5. github-script must not re-declare its injected identifiers ──────────
+
+# actions/github-script evaluates `with.script` inside an async function whose
+# parameters are exactly these names. A `const glob = ...` in the script is
+# therefore a re-declaration and a hard SyntaxError, not a shadowing warning.
+_GITHUB_SCRIPT_INJECTED = {"github", "context", "core", "glob", "io", "require"}
+
+
+def _code_only(script):
+    """Drop full-line `//` comments before scanning.
+
+    Without this the guards match the explanatory comment that documents the
+    defect -- the same false positive that made an earlier licence guard fail on
+    a changelog quoting superseded wording. Only whole-line comments are
+    stripped, so a trailing comment on a code line is still scanned.
+    """
+    return "\n".join(
+        line for line in script.splitlines() if not line.lstrip().startswith("//")
+    )
+
+
+def _github_script_blocks():
+    import yaml
+
+    for wf in sorted((REPO_ROOT / ".github" / "workflows").glob("*.yml")):
+        data = yaml.safe_load(wf.read_text()) or {}
+        for job_name, job in (data.get("jobs") or {}).items():
+            for step in (job.get("steps") or []):
+                uses = str(step.get("uses") or "")
+                if "actions/github-script" not in uses:
+                    continue
+                script = (step.get("with") or {}).get("script")
+                if script:
+                    yield wf.name, job_name, step.get("name", ""), script
+
+
+def test_github_script_does_not_redeclare_injected_identifiers():
+    """The gauntlet's PR-comment step failed with
+    "SyntaxError: Identifier 'glob' has already been declared" because it did
+    `const glob = require('glob')` inside a github-script block. The step ran
+    after a SUCCESSFUL gauntlet run, so the job was red for a reason that had
+    nothing to do with the code under test -- and the annotation pointed at a
+    workflow line, not a step name, which is easy to misread as a gauntlet
+    failure.
+    """
+    import re
+
+    blocks = [(wf, job, step, _code_only(script))
+              for wf, job, step, script in _github_script_blocks()]
+    assert blocks, "no github-script steps found; guard is stale"
+
+    pattern = re.compile(
+        r"\b(?:const|let|var|function|class)\s+("
+        + "|".join(sorted(_GITHUB_SCRIPT_INJECTED))
+        + r")\b"
+    )
+    offenders = []
+    for wf, job, step, script in blocks:
+        for m in pattern.finditer(script):
+            offenders.append(f"{wf} / {job} / {step}: redeclares '{m.group(1)}'")
+
+    assert not offenders, (
+        "github-script injects these as function parameters -- redeclaring them "
+        "is a SyntaxError: " + "; ".join(offenders)
+    )
+
+
+def test_github_script_does_not_require_uninstalled_packages():
+    """`require('glob')` cannot resolve on a runner: the npm package is not
+    installed by the workflow. Only Node builtins and what github-script
+    provides are safe.
+    """
+    import re
+
+    allowed = {"fs", "path", "os", "child_process", "util", "crypto"}
+    offenders = []
+    for wf, job, step, raw in _github_script_blocks():
+        script = _code_only(raw)
+        for m in re.finditer(r"require\(\s*['\"]([^'\"]+)['\"]\s*\)", script):
+            mod = m.group(1).split("/")[0]
+            if mod.startswith("@") or "/" in m.group(1):
+                mod = m.group(1)
+            if mod not in allowed:
+                offenders.append(f"{wf} / {step}: require('{m.group(1)}')")
+
+    assert not offenders, (
+        "these npm packages are not installed on the runner: "
+        + "; ".join(offenders)
+    )

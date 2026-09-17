@@ -101,10 +101,17 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const glob = require('glob');
-            
-            // Find the latest report
-            const reports = glob.sync('gauntlet_report_*.json');
+
+            // Find the latest report.
+            // NOTE: do not `require('glob')` here. actions/github-script injects
+            // `glob` (along with github, context, core, io, require) as a
+            // parameter of the wrapper function it evaluates this script in, so
+            // declaring `const glob` raises
+            // "SyntaxError: Identifier 'glob' has already been declared" and
+            // fails this step. The injected `glob` is @actions/glob, which has
+            // no `.sync()` anyway. Reading the directory needs no globbing.
+            const reports = fs.readdirSync('.')
+              .filter(f => f.startsWith('gauntlet_report_') && f.endsWith('.json'));
             if (reports.length === 0) return;
             
             const latestReport = reports.sort().pop();
