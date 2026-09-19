@@ -20,13 +20,30 @@ on:
 env:
   PYTHON_VERSION: '3.11'
   GAUNTLET_DB: 'gauntlet'
+  # Phase 9 (Schema Drift) deliberately calls pool.mark_status(), which is the
+  # deprecated dev bypass and raises RuntimeError unless this is set. Without it
+  # the phase dies on an uncaught exception, run_all_phases() records a CRITICAL
+  # whose evidence is {'exception','traceback'} -- no entity_id or path -- which
+  # then trips the Article IV.2 gate ("CRITICAL should cite on-disk artifact")
+  # and fails this workflow. This is the harness exercising a documented bypass
+  # on purpose, not the bypass being enabled in production: the guard in
+  # pool.mark_status() is unchanged and still refuses by default.
+  XP_ARC_DEV_MODE: '1'
 
 jobs:
   gauntlet:
     name: Gauntlet Adversarial Test
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    
+    # Declared explicitly rather than inherited. This repo's default workflow
+    # token permission is read-only, so the PR-comment step below failed with
+    # "HttpError: Resource not accessible by integration" and turned the whole job
+    # red even though the gauntlet itself had passed. Least privilege: read
+    # contents, write only what posting a PR comment needs.
+    permissions:
+      contents: read
+      pull-requests: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -59,7 +76,12 @@ jobs:
           fi
         env:
           XP_ARC_LOG_LEVEL: INFO
-          XP_ARC_ABOYEUR_KEY: ${{ secrets.XP_ARC_ABOYEUR_KEY }}
+          # An undefined repository secret expands to an EMPTY string, not an
+          # error. The Aboyeur then rejects every signature it checks and the
+          # run reports 7 CRITICAL findings that look like a code defect rather
+          # than a missing configuration value. The fallback is the same literal
+          # the gauntlet-constitution job already uses successfully.
+          XP_ARC_ABOYEUR_KEY: ${{ secrets.XP_ARC_ABOYEUR_KEY || 'gauntlet-ci-signing-key' }}
 
       - name: Upload Gauntlet Report
         uses: actions/upload-artifact@v4
@@ -84,13 +106,28 @@ jobs:
       - name: Comment on PR with Gauntlet Summary
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
+        # Non-fatal on purpose. This step posts an informational summary; the
+        # gate is the gauntlet run above. It has now failed this job twice for
+        # reasons unrelated to the code under test -- a SyntaxError from
+        # re-declaring github-script's injected `glob`, then a token permission
+        # error -- and each time the job read as "the gauntlet failed" when
+        # `Run Gauntlet` had succeeded. A cosmetic comment must not be able to
+        # mask or impersonate the real result.
+        continue-on-error: true
         with:
           script: |
             const fs = require('fs');
-            const glob = require('glob');
-            
-            // Find the latest report
-            const reports = glob.sync('gauntlet_report_*.json');
+
+            // Find the latest report.
+            // NOTE: do not `require('glob')` here. actions/github-script injects
+            // `glob` (along with github, context, core, io, require) as a
+            // parameter of the wrapper function it evaluates this script in, so
+            // declaring `const glob` raises
+            // "SyntaxError: Identifier 'glob' has already been declared" and
+            // fails this step. The injected `glob` is @actions/glob, which has
+            // no `.sync()` anyway. Reading the directory needs no globbing.
+            const reports = fs.readdirSync('.')
+              .filter(f => f.startsWith('gauntlet_report_') && f.endsWith('.json'));
             if (reports.length === 0) return;
             
             const latestReport = reports.sort().pop();
@@ -144,6 +181,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: github.event_name == 'pull_request' || github.event_name == 'schedule'
+    env:
+      XP_ARC_ABOYEUR_KEY: gauntlet-ci-signing-key
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

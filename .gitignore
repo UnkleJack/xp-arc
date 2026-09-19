@@ -39,3 +39,9 @@ proof_of_work_log.jsonl
 test_*.db
 xp_arc_*.db
 stress_test.db
+
+# Station HMAC keys. NEVER tracked — these are live write-auth credentials.
+# Keys are generated per Pool database at runtime (see IntelligencePool._key_file)
+# and encrypted at rest with XP_ARC_MASTER_KEY.
+station_keys.json
+*.station_keys.json.enc

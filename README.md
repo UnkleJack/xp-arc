@@ -109,8 +109,15 @@ git clone https://github.com/unklejack/xp-arc.git
 cd xp-arc
 pip install -e .
 
+# Configure the Aboyeur signing key (use a managed secret in production)
+export XP_ARC_ABOYEUR_KEY='replace-with-a-long-random-secret'
+
 # Run default 5-target spread
 python run_kitchen.py
+
+# Serve the local DRAGON dashboard and observation API
+python run_persistent.py --port 8089
+# Open http://127.0.0.1:8089/ in a browser
 
 # Custom targets
 python run_kitchen.py https://example.com https://news.ycombinator.com
@@ -151,7 +158,7 @@ All three share the same `Intelligence Pool` (SQLite WAL) and `Aboyeur` QA gate.
 | Orchestration core | `pool.py`, `station.py`, `executive.py`, `fracture.py` | Python 3 stdlib only — SQLite built in, zero pip deps |
 | Broker (optional) | `broker.py`, `broker_client.py` | `redis` (via `pip install -e .[broker]`) |
 | Asset Engine | `xp_arc.asset_engine.*` | `pyyaml`, `jinja2`, `sqlite-utils`, `httpx`, `openai`, `playwright`, `watchdog`, `rich`, `typer`, `pydantic` (via `pip install -e .[asset-engine]`) |
-| Competitive Intel | `xp_arc.competitive_intel.*` | `pyyaml`, `jinja2` (via `pip install -e .[competitive-intel]`) |
+| Competitive Intel | `xp_arc.competitive_intel.*` | `pyyaml`, `jinja2`, `feedparser`, `httpx` (via `pip install -e .[competitive-intel]`) |
 | Full deployment | Production runtime | Python 3.10+, standard library `sqlite3` |
 | Visualization | DRAGON dashboard | Any modern browser (static `pool_state.json` or live via `run_persistent.py`) |
 
@@ -176,7 +183,7 @@ DRAGON (Dynamic Relational Asset Graph & Operations Network) visualizes the Inte
 - SpaZzMatiC adversarial findings and safe halt alerts
 - Full event timeline and Snowball cascade DAGs
 
-Open `dragon/index.html` in a browser after running the pipeline.
+Run `python run_persistent.py --port 8089` and open `http://127.0.0.1:8089/` for the live local dashboard. The static `dragon/index.html` remains available as an exported-JSON fallback.
 
 ## The Aboyeur Protocol
 
@@ -222,8 +229,10 @@ See [WHITEPAPER.md §2](./WHITEPAPER.md) for the full positioning argument.
 
 ## License
 
-MIT License. Free to use for any purpose including commercial production.
-No license fee, no attribution requirement beyond the copyright notice.
+Apache License, Version 2.0. Free to use, modify, and commercially deploy the code.
+Includes an express patent grant (§3) and reserves the "XP-Arc," "DRAGON," "Aboyeur,"
+"Zoran's Law," and "SpaZzMatiC" names as trademarks (§6) — see [NOTICE](./NOTICE) for
+what that reservation means for certified/official implementations.
 
 **Version:** 0.2.1
 **Author:** David J. Riedl (UnkleJack)

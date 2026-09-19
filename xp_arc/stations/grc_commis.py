@@ -29,14 +29,30 @@ class GRCCommis(StationChef):
     sla_seconds = 60
     is_primary = False  # fallback only
 
-    API_BASE = "https://localhost:8443/api"
-    TOKEN = os.environ.get("XP_ARC_CISO_TOKEN", "dev-token-change-in-production")
+    # No hardcoded fallback. A published default token is a credential in the
+    # source tree: it ships to every clone, it is what an operator silently runs
+    # with when they forget to configure, and it makes an unconfigured station
+    # look configured. Read at construction (not as a class attribute) so the
+    # environment is consulted when the station is actually built, and fail loudly.
+    API_BASE_ENV = "XP_ARC_CISO_API_BASE"
+    TOKEN_ENV = "XP_ARC_CISO_TOKEN"
+    DEFAULT_API_BASE = "https://localhost:8443/api"
 
     def __init__(self, pool):
         super().__init__(pool)
         self.session = requests.Session()
+        self.API_BASE = os.environ.get(self.API_BASE_ENV, self.DEFAULT_API_BASE)
+        token = os.environ.get(self.TOKEN_ENV)
+        if not token:
+            raise RuntimeError(
+                f"{self.TOKEN_ENV} is not set. The {self.name} station talks to "
+                f"CISO Assistant and has no usable default credential. Export "
+                f"{self.TOKEN_ENV} (and optionally {self.API_BASE_ENV}) before "
+                f"enabling the GRC stations."
+            )
+        self._token = token
         self.session.headers.update({
-            "Authorization": f"Token {self.TOKEN}",
+            "Authorization": f"Token {self._token}",
             "Accept": "application/json",
         })
         self.session.verify = False

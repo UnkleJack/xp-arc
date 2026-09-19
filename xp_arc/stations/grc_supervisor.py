@@ -34,15 +34,30 @@ class GRCSupervisor(StationChef):
     sla_seconds = 120
     is_primary = True
 
-    # CISO Assistant API base (already includes /api)
-    API_BASE = "https://localhost:8443/api"
-    TOKEN = os.environ.get("XP_ARC_CISO_TOKEN", "dev-token-change-in-production")
+    # No hardcoded fallback. A published default token is a credential in the
+    # source tree: it ships to every clone, it is what an operator silently runs
+    # with when they forget to configure, and it makes an unconfigured station
+    # look configured. Read at construction (not as a class attribute) so the
+    # environment is consulted when the station is actually built, and fail loudly.
+    API_BASE_ENV = "XP_ARC_CISO_API_BASE"
+    TOKEN_ENV = "XP_ARC_CISO_TOKEN"
+    DEFAULT_API_BASE = "https://localhost:8443/api"
 
     def __init__(self, pool):
         super().__init__(pool)
         self.session = requests.Session()
+        self.API_BASE = os.environ.get(self.API_BASE_ENV, self.DEFAULT_API_BASE)
+        token = os.environ.get(self.TOKEN_ENV)
+        if not token:
+            raise RuntimeError(
+                f"{self.TOKEN_ENV} is not set. The {self.name} station talks to "
+                f"CISO Assistant and has no usable default credential. Export "
+                f"{self.TOKEN_ENV} (and optionally {self.API_BASE_ENV}) before "
+                f"enabling the GRC stations."
+            )
+        self._token = token
         self.session.headers.update({
-            "Authorization": f"Token {self.TOKEN}",
+            "Authorization": f"Token {self._token}",
             "Content-Type": "application/json",
             "Accept": "application/json",
         })
@@ -278,10 +293,17 @@ class GRCSupervisor(StationChef):
             try:
                 data = self._api("GET", endpoint)
                 for item in data.get("results", data):
-                    self.pool.add_entity(
-                        type=pool_type,
-                        value=json.dumps({"ciso_id": item.get("id"), **item}),
-                        source=f"ciso-sync-{etype}",
+                    # Was: pool.add_entity(type=..., source=...) — 'type' is
+                    # spelled ent_type and there is no 'source' parameter, so
+                    # every sync raised TypeError. Go through the station writer
+                    # so the write is HMAC-signed like all other station labor.
+                    self.writer.add_entity(
+                        ent_type=pool_type,
+                        value=json.dumps({
+                            "ciso_id": item.get("id"),
+                            "ciso_sync_source": f"ciso-sync-{etype}",
+                            **item,
+                        }),
                     )
                     results["synced"] += 1
             except Exception as e:

@@ -3,7 +3,7 @@
 **Version:** 0.2.1
 **Authors:** Jack (unklejack), Claude (Anthropic), Zo.Computer, Gemini (Google)
 **Repository:** github.com/unklejack/xp-arc
-**License:** MIT
+**License:** Apache License 2.0
 **Changelog:** See Section 12
 
 ---
@@ -630,7 +630,7 @@ with yours.*
 
 All write operations on the Pool require HMAC authentication when the calling station has a registered key.
 
-**How it works:** Each station is issued a unique HMAC-SHA256 key at registration (auto-generated or provided). The key is stored persistently in `station_keys.json` (retrievable via `get_station_hmac_key()`) and in the `station_registry` table in the DB.
+**How it works:** Each station is issued a unique HMAC-SHA256 key at registration (auto-generated or provided). The key is stored in the `station_registry` table in the DB, and also persisted to a key file on disk (retrievable via `get_station_hmac_key()`) so it survives a fresh Pool object being created against the same database. That key file is no longer a single tracked `station_keys.json` in the repo: each `IntelligencePool` derives its own path from its DB path (`{db_path}.station_keys.json.enc`, overridable via `XP_ARC_STATION_KEY_FILE`), and if `XP_ARC_MASTER_KEY` is set the file is Fernet-encrypted at rest. Without a master key it falls back to plaintext at the same path with `.enc` stripped — encryption-at-rest is opt-in, not automatic. The plaintext `station_keys.json` that used to live at the repo root has been removed from tracking and gitignored, though it remains in git history until that history is scrubbed.
 
 Before every write, the station computes `HMAC-SHA256(key, payload_string)` and passes `station_id` + `mac` to the pool method. The pool looks up the station's key and verifies the MAC using `hmac.compare_digest()`. The payload string is the method name + parameters, e.g. `add_entity:url:https://example.com:60`.
 
@@ -645,7 +645,7 @@ Before every write, the station computes `HMAC-SHA256(key, payload_string)` and 
 
 **What it prevents:** A compromised station cannot write arbitrary entities, corrupt status transitions, or flood the entity table without possessing a valid HMAC key. Keys are stored server-side only — not in station code.
 
-**What it doesn't prevent:** If an attacker gains read access to `station_keys.json`, they can sign writes. File permissions and process isolation are the mitigation layer.
+**What it doesn't prevent:** If an attacker gains read access to the keystore — the per-database `{db_path}.station_keys.json.enc` file, or its plaintext fallback when `XP_ARC_MASTER_KEY` is unset — they can sign writes. Moving the file out of the source tree and encrypting it at rest narrows *where* that access has to come from; it does not remove the underlying assumption that the keystore itself is trusted. File permissions, process isolation, and (when used) protecting `XP_ARC_MASTER_KEY` are still the mitigation layer.
 
 ### 7.2 Forager Is a Blind Trust Machine (Production Severity: Critical)
 
@@ -703,7 +703,7 @@ when DRAGON becomes interactive.
 
 ### 7.6 Legal Surface
 
-XP-Arc has undergone legal review. The framework — as a multi-agent orchestration system — is not itself a violation of the Computer Fraud and Abuse Act (CFAA) or GDPR. The review confirmed:
+This section is founder-drafted guidance, not the product of a licensed-attorney legal review. It reflects the following non-professional analysis of how the framework relates to the CFAA and GDPR:
 
 - **In the United States:** The CFAA prohibits unauthorized access to "computer[s] without authorization or exceeding authorized access." XP-Arc, as a piece of software, does not itself violate the CFAA. Any individual deployment of XP-Arc against a specific target must comply with the CFAA's terms. Operators are responsible for ensuring their specific use cases are lawful before deployment. Authorized OSINT collection, public data aggregation, and research use cases fall within legal bounds when conducted against systems where the operator has legitimate access rights.
 
@@ -713,7 +713,7 @@ XP-Arc has undergone legal review. The framework — as a multi-agent orchestrat
 
 - **Safe harbor:** XP-Arc stores no personal data by design. Entity values are URLs, domains, and relationship metadata. No identity data, no financial records, no healthcare records. This reduces but does not eliminate GDPR exposure.
 
-- **Jurisdictions vary.** The legal review was conducted under US and EU law. Operators deploying XP-Arc in other jurisdictions bear responsibility for understanding local requirements.
+- **Jurisdictions vary.** This analysis considers only US and EU law and was not conducted or reviewed by an attorney. Operators deploying XP-Arc in any jurisdiction should obtain independent legal counsel before relying on it.
 
 XP-Arc is published as an open research framework. Operators assume full legal responsibility for their specific deployments. When in doubt, obtain independent legal counsel before deployment.
 
@@ -774,18 +774,25 @@ as actionable alerts with a 60-second veto countdown.
 ## Section 9 — The Open Specification
 
 XP-Arc is open. The specification, the protocol schema, the reference
-implementation, and this whitepaper are published under the MIT License.
+implementation, and this whitepaper are published under the Apache License,
+Version 2.0.
 
 The history of infrastructure software is a history of open specifications
 winning. TCP/IP. HTTP. Git. Linux. The pattern is consistent: when the protocol
 is open, adoption is frictionless, the ecosystem builds itself, and value
 concentrates in what's built around the protocol — not in the protocol itself.
 
-XP-Arc follows the Red Hat model explicitly. The spec is the commons. The
-monetizable surface is everything built on it: managed deployments, enterprise
-integrations, certified station implementations, the DRAGON dashboard, the
-Aboyeur validation service, CPP prompt packs, and the consulting layer that
-helps organizations point the brigade at their actual problems.
+XP-Arc follows the Red Hat model explicitly, and Apache 2.0 is the license
+that structurally supports it: the code grant (§2) and patent grant (§3) are
+unrestricted, while trademark rights (§6) are reserved separately and are
+not licensed by using the code. The spec and code are the commons. The
+monetizable surface is everything built on and named around it: managed
+deployments, enterprise integrations, certified station implementations
+(certified specifically because they may use the reserved "XP-Arc"/"DRAGON"
+marks — see NOTICE), the DRAGON dashboard, the Aboyeur validation service,
+CPP prompt packs, and the consulting layer that helps organizations point
+the brigade at their actual problems. This is the same structure that lets
+CentOS legally exist while being unable to call itself Red Hat.
 
 Open-sourcing the spec also serves the originality claim. Prior art is
 established by publication date, not patent filing. This whitepaper, the GitHub
@@ -793,7 +800,8 @@ repository, and the Aboyeur Protocol JSON schema constitute a dated, public,
 citable record of XP-Arc's architecture as of its v0.1 release (March 16, 2026).
 v0.2 extends that record.
 
-MIT. No commercial license required. No four-year conversion wait.
+Apache 2.0. No commercial license required to use the code. No four-year
+conversion wait. Patent grant included. Trademark reserved.
 
 ---
 
@@ -922,7 +930,7 @@ and outputs none of them could have produced alone.
 - **DB-Enforced Cascade Depth Limit:** `ExecutiveChef._process_spawns()` now traces `parent_task_id` chain at spawn time, blocks new entities at `cascade_depth >= 5` (MAX_CASCADE_DEPTH). Prevents agent-declared depth spoofing.
 - **Seed Self-Rooting:** `run_kitchen.py` seeds entities with `root_task_id=self`, establishing each seed as the root of its own Snowball chain.
 - **Provenance Chain Verification (Article VII, §7.4):** `IntelligencePool._verify_and_compute_lineage()` — pool-level lineage enforcement that computes `cascade_depth`, `root_task_id`, and `spawn_chain` from the actual parent entity in the DB, ignoring station-supplied values. Stops stations from spoofing `cascade_depth=0` or false `root_task_id` to bypass the depth limit. `MAX_CASCADE_DEPTH` declared at module level in `pool.py`, imported by `ExecutiveChef`. Non-existent parent IDs are rejected outright. Seed entities (no parent) preserve caller-supplied lineage values.
-- **Pool Write Authentication (Article VIII):** HMAC-SHA256 signed writes for all station-to-pool operations. `register_station_with_key()` for key generation and persistent storage in `station_keys.json`. `get_station_hmac_key()` for runtime key retrieval. `IntelligencePool._verify_write()` validates MAC on every write. Stations with registered keys require valid MAC — absent key means backward compat allowed. Protected methods: `add_entity()`, `transition_status()`, `set_aboyeur_signature()`, `increment_rejection()`, `add_edge()`. `hmac.compare_digest()` timing-safe comparison prevents MAC forgery.
+- **Pool Write Authentication (Article VIII):** HMAC-SHA256 signed writes for all station-to-pool operations. `register_station_with_key()` for key generation and persistent storage in the per-database key file (`IntelligencePool._key_file`, described in §7.1 above — this is the v0.2-era description of the mechanism; the key file's location and at-rest encryption changed after this section was written, see §7.1). `get_station_hmac_key()` for runtime key retrieval. `IntelligencePool._verify_write()` validates MAC on every write. Stations with registered keys require valid MAC — absent key means backward compat allowed. Protected methods: `add_entity()`, `transition_status()`, `set_aboyeur_signature()`, `increment_rejection()`, `add_edge()`. `hmac.compare_digest()` timing-safe comparison prevents MAC forgery.
 - **Descendant Tracking for GC:** `IntelligencePool.get_descendants()` / `reset_descendants()` — finds all entities with a given ancestor in their `spawn_chain` or `parent_task_id`. `ThePlongeur` uses this for orphan recovery: before resetting a stalled entity, all descendants are transitioned to `failed` to prevent orphaned subtrees.
 - **Forager Lineage Propagation:** Extracted domains inherit `root_task_id`, `cascade_depth`, `parent_task_id`, and `spawn_chain` (parent chain + parent_id) from their parent URL entity.
 - **Persistent Daemon (`run_persistent.py`):** 500ms poll interval, full brigade execution per cycle, HTTP seed injection API (`POST /api/seed`, `GET /api/dragon`), 60-second safe-halt veto window with manual override, automatic DRAGON state export every cycle.
@@ -932,6 +940,36 @@ and outputs none of them could have produced alone.
 - **Load Test Harness (`tests/test_load.py`):** Full brigade stress tests at 500 entities. 500-entity Snowball: 26.45 entities/sec, 18.9s exec, 0 failures. 300-entity: 51.66 entities/sec, 5.8s exec. Cascade depth limit verified enforced at all scales. SQLite WAL confirmed not a bottleneck. Forager HTTP I/O is primary throughput constraint.
 - **Brigade Compression (`ExecutiveChef.compress_brigade()` / `expand_brigade()`):** Graceful degradation mechanism. Stations declare `critical=True` (default False). When `compress_brigade()` is called, non-critical stations are removed from active routing but preserved in a backup. `expand_brigade()` restores all stations. `is_compressed()` reports current state. Idempotent. Events logged to pool event log.
 - **Zoran's Law Enforcement (SpaZzMatiC → Brigade Compression integration):** SpaZzMatiC now triggers automatic brigade compression when `PRO < 70%` or when `S < 0.5` for 2 consecutive measurements. `set_executive()` injects the ExecutiveChef; `_review_zorans_law()` calls `compress_brigade()` directly. Safe halt recommendation fires on the second consecutive S < 0.5 measurement, with brigade compression as the first automated response. Recovery (S >= 0.5) resets the violation streak and clears `safe_halt_recommended`.
+
+---
+
+## Section 13 — Changelog: Relicense to Apache 2.0 (2026-08-19)
+
+XP-Arc relicensed from MIT to the Apache License, Version 2.0. No third-party
+contribution had been accepted at the time of relicensing, so the change was
+unilateral; any future license change now requires contributor consent under
+Apache 2.0 §5.
+
+**Rationale:** the project's monetization strategy is Red Hat-style (open
+code, monetized expertise and certification), which Apache 2.0 supports
+structurally in ways MIT does not:
+
+- **Patent grant (§3)** with a litigation-retaliation termination clause — MIT
+  has neither.
+- **Trademark reservation (§6)** — the code grant does not include the right
+  to use the "XP-Arc," "DRAGON," "Aboyeur," "Zoran's Law," or "SpaZzMatiC"
+  names. This is the mechanism behind "certified" and "official" XP-Arc
+  implementations: forks and deployments are unrestricted, but only the
+  Maintainer's implementations may carry the name.
+
+BSL 1.1 was considered and rejected: it is not OSI-recognized, is
+auto-rejected in some procurement processes, and suppresses the adoption
+that consulting and course revenue depend on — defending against a
+hyperscaler-cloning threat that only materializes after adoption exists,
+which XP-Arc does not yet have.
+
+See `LICENSE` (canonical Apache 2.0 text) and `NOTICE` (trademark
+reservation) in the repository root.
 
 ---
 

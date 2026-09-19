@@ -40,6 +40,7 @@ class TheAmphithere(StationChef):
     handles_types = ['_dns_enrichment']
     sla_seconds = 300
     is_primary = True
+    critical = True
 
     def __init__(self, pool, timeout: float = 2.0, max_entities: int = 5000):
         super().__init__(pool)

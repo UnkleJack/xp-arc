@@ -16,6 +16,14 @@ MAX_SLA_SECONDS = 3600  # 1 hour max - prevents SLA inflation gaming
 SLA_AUDIT_ENABLED = os.environ.get('XP_ARC_SLA_AUDIT', '1') != '0'
 
 
+class StationRefusal(Exception):
+    """A constitutionally protected refusal of malformed or unsafe work."""
+
+    def __init__(self, reason: str):
+        super().__init__(reason)
+        self.reason = reason
+
+
 def validate_sla(sla_seconds: int, station_id: str) -> int:
     """Validate and clamp SLA seconds to prevent gaming.
     
@@ -82,6 +90,38 @@ class StationChef:
         Raises on failure.
         """
         raise NotImplementedError
+
+    def submit_for_qa(self, entity_id: int, output: dict, is_fallback: bool = False) -> dict:
+        """Pass a station-created artifact through the mandatory QA gate.
+
+        This supports internal derivative entities created by stations outside the
+        Executive's normal routing loop while preserving the exact same signature
+        and failure behavior as ordinary labor.
+        """
+        from .aboyeur import Aboyeur
+
+        if not self.writer.transition_status(entity_id, 'pending_qa'):
+            return {
+                'approved': False,
+                'signature': None,
+                'rejection_reason': 'unable to enter pending_qa',
+                'enhanced_scrutiny': False,
+            }
+        result = Aboyeur(self.pool).validate_and_sign(
+            entity_id, self.station_id, output, is_fallback=is_fallback
+        )
+        if result['approved']:
+            self.writer.transition_status(
+                entity_id, 'completed', station=self.station_id,
+                confidence=output.get('confidence'), notes=output.get('notes', ''),
+            )
+        else:
+            entity = self.pool.get_entity(entity_id)
+            if entity and entity['status'] != 'failed':
+                self.writer.transition_status(
+                    entity_id, 'failed', notes=result['rejection_reason']
+                )
+        return result
 
     def log(self, msg: str):
         print(f"[{self.name}] {msg}")

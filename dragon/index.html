@@ -226,6 +226,10 @@ section{padding:32px 0}
   .stations-grid{grid-template-columns:repeat(2,1fr)}
 }
 </style>
+<script>
+  window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
 </head>
 <body>
 
@@ -372,11 +376,11 @@ let svgZoom = null;
 let ws = null;
 let wsReconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
-const WS_URL = (() => {
+const API_BASE = (() => {
   const params = new URLSearchParams(window.location.search);
-  const apiBase = params.get('api') || 'http://localhost:8089';
-  return apiBase.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws';
+  return params.get('api') || window.location.origin;
 })();
+const WS_URL = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws';
 
 function scrollTo_(sel) {
   document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth' });
@@ -480,8 +484,7 @@ function loadStaticFallback() {
 
 async function fetchFullState() {
   try {
-    const apiBase = new URLSearchParams(window.location.search).get('api') || 'http://localhost:8089';
-    const res = await fetch(`${apiBase}/api/dragon`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE}/api/dragon`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     DATA = data;
@@ -565,13 +568,8 @@ document.addEventListener('DOMContentLoaded', () => {
     heroBadge.parentNode.insertBefore(statusEl, toggleBtn.nextSibling);
   }
 
-  // Auto-connect if ?api= query param present
-  if (new URLSearchParams(window.location.search).has('api')) {
-    connectWebSocket();
-  } else {
-    // Load static file as fallback
-    loadStaticFallback();
-  }
+  // Prefer the local live endpoint. Static JSON remains a read-only fallback.
+  connectWebSocket();
 });
 
 function renderAll() {
@@ -593,9 +591,9 @@ function renderSitrep() {
   const e = DATA.entities.length;
   const s = DATA.stations.length;
   const edges = DATA.edges.length;
-  const doss = DATA.dossiers.length;
-  const score = (DATA.audit.overall.integrity_score * 100).toFixed(1);
-  const zeroDrop = DATA.audit.zero_drop.zero_drop_verified;
+  const doss = (DATA.dossiers || []).length;
+  const score = ((DATA.audit?.overall?.integrity_score ?? 1) * 100).toFixed(1);
+  const zeroDrop = DATA.audit?.zero_drop?.zero_drop_verified ?? true;
   document.getElementById('sitrepText').innerHTML =
     `<strong>${e}</strong> entities processed through <strong>${s}</strong> stations. ` +
     `<strong>${edges}</strong> edges mapped. <strong>${doss}</strong> dossiers generated. ` +
@@ -604,7 +602,7 @@ function renderSitrep() {
 
 // ===== ZORAN BADGE =====
 function updateZoranBadge() {
-  const z = DATA.zorans_latest;
+  const z = DATA.zorans_latest || { system_state: 'unknown' };
   const badge = document.getElementById('zoranBadge');
   if (z.system_state === 'equilibrium') {
     badge.className = 'hero-badge badge-healthy';
@@ -897,12 +895,12 @@ function renderGraph() {
   node.on('mouseover', (event, d) => {
     tooltip.style.display = 'block';
     tooltip.innerHTML = `
-      <div class="tt-label">Value</div><div class="tt-value">${d.id}</div>
-      <div class="tt-label" style="margin-top:6px">Type</div><div>${d.type}</div>
-      <div class="tt-label" style="margin-top:6px">Status</div><div>${d.status}</div>
+      <div class="tt-label">Value</div><div class="tt-value">${escapeHtml(d.id)}</div>
+      <div class="tt-label" style="margin-top:6px">Type</div><div>${escapeHtml(d.type)}</div>
+      <div class="tt-label" style="margin-top:6px">Status</div><div>${escapeHtml(d.status)}</div>
       <div class="tt-label" style="margin-top:6px">Confidence</div><div>${d.confidence}</div>
-      <div class="tt-label" style="margin-top:6px">Station</div><div>${d.station}</div>
-      ${d.signature ? `<div class="tt-label" style="margin-top:6px">Signature</div><div style="font-size:9px">${d.signature}</div>` : ''}
+      <div class="tt-label" style="margin-top:6px">Station</div><div>${escapeHtml(d.station)}</div>
+      ${d.signature ? `<div class="tt-label" style="margin-top:6px">Signature</div><div style="font-size:9px">${escapeHtml(d.signature)}</div>` : ''}
       ${d.isBridge ? '<div style="margin-top:6px;color:#4ade80;font-weight:600">BRIDGE NODE</div>' : ''}
     `;
   }).on('mousemove', (event) => {
@@ -968,10 +966,10 @@ function renderDossiers() {
     if (d.intelligence_gaps.unsigned_count > 0) gapTags.push(`<span class="tag tag-amber">Unsigned: ${d.intelligence_gaps.unsigned_count}</span>`);
     if (gapTags.length === 0) gapTags.push('<span class="tag">No gaps detected</span>');
     const topConns = (d.top_connections || []).slice(0, 6).map(c =>
-      `<li><span>${c.value}</span><span class="conn-rel">${c.relationship}</span></li>`
+      `<li><span>${escapeHtml(c.value)}</span><span class="conn-rel">${escapeHtml(c.relationship)}</span></li>`
     ).join('');
 
-    const seedDisplay = d.seed_url.replace(/^https?:\/\//, '');
+    const seedDisplay = escapeHtml(d.seed_url.replace(/^https?:\/\//, ''));
     const confPercent = (d.confidence * 100).toFixed(0);
     const confColor = d.confidence >= 0.7 ? 'var(--green)' : d.confidence >= 0.4 ? 'var(--amber)' : 'var(--red)';
 

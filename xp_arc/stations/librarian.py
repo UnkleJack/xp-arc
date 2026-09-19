@@ -70,12 +70,15 @@ class TheLibrarian(StationChef):
             )
             if eid:
                 self.writer.transition_status(eid, 'processing', station=self.station_id)
-                self.writer.transition_status(eid, 'pending_qa')
-                self.writer.transition_status(eid, 'completed',
-                                            station=self.station_id,
-                                            confidence=dossier['confidence'],
-                                            notes=dossier_json[:500])
-                self.writer.add_edge(seed_value, 'has_dossier', f"dossier:{seed_value}")
+                qa_result = self.submit_for_qa(eid, {
+                    'entity_type': '_dossier',
+                    'entity_value': f"dossier:{seed_value}",
+                    'relationships': [seed_value],
+                    'confidence': dossier['confidence'],
+                    'notes': dossier_json[:500],
+                })
+                if qa_result['approved']:
+                    self.writer.add_edge(seed_value, 'has_dossier', f"dossier:{seed_value}")
 
         self.log(f"Generated {len(dossiers)} dossiers")
         return dossiers

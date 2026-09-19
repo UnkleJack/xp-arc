@@ -2,7 +2,7 @@
 **Version:** 1.0.0
 **Status:** Ratified
 **Authors:** BATMAN, Jack (DRAGON)
-**License:** MIT
+**License:** Apache License 2.0
 
 ---
 
@@ -226,3 +226,4 @@ If the Gauntlet is superseded by a superior adversarial framework, this constitu
 *Ratified by: Jack (DRAGON) — 2026-08-01*
 *Witnessed by: BATMAN*
 *Date: 2026-08-01*
+*License updated to Apache License 2.0 — 2026-08-23, following the project-wide relicense (WHITEPAPER.md §13).*

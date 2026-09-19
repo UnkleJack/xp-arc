@@ -53,12 +53,15 @@ class TheDossier(StationChef):
         )
         if eid:
             self.writer.transition_status(eid, 'processing', station=self.station_id)
-            self.writer.transition_status(eid, 'pending_qa')
-            self.writer.transition_status(eid, 'completed',
-                                        station=self.station_id,
-                                        confidence=1.0,
-                                        notes=dossier_md)
-            self.writer.add_edge(target, 'has_dossier', report_value)
+            qa_result = self.submit_for_qa(eid, {
+                'entity_type': 'dossier_report',
+                'entity_value': report_value,
+                'relationships': [target],
+                'confidence': 1.0,
+                'notes': dossier_md,
+            })
+            if qa_result['approved']:
+                self.writer.add_edge(target, 'has_dossier', report_value)
 
         return {
             'entity_type': 'dossier_report',
