@@ -66,6 +66,21 @@ def _git(*args):
     )
 
 
+def _is_ignored(probe):
+    """Whether .gitignore's RULES cover a path, independent of the index.
+
+    `--no-index` matters. By default `git check-ignore` consults the index and
+    declines to report a path that is already tracked, because ignore rules do
+    not apply to tracked files. Without the flag this test conflates "the rule is
+    missing" with "the file is tracked", and fails for the wrong reason whenever
+    the repository is in a state where the artifacts have not been untracked yet
+    -- which is precisely the state it is meant to detect. The rule check and the
+    tracking check are separate tests and must not depend on each other.
+    """
+    return _git("check-ignore", "--no-index", "-q", probe).returncode == 0
+
+
+
 @pytest.fixture(scope="module")
 def tracked_files():
     """Files in the index. Skips cleanly when run outside a git checkout,
@@ -149,8 +164,7 @@ def test_gitignore_covers_the_pattern(pattern, probe):
     inert. Checking `git check-ignore` against a probe path verifies the rule
     is live rather than merely written down.
     """
-    result = _git("check-ignore", "-q", probe)
-    assert result.returncode == 0, (
+    assert _is_ignored(probe), (
         f"{probe!r} is not ignored, so the pattern {pattern!r} is not enforced "
         f"-- a regenerated artifact would be picked up by `git add -A`"
     )
@@ -167,8 +181,7 @@ def test_removing_artifacts_does_not_delete_them_from_disk():
     for rel in ("dragon/pool_state.json",):
         path = REPO_ROOT / rel
         if path.exists():
-            result = _git("check-ignore", "-q", rel)
-            assert result.returncode == 0, (
+            assert _is_ignored(rel), (
                 f"{rel} exists on disk but is not ignored -- it would be "
                 f"re-added by `git add -A`"
             )
