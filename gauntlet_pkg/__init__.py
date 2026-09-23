@@ -28,6 +28,7 @@ import subprocess
 import hashlib
 import sqlite3
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -196,6 +197,79 @@ class PayloadHashTamperer(ByzantineStation):
             'confidence': 0.5,
             'notes': 'Attempted payload hash tampering via edge injection',
         }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 10 HERMETIC NETWORK
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# The soak seeds 100 URLs at `soak-N-I.example.com`. Those hostnames do not exist
+# in DNS -- example.com has no wildcard, and `soak-1-0.example.com` returns
+# NXDOMAIN -- so `open_public_url`, the RT-17 DNS-rebinding guard in
+# core/network_guard.py, correctly refused every one of them with "URL does not
+# resolve exclusively to public addresses". All 100 entities were marked failed
+# before a single line of pipeline code ran, the phase reported a permanent 100%
+# failure rate, and its `failure_rate < 0.2` assertion could never be satisfied
+# in any environment, with any dependency set, with full network access.
+#
+# The worse consequence was blindness: a healthy brigade and a broken one both
+# scored 100%, so the soak could not detect the degradation it exists to detect.
+#
+# The guard is not the defect and is not weakened. It is stubbed here, in the
+# harness only, so the phase measures the pipeline instead of DNS. The Forager's
+# real code path still runs end to end -- fetch, HTML parse, title extraction,
+# domain sanitisation, crawl-depth gating, edge writes, dedup -- and only the
+# socket is replaced. Production imports of network_guard are untouched, and the
+# guard's real behaviour stays covered by tests/test_red_team.py and
+# tests/test_load.py. phase10 additionally asserts the guard's refusal directly,
+# so the phase now tests it on purpose rather than tripping over it by accident.
+
+_SOAK_PAGE = """<html><head><title>Soak fixture {n}</title></head><body>
+<a href="https://soak-cdn-{n}.example.org/assets">cdn</a>
+<a href="https://soak-mirror-{n}.example.org/mirror">mirror</a>
+</body></html>"""
+
+
+class _StubResponse:
+    """Minimal stand-in for the response object the Forager consumes."""
+
+    def __init__(self, body: bytes):
+        self._body = body
+        self.status = 200
+        self.headers = {'Content-Type': 'text/html; charset=utf-8'}
+
+    def read(self) -> bytes:
+        return self._body
+
+
+@contextmanager
+def _stub_open_public_url(url, timeout=None, context=None):
+    """Deterministic offline replacement for core.network_guard.open_public_url.
+
+    Content is derived from a hash of the URL so each distinct target yields a
+    stable, different page while the total entity count stays bounded.
+    """
+    digest = hashlib.sha256(str(url).encode('utf-8')).hexdigest()
+    n = int(digest[:6], 16) % 97
+    yield _StubResponse(_SOAK_PAGE.format(n=n).encode('utf-8'))
+
+
+# Fixed seed for the soak. Unseeded, the phase's verdict swung between 0.0% and
+# 88.1% failure across runs purely on which station the RNG happened to kill
+# (measured over seeds 0-7: 0.0, 65.1, 88.1, 75.6, 4.7, 52.1, 26.8, 65.1). That
+# is why CI reported 3 HIGH findings where a local run reported 4. An audit whose
+# verdict depends on RNG is not an audit.
+SOAK_SEED = 20260921
+
+# Stations that are the SOLE handler for an entity type the soak itself creates:
+# 'url' is seeded directly and 'domain' is produced by the Forager's extraction.
+# executive.run_service marks an entity permanently `failed` with "No station
+# registered for type" the instant no active station can handle it, so killing
+# one of these fails every entity by construction and the measured "failure rate"
+# describes the fixture, not the brigade. Loss of a sole handler is a real and
+# interesting question, so it is asked deliberately in
+# _probe_sole_handler_loss instead of being left to chance.
+_SOAK_SOLE_HANDLERS = ('forager', 'analyst')
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1117,8 +1191,95 @@ class Gauntlet:
     # PHASE 10: SUSTAINED SOAK
     # ═══════════════════════════════════════════════════════════════════════════
 
+    def _assert_network_guard_refuses_unresolvable_host(self):
+        """Test the real SSRF guard on purpose, before the soak stubs it out.
+
+        The stub below replaces the socket for the soak's own traffic. That would
+        be a way to smuggle a security regression past the gauntlet, so the
+        unstubbed guard is asserted first: a host with no public address must be
+        refused. If this ever stops refusing, the finding is CRITICAL.
+        """
+        from xp_arc.core.network_guard import open_public_url as real_open
+
+        refused = False
+        error = None
+        try:
+            with real_open('https://soak-guard-probe.example.com', timeout=2):
+                pass
+        except Exception as exc:
+            refused = True
+            error = f'{type(exc).__name__}: {exc}'
+
+        self.report.add_finding(GauntletFinding(
+            phase='Phase 10: Sustained Soak',
+            injection='SSRF / DNS-rebinding guard against a non-resolving host',
+            expected_behavior='open_public_url refuses a host with no public address',
+            actual_behavior=('guard refused the host' if refused
+                             else 'GUARD ALLOWED A NON-RESOLVING HOST'),
+            severity='INFO' if refused else 'CRITICAL',
+            evidence={'host': 'soak-guard-probe.example.com', 'refused': refused,
+                      'error': error},
+        ))
+
+    def _probe_sole_handler_loss(self, executive, pool):
+        """Ask, deliberately, what happens when a sole handler disappears.
+
+        The soak used to sample this by chance: when the RNG killed the Forager --
+        the only station that handles 'url' -- every seeded entity was marked
+        `failed` with "No station registered for type", and the phase verdict
+        swung between 0% and 88% failure on luck alone. Excluding sole handlers
+        from the random kill pool makes the sustained-load number meaningful, but
+        it would be worse than useless to stop asking the question entirely. So it
+        is asked here, once, deterministically.
+
+        VALID_TRANSITIONS allows 'failed' -> 'processing' (annotated "retry"), so
+        a stranded entity is recoverable by design. This checks whether anything
+        actually recovers it once the station comes back.
+        """
+        target = next((s for s in executive.stations
+                       if s.station_id in _SOAK_SOLE_HANDLERS), None)
+        if target is None:
+            return
+
+        target._active = False
+        entity_id = pool.add_entity('url', 'https://sole-handler-probe.example.com')
+        if not entity_id:
+            target._active = True
+            return
+
+        executive.run_service()
+        stranded = dict(pool.get_entity(entity_id) or {})
+        stranded_status = stranded.get('status')
+        stranded_notes = str(stranded.get('notes') or '')[:140]
+
+        # Bring the station back and see whether the stranded entity is retried.
+        target._active = True
+        executive.run_service()
+        recovered_status = dict(pool.get_entity(entity_id) or {}).get('status')
+
+        retried = recovered_status != stranded_status
+        self.report.add_finding(GauntletFinding(
+            phase='Phase 10: Sustained Soak',
+            injection='Sole handler for a seeded type killed, then restored',
+            expected_behavior=('entity stranded while the handler is down, then '
+                               'retried once it returns -- VALID_TRANSITIONS '
+                               'permits failed -> processing'),
+            actual_behavior=(f'stranded as {stranded_status!r}; '
+                             f'{"RETRIED" if retried else "NOT retried"} after the '
+                             f'station was restored (now {recovered_status!r})'),
+            severity='INFO' if retried else 'MEDIUM',
+            evidence={'station': target.station_id, 'entity_id': entity_id,
+                      'stranded_status': stranded_status,
+                      'stranded_notes': stranded_notes,
+                      'status_after_restore': recovered_status,
+                      'retried': retried},
+        ))
+
+
     def phase10_sustained_soak(self):
         """Accelerated soak: 10 seeds/min equivalent, random station kills."""
+        self._assert_network_guard_refuses_unresolvable_host()
+
         pool = self._fresh_pool()
         executive = self._fresh_executive(pool, max_entities=500)
 
@@ -1137,28 +1298,48 @@ class Gauntlet:
         max_cycles = 50  # Accelerated: 50 cycles ~ 10 min equivalent
         station_kills = 0
 
-        while cycles < max_cycles:
-            cycles += 1
+        rng = random.Random(SOAK_SEED)
+        import xp_arc.stations.forager as _forager_module
 
-            # Seed 2 new URLs per cycle (accelerated rate)
-            for i in range(2):
-                pool.add_entity('url', f'https://soak-{cycles}-{i}.example.com')
+        # Harness-only stub: the soak seeds hostnames that do not exist in DNS,
+        # so the real RT-17 guard refused all 100 and the phase measured DNS
+        # instead of the brigade. See PHASE 10 HERMETIC NETWORK above.
+        _real_open_public_url = _forager_module.open_public_url
+        _forager_module.open_public_url = _stub_open_public_url
+        try:
+            while cycles < max_cycles:
+                cycles += 1
 
-            # Randomly kill a station (10% chance per cycle)
-            if random.random() < 0.1 and executive.stations:
-                victim = random.choice(executive.stations)
-                victim._active = False
-                station_kills += 1
-                pool._log_event('station_killed', 'gauntlet',
-                                f'Killed station: {victim.name}')
+                # Seed 2 new URLs per cycle (accelerated rate)
+                for i in range(2):
+                    pool.add_entity('url', f'https://soak-{cycles}-{i}.example.com')
 
-            # Run one cycle
-            executive.run_service()
+                # Randomly kill a station (10% chance per cycle).
+                #
+                # Sole handlers of the types this soak creates are excluded: see
+                # _SOAK_SOLE_HANDLERS. Their loss is probed deliberately after the
+                # loop, where the expectation can be stated honestly, rather than
+                # being sampled by chance and silently deciding the verdict.
+                killable = [s for s in executive.stations
+                            if s.is_active and s.station_id not in _SOAK_SOLE_HANDLERS]
+                if rng.random() < 0.1 and killable:
+                    victim = rng.choice(killable)
+                    victim._active = False
+                    station_kills += 1
+                    pool._log_event('station_killed', 'gauntlet',
+                                    f'Killed station: {victim.name}')
 
-            # Health checks every 10 cycles
-            if cycles % 10 == 0:
-                plongeur.run_sweep()
-                sentinel.run_health_check()
+                # Run one cycle
+                executive.run_service()
+
+                # Health checks every 10 cycles
+                if cycles % 10 == 0:
+                    plongeur.run_sweep()
+                    sentinel.run_health_check()
+
+        finally:
+            # Never let the stub escape into another phase or the process.
+            _forager_module.open_public_url = _real_open_public_url
 
         elapsed = time.time() - start_time
         total_entities = pool.count_entities()
@@ -1190,6 +1371,12 @@ class Gauntlet:
                 evidence={'station_kills': station_kills, 'failure_rate': failure_rate,
                           'total_entities': total_entities}
             ))
+
+        # Ask the sole-handler question explicitly, now that the sustained-load
+        # measurement above is no longer decided by whether the RNG happened to
+        # kill the only station that handles 'url'.
+        self._probe_sole_handler_loss(executive, pool)
+
 
         # Check for leaked resources (open connections, etc.)
         # Pool should be closable
