@@ -617,6 +617,8 @@ def create_app(kitchen: PersistentKitchen) -> web.Application:
     app.on_shutdown.append(stop_kitchen)
     app.router.add_get('/', dashboard_handler)
     app.router.add_static('/dragon', dragon_dir)
+    # index.html is served at '/', so its relative vendor/ assets resolve here.
+    app.router.add_static('/vendor', dragon_dir / 'vendor')
     app.router.add_get('/ws', ws_handler)
     app.router.add_get('/api/health', health_handler)
     app.router.add_get('/api/dragon', dragon_handler)
