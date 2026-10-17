@@ -819,13 +819,23 @@ class IntelligencePool:
     # ─── Descendant Tracking (for GC cleanup) ─────────────────────────────────
 
     def get_descendants(self, entity_id: int) -> list:
-        """Return all entities that have entity_id anywhere in their spawn_chain."""
+        """Return every entity below entity_id in the parent_task_id tree.
+
+        Walks integer parent links recursively, so grandchildren are included
+        and ID 1 never matches ID 11 (the old spawn_chain substring bug).
+        """
         rows = self.conn.execute("""
+            WITH RECURSIVE subtree(id) AS (
+                SELECT id FROM entities WHERE parent_task_id = ? AND id != ?
+                UNION
+                SELECT e.id FROM entities e JOIN subtree s ON e.parent_task_id = s.id
+                WHERE e.id != e.parent_task_id
+            )
             SELECT id, type, value, status, cascade_depth, spawn_chain
             FROM entities
-            WHERE parent_task_id = ?
-            ORDER BY cascade_depth
-        """, (entity_id,)).fetchall()
+            WHERE id IN (SELECT id FROM subtree)
+            ORDER BY cascade_depth, id
+        """, (entity_id, entity_id)).fetchall()
         return rows
 
     def reset_descendants(self, entity_id: int, status: str = 'failed') -> int:

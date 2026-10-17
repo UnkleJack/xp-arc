@@ -117,3 +117,37 @@ def test_safe_halt_is_logged_once(kitchen):
     kitchen._enter_safe_halt()
     halts = [e for e in kitchen.pool.get_events(200) if e['event_type'] == 'safe_halt']
     assert len(halts) == 1
+
+
+# ─── HIGH-5: descendants walk the whole subtree, by integer ID ──────────────
+
+def test_descendants_include_grandchildren_and_not_lookalike_ids(tmpdir_path):
+    pool = IntelligencePool(os.path.join(tmpdir_path, 'tree.db'))
+    root = pool.add_entity('url', 'https://root.example')
+    child = pool.add_entity('domain', 'child.example', parent_task_id=root)
+    grandchild = pool.add_entity('domain', 'grand.example', parent_task_id=child)
+    # Pad IDs so that an unrelated entity gets an ID containing root's digit.
+    for i in range(12):
+        pool.add_entity('url', f'https://pad{i}.example')
+    unrelated = pool.add_entity('domain', 'other.example')
+
+    ids = {row['id'] for row in pool.get_descendants(root)}
+    assert ids == {child, grandchild}
+    assert unrelated not in ids
+    pool.close()
+
+
+# ─── MEDIUM-2: dossiers cite only completed, signed entities ────────────────
+
+def test_dossier_ignores_unapproved_entities(tmpdir_path):
+    from xp_arc.stations.dossier import TheDossier
+    pool = IntelligencePool(os.path.join(tmpdir_path, 'dossier.db'))
+    pool.add_entity('domain', 'raw-neighbor.example')
+    pool.station_writer('executive').add_edge(
+        'target.example', 'links_to', 'raw-neighbor.example')
+
+    intel = TheDossier(pool)._gather_intelligence('target.example')
+    cited = [p['value'] for bucket in ('infrastructure', 'presence', 'identities',
+                                       'risk_factors') for p in intel[bucket]]
+    assert 'raw-neighbor.example' not in cited
+    pool.close()
