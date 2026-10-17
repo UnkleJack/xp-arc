@@ -66,7 +66,8 @@ DEFAULT_TARGETS = [
 
 
 def run_kitchen(targets: list, db_path: str = "xp_arc.db",
-                max_entities: int = 500, verbose: bool = True) -> dict:
+                max_entities: int = 500, verbose: bool = True,
+                grc: bool = False) -> dict:
     """
     Full pipeline execution.
 
@@ -106,10 +107,10 @@ def run_kitchen(targets: list, db_path: str = "xp_arc.db",
     executive.register_station(TheSalamander(pool))
     executive.register_station(TheHerald(pool))
     executive.register_station(TheDossier(pool))
-    # GRC Stations
-    executive.register_station(GRCSupervisor(pool))
-    executive.register_station(GRCCommis(pool))
-    
+    # GRC stations are opt-in: both require XP_ARC_CISO_TOKEN and raise without it.
+    if grc:
+        executive.register_station(GRCSupervisor(pool))
+        executive.register_station(GRCCommis(pool))
 
     # Utilities
     sentinel = TheSentinel(pool)
@@ -119,18 +120,10 @@ def run_kitchen(targets: list, db_path: str = "xp_arc.db",
     print(f"\n[KITCHEN] Seeding {len(targets)} targets...\n")
 
     for url in targets:
-        # Seed entities ARE the root of their own Snowball chain
-        # Per Constitution Article III Section 3.3: root_task_id should be set during insertion
-        # by the Pool's atomic write path, not via direct SQL after ingestion
-        eid = pool.add_entity('url', url, root_task_id=0, cascade_depth=0)  # 0 indicates seed/root
+        # Seeds are the root of their own Snowball chain. add_entity() sets
+        # root_task_id = id inside its insertion transaction (Article III 3.3).
+        eid = pool.add_entity('url', url, cascade_depth=0)
         if eid:
-            # Update the root_task_id to point to itself (the seed)
-            # This is done constitutionally through the Pool's update path
-            with pool.conn:
-                pool.conn.execute(
-                    "UPDATE entities SET root_task_id = ? WHERE id = ?",
-                    (eid, eid)
-                )
             print(f"  [POOL] + Seed: {url}")
         else:
             print(f"  [POOL] ~ Already in pool: {url}")
@@ -225,6 +218,8 @@ def main():
     parser.add_argument('--max-entities', type=int, default=500, help='Max entities (default: 500)')
     parser.add_argument('--quiet', action='store_true', help='Suppress verbose output')
     parser.add_argument('--export-only', action='store_true', help='Re-export existing DB without running pipeline')
+    parser.add_argument('--grc', action='store_true',
+                        help='Register the GRC stations (requires XP_ARC_CISO_TOKEN)')
 
     args = parser.parse_args()
     targets = args.targets or DEFAULT_TARGETS
@@ -244,6 +239,7 @@ def main():
         db_path=args.db,
         max_entities=args.max_entities,
         verbose=not args.quiet,
+        grc=args.grc,
     )
 
 

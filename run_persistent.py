@@ -55,6 +55,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Set, Dict, Any, List
 from aiohttp import web, WSMsgType
+from aiohttp.web_log import AccessLogger
 
 # Logging configuration
 log_level = os.getenv('XP_ARC_LOG_LEVEL', 'INFO').upper()
@@ -112,6 +113,7 @@ class PersistentKitchen:
         self._cycles = 0
         self._halt_vetoed = False
         self._halt_countdown = 0
+        self._halted = False
 
         # WebSocket connections
         self._ws_connections: Set[web.WebSocketResponse] = set()
@@ -182,6 +184,19 @@ class PersistentKitchen:
     def stop(self):
         self._running = False
 
+    def _enter_safe_halt(self):
+        """Stop processing and refuse new ingestion (CONSTITUTION Article VI 6.4)."""
+        self._running = False
+        if not self._halted:
+            self._halted = True
+            self.pool._log_event('safe_halt', 'persistent',
+                                 'Safe halt executed: processing stopped, ingestion refused.')
+
+    @property
+    def ingestion_open(self) -> bool:
+        """Seeds are refused while halted and during the safe-halt veto window."""
+        return not self._halted and self._halt_countdown <= 0
+
     def _cycle(self):
         """One processing cycle."""
         import math
@@ -194,7 +209,7 @@ class PersistentKitchen:
                 self._halt_countdown = max(0, self._halt_countdown - self.poll_interval)
                 if self._halt_countdown == 0 and not self._halt_vetoed:
                     print("\n[SAFE HALT] Veto window expired. Initiating safe halt.")
-                    self._running = False
+                    self._enter_safe_halt()
             return
 
         self._cycles += 1
@@ -225,7 +240,7 @@ class PersistentKitchen:
             else:
                 # Already vetoed, halt now
                 print("\n[SAFE HALT] Veto window expired. Initiating safe halt.")
-                self._running = False
+                self._enter_safe_halt()
         elif self._halt_countdown > 0:
             # Recommendation cleared — cancel the window
             print("\n[SAFE HALT] Recommendation cleared. Veto window cancelled.")
@@ -238,7 +253,7 @@ class PersistentKitchen:
                 print(f"[SAFE HALT] Veto window: {math.ceil(self._halt_countdown)}s remaining")
             elif not self._halt_vetoed:
                 self._halt_vetoed = True
-                self._running = False
+                self._enter_safe_halt()
                 print("\n[SAFE HALT] Veto window expired. Initiating safe halt.")
 
         # Export state for DRAGON (static fallback) + push WebSocket telemetry
@@ -361,6 +376,12 @@ class PersistentKitchen:
 
     def seed(self, url: str) -> dict:
         """Inject a seed URL into the pool. Returns entity info."""
+        if not self.ingestion_open:
+            state = 'safe halt' if self._halted else 'safe-halt veto window'
+            self.pool._log_event('seed_rejected', 'dragon_api',
+                                 f"Seed refused during {state}", f"url={str(url)[:256]}")
+            return {'status': 'halted', 'url': url,
+                    'reason': f'ingestion suspended: {state}'}
         reason = self.validate_seed_url(url)
         if reason:
             self.pool._log_event('seed_rejected', 'dragon_api',
@@ -488,6 +509,8 @@ async def seed_handler(request: web.Request):
     result = kitchen.seed(url)
     if result['status'] == 'rejected':
         return web.json_response(result, status=400)
+    if result['status'] == 'halted':
+        return web.json_response(result, status=503)
     return web.json_response(result)
 
 
@@ -560,6 +583,30 @@ def check_auth(request: web.Request) -> bool:
     return False
 
 
+class RedactingAccessLogger(AccessLogger):
+    """Access log that never records the API key.
+
+    /ws accepts the key as ?token=..., and the default log line includes the
+    full request line, which wrote the key into every log file.
+    """
+
+    def log(self, request, response, time):
+        if 'token' in request.query:
+            request = request.clone(rel_url=request.rel_url.update_query(token='REDACTED'))
+        super().log(request, response, time)
+
+
+def is_public_asset(request: web.Request) -> bool:
+    """The dashboard shell and its vendored libraries carry no pool data.
+
+    They must load without credentials so the browser can then present the API
+    key on its own data requests. /dragon/* stays protected: it can contain an
+    exported pool_state.json.
+    """
+    return request.method in ('GET', 'HEAD') and (
+        request.path == '/' or request.path.startswith('/vendor/'))
+
+
 @web.middleware
 async def cors_middleware(request: web.Request, handler):
     """Allow local DRAGON files and same-machine tools to read the observation API."""
@@ -585,7 +632,7 @@ async def auth_middleware(request: web.Request, handler):
     Both are now gated. When XP_ARC_API_KEY is unset, auth is disabled
     everywhere exactly as before, so this changes nothing for local dev.
     """
-    if request.path == '/api/health':
+    if request.path == '/api/health' or is_public_asset(request):
         return await handler(request)
     if not check_auth(request):
         return web.json_response({'error': 'Unauthorized - invalid or missing Bearer token'}, status=401)
@@ -617,6 +664,8 @@ def create_app(kitchen: PersistentKitchen) -> web.Application:
     app.on_shutdown.append(stop_kitchen)
     app.router.add_get('/', dashboard_handler)
     app.router.add_static('/dragon', dragon_dir)
+    # index.html is served at '/', so its relative vendor/ assets resolve here.
+    app.router.add_static('/vendor', dragon_dir / 'vendor')
     app.router.add_get('/ws', ws_handler)
     app.router.add_get('/api/health', health_handler)
     app.router.add_get('/api/dragon', dragon_handler)
@@ -679,13 +728,14 @@ def main():
             print("[API] *** WARNING: bound to all interfaces with XP_ARC_API_KEY "
                   "unset. Every endpoint, including the /ws telemetry stream, is "
                   "unauthenticated. ***")
-        print(f"[API] DRAGON dashboard:     http://{shown}:{args.port}/")
+        dashboard_hint = '#token=<XP_ARC_API_KEY>' if API_KEY else ''
+        print(f"[API] DRAGON dashboard:     http://{shown}:{args.port}/{dashboard_hint}")
         print(f"[API] WebSocket telemetry: ws://{shown}:{args.port}/ws")
         print(f"[API] DRAGON endpoint:     http://{shown}:{args.port}/api/dragon")
         print(f"[API] Seed endpoint:       POST http://{shown}:{args.port}/api/seed")
         print(f"[API] Health endpoint:     http://{shown}:{args.port}/api/health")
         print()
-        web.run_app(app, host=args.host, port=args.port)
+        web.run_app(app, host=args.host, port=args.port, access_log_class=RedactingAccessLogger)
         return
 
     # Without the local observation server, retain a foreground CLI mode.

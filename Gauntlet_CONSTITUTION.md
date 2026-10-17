@@ -1,7 +1,7 @@
 # Gauntlet Constitution
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Status:** Ratified
-**Authors:** BATMAN, Jack (DRAGON)
+**Authors:** Jack (DRAGON)
 **License:** Apache License 2.0
 
 ---
@@ -88,14 +88,19 @@ Every finding **must** include:
 ```
 
 ### 4.2 Evidence Hierarchy (strongest → weakest)
-1. **On-disk artifact** (DB row, file, log entry) — verified by System Reckoner
+1. **On-disk artifact** (DB row, file, log entry)
 2. **Structured event log** (pool event, station log, metric row)
 3. **Runtime state dump** (pool export, executive summary)
 4. **Agent self-report** (station stats, aboyeur stats) — corroborated only
 5. **Heuristic inference** — never sufficient alone for CRITICAL/HIGH
 
-### 4.3 Reckoner Binding
-**No finding is valid without Reckoner verification.** Every artifact cited in `evidence` must pass `auditor.sh --target <path>` before the Gauntlet report is finalized.
+### 4.3 Evidence Validation
+`xp-arc-gauntlet --constitution-check` validates every finding before the report is written:
+- severity is one of the Article III values;
+- every CRITICAL or HIGH finding carries evidence;
+- every CRITICAL finding cites an on-disk artifact (`entity_id` or `path`).
+
+Any violation exits with code 3 (Article VII).
 
 ---
 
@@ -152,7 +157,7 @@ Safe halt is recommended when **either**:
 |------|---------|
 | 0 | No CRITICAL findings |
 | 1 | ≥1 CRITICAL finding |
-| 2 | Gauntlet internal error (phase crash, Reckoner failure) |
+| 2 | Gauntlet internal error (phase crash) |
 | 3 | Constitutional violation (malformed finding, missing evidence) |
 
 ---
@@ -191,18 +196,12 @@ If a CRITICAL finding reveals a constitutional gap in the Gauntlet itself, Jack 
 
 ---
 
-## Article X — Reckoner Integration (Mandatory)
+## Article X — Self-Contained Execution
 
-The Gauntlet **is** a Reckoner subject. Every persistent write (report, DB, log) must pass auditor verification before completion is announced.
-
-```bash
-# Embedded in Gauntlet main()
-for artifact in [report_path, db_path, log_path]:
-    subprocess.run(["bash", "~/.hermes/skills/system-reckoner/scripts/auditor.sh", 
-                    "--target", artifact], check=True)
-```
-
-**Violation:** Announcing completion before Reckoner passes = constitutional violation.
+The Gauntlet depends on nothing outside this repository and its declared
+`[gauntlet]` extras. Evidence is validated in-process (Article IV.3); no external
+auditor, agent, or host-specific tooling is required to run it or to trust its
+report.
 
 ---
 
@@ -210,7 +209,8 @@ for artifact in [report_path, db_path, log_path]:
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0.0 | 2026-08-01 | Ratified: 10 phases, severity taxonomy, evidence standards, Reckoner binding |
+| 1.1.0 | 2026-10-17 | External auditor binding removed (it was never implemented); Article IV.3 documents the in-process `--constitution-check`; Article X now requires self-contained execution |
+| 1.0.0 | 2026-08-01 | Ratified: 10 phases, severity taxonomy, evidence standards |
 | 0.1.0 | 2026-08-01 | Initial draft |
 
 ---
@@ -224,6 +224,5 @@ If the Gauntlet is superseded by a superior adversarial framework, this constitu
 **End of Constitution**
 
 *Ratified by: Jack (DRAGON) — 2026-08-01*
-*Witnessed by: BATMAN*
 *Date: 2026-08-01*
 *License updated to Apache License 2.0 — 2026-08-23, following the project-wide relicense (WHITEPAPER.md §13).*

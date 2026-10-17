@@ -163,7 +163,11 @@ def test_ws_and_metrics_are_no_longer_auth_exempt():
         body = fh.read()
 
     assert "if request.path in ('/ws', '/api/health', '/metrics')" not in body
-    assert "if request.path == '/api/health':" in body
+    assert "if request.path == '/api/health' or is_public_asset(request):" in body
+    # The only other exemption is the data-free dashboard shell; /ws and
+    # /metrics are never public.
+    for path in ('/ws', '/metrics'):
+        assert run_persistent.is_public_asset(_req(path)) is False
 
 
 def test_websocket_accepts_the_key_as_a_query_parameter(monkeypatch):
@@ -258,3 +262,50 @@ def test_grc_stations_refuse_to_start_without_a_token(pool, monkeypatch):
     for cls in (GRCSupervisor, GRCCommis):
         with pytest.raises(RuntimeError, match='XP_ARC_CISO_TOKEN'):
             cls(pool)
+
+
+# ─── DRAGON loads behind XP_ARC_API_KEY ──────────────────────────────────────
+
+def _req(path, method='GET', query=None):
+    class FakeRequest:
+        pass
+    r = FakeRequest()
+    r.path, r.method, r.query, r.headers = path, method, query or {}, {}
+    return r
+
+
+def test_dashboard_shell_and_vendor_assets_are_public_but_data_is_not():
+    import run_persistent
+
+    assert run_persistent.is_public_asset(_req('/')) is True
+    assert run_persistent.is_public_asset(_req('/vendor/d3-7.9.0.min.js')) is True
+    # /dragon/* can hold an exported pool_state.json, so it stays protected.
+    assert run_persistent.is_public_asset(_req('/dragon/pool_state.json')) is False
+    assert run_persistent.is_public_asset(_req('/api/dragon')) is False
+    assert run_persistent.is_public_asset(_req('/', method='POST')) is False
+
+
+def test_access_log_redacts_the_ws_token():
+    import logging
+    from aiohttp.test_utils import make_mocked_request
+    import run_persistent
+
+    records = []
+
+    class Capture(logging.Handler):
+        def emit(self, record):
+            records.append(record.getMessage())
+
+    logger = logging.getLogger('xp_arc_test_access')
+    logger.addHandler(Capture())
+    logger.setLevel(logging.INFO)
+    access = run_persistent.RedactingAccessLogger(logger, '%r %s')
+
+    class Response:
+        status = 101
+        body_length = 0
+        headers = {}
+
+    access.log(make_mocked_request('GET', '/ws?token=super-secret'), Response(), 0.01)
+    assert records and 'super-secret' not in records[0]
+    assert 'token=REDACTED' in records[0]

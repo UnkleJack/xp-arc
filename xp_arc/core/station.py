@@ -57,6 +57,11 @@ class StationChef:
         'confidence': float (0.0 - 1.0),
         'notes': str
     }
+
+    Optional keys, all committed by the Executive only after Aboyeur approval:
+        'spawn_targets': [{'ent_type': str, 'value': str}, ...]
+        'edges': [{'source': str, 'relationship': str, 'target': str}, ...]
+        'prompt_version': str — overrides the class-level prompt_version
     """
 
     station_id: str = "base"
@@ -64,6 +69,10 @@ class StationChef:
     handles_types: list = []
     sla_seconds: int = 60
     is_primary: bool = True
+    # Article X 10.4: recorded on every completed output. Rule-based stations
+    # have no prompt, so they record the version of their rules; LLM-backed
+    # stations should set the prompt pack version they ran.
+    prompt_version: str = "rules-v1"
 
     def __init__(self, pool):
         self.pool = pool

@@ -96,7 +96,8 @@ xp-arc/
 ├── DEPLOY.md                        # Deployment guide
 ├── docs/
 │   ├── aboyeur-protocol-v1.json     # QA protocol schema
-│   └── advanced.md                  # Advanced topics
+│   ├── audits/                      # Dated audits with fix status
+│   └── RELEASING.md                 # Release runbook
 └── tests/
     └── test_basic.py, test_load.py  # Unit + load tests
 ```
@@ -131,6 +132,25 @@ pip install -e .[competitive-intel]
 # Everything (broker + asset-engine + competitive-intel)
 pip install -e .[all]
 ```
+
+## Try It: AI Agent Ecosystem Weekly
+
+A working product built on XP-Arc's competitive-intel station: a weekly digest
+of what shipped across 18 AI-agent frameworks (LangChain, LangGraph, CrewAI,
+AutoGen, Vercel AI SDK and more). It uses PyPI, npm, RSS and Hacker News, and
+no API keys.
+
+```bash
+pip install -e ".[competitive-intel]"
+python scripts/weekly_digest.py          # collect, then write reports/digest/<week>.md
+```
+
+Every label in the digest is read off registry data. Releases are classified
+as major, minor, patch, pre-release, nightly or maintenance by comparing each
+version with its predecessor in the package's full version list. Nothing is
+inferred from keywords. The `AI Agent Ecosystem Weekly` GitHub Actions workflow
+runs it every Monday and shows the digest on the run page. Edit
+`config/competitive-watchlist.yaml` to track different projects.
 
 ## Three Subpackages, One Repo
 

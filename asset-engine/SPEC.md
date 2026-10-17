@@ -4,7 +4,7 @@
 **Owner**: DRAGON / [PERSON_NAME]  
 **Status**: Specification Phase — awaiting approval to implement  
 **Repo**: `~/xp-arc` (subdirectory `asset-engine/`)  
-**Target**: GitHub Actions cron (2×/day + manual dispatch) → zo.computer / exe.dev for heavy lifting
+**Target**: GitHub Actions cron (2×/day + manual dispatch) → a self-hosted GPU machine for heavy lifting
 
 ---
 
@@ -250,7 +250,7 @@ class BrowserEngine:
 | **OpenRouter** | gpt-oss-120b, nemotron-3-ultra, claude-3.5-sonnet | Prompt engineering, reasoning |
 | **Fal.ai** | Flux-dev, Flux-schnell, SDXL, Recraft | High-quality generation, fast |
 | **Replicate** | 100+ models (Flux, Midjourney v6, Ideogram) | Specialty models |
-| **Local ComfyUI** (zo.computer) | Any SDXL/Flux/LoRA | Unlimited, full control, LoRA training |
+| **Local ComfyUI** (self-hosted) | Any SDXL/Flux/LoRA | Unlimited, full control, LoRA training |
 
 ### 7.2 Routing Logic
 
@@ -265,7 +265,7 @@ def route_generation(prompt_job: PromptJob) -> GenerationTarget:
         return GenerationTarget(
             provider="comfyui",
             model="flux-dev-lora-lineart",
-            endpoint="zo.computer:8188"
+            endpoint="localhost:8188"
         )
     
     # Tarot cards → high detail, Flux/Midjourney
@@ -349,7 +349,7 @@ CREATE INDEX idx_review_queue ON assets(human_rating) WHERE human_rating = -1;
 - `/review` — grid of pending assets, keyboard shortcuts (A=approve, R=reject, N=next)
 - `/styles/{style_id}` — evolution dashboard, rating charts
 - `/queue` — generation run status
-- Runs on zo.computer, accessible via Tailscale
+- Runs on a self-hosted machine, accessible via a private network (e.g. Tailscale)
 
 **Decision**: Start with **Obsidian** (zero dev time), migrate to web UI if needed.
 
@@ -652,8 +652,8 @@ unity:
 | Decision | Options | Recommendation |
 |----------|---------|----------------|
 | **Review UI** | Obsidian vs Local Web UI | Start Obsidian, migrate if painful |
-| **Browser Profiles Storage** | GitHub Secrets (base64 tar) vs zo.computer persistent | zo.computer persistent volume |
-| **ComfyUI Hosting** | zo.computer (always-on) vs exe.dev vs GitHub Actions self-hosted | zo.computer (you control it) |
+| **Browser Profiles Storage** | GitHub Secrets (base64 tar) vs self-hosted persistent volume | Self-hosted persistent volume |
+| **ComfyUI Hosting** | Self-hosted (always-on) vs exe.dev vs GitHub Actions self-hosted | Self-hosted (you control it) |
 | **Style Genome Format** | YAML (shown) vs JSON vs TOML | YAML (human-readable, git-friendly) |
 | **Theme/Concept Source** | Manual YAML lists vs LLM-generated vs scraped | Manual curated + LLM expansion |
 | **Cost Monitoring** | Per-run budget alerts (GitHub Actions summary) | Yes, fail run if > $5 |

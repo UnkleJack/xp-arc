@@ -27,7 +27,7 @@ generation:
       - replicate
       - comfyui
     budget_per_run_usd: 5.00
-    comfyui_endpoint: "http://zo.computer:8188"  # or localhost for local
+    comfyui_endpoint: "http://localhost:8188"  # point at your ComfyUI host
 
 review:
   interface: obsidian

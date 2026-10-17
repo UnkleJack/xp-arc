@@ -8,7 +8,6 @@ Whitepaper Section 4.4, Station #1.
 """
 
 import re
-import json
 import urllib.parse
 import ssl
 try:
@@ -176,7 +175,6 @@ class TheForager(StationChef):
                 self.log(f"  [!] Depth limit reached ({parent_depth}/{parent_max}) — skipping extraction for {safe_url}")
                 raise StationRefusal(f"crawl_depth_limit: reached {parent_depth}/{parent_max}")
 
-            child_depth = parent_depth + 1  # children are one level deeper
 
             extracted_domains = []
 
@@ -197,39 +195,19 @@ class TheForager(StationChef):
                 source_domain = re.findall(r'https?://([^/]+)', safe_url)
                 source_domain = source_domain[0] if source_domain else ""
 
-                count = 0
-                child_root = parent['root_task_id'] if parent['root_task_id'] else entity_id
-                child_chain_raw = parent['spawn_chain'] if parent['spawn_chain'] else None
-                if child_chain_raw:
-                    try:
-                        child_chain = json.loads(child_chain_raw)
-                    except (json.JSONDecodeError, TypeError):
-                        child_chain = []
-                else:
-                    child_chain = []
-
-                for d in all_domains:
-                    # Sanitize each extracted domain before writing to pool
+                # Nothing is written here. Children and edges are returned as
+                # spawn_targets/edges and committed by the Executive only after
+                # the Aboyeur approves this output.
+                for d in sorted(all_domains):
                     safe_domain = _sanitize_domain(d)
-                    if not safe_domain:
+                    if not safe_domain or safe_domain in extracted_domains:
                         continue
                     if safe_domain == source_domain or safe_domain.endswith(f".{source_domain}"):
                         continue
-                    if count >= self.max_domains_per_target:
+                    if len(extracted_domains) >= self.max_domains_per_target:
                         break
-
-                    new_id = self.writer.add_entity(
-                        'domain', safe_domain,
-                        parent_task_id=entity_id,
-                        root_task_id=child_root,
-                        cascade_depth=child_depth,
-                        spawn_chain=json.dumps(child_chain + [entity_id])
-                    )
-                    if new_id:
-                        self.writer.add_edge(safe_url, 'links_to', safe_domain)
-                        self.log(f"  + Extracted domain: {safe_domain}")
-                        extracted_domains.append(safe_domain)
-                        count += 1
+                    self.log(f"  + Extracted domain: {safe_domain}")
+                    extracted_domains.append(safe_domain)
 
                 # Extract page title
                 title_match = re.search(r'<title[^>]*>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
@@ -246,6 +224,9 @@ class TheForager(StationChef):
                     'relationships': extracted_domains,
                     'confidence': 0.85,
                     'notes': f"Title: {title}. Extracted {len(extracted_domains)} external domains.",
+                    'spawn_targets': [{'ent_type': 'domain', 'value': d} for d in extracted_domains],
+                    'edges': [{'source': safe_url, 'relationship': 'links_to', 'target': d}
+                              for d in extracted_domains],
                 }
 
             except Exception as exc:

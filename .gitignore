@@ -84,3 +84,4 @@ station_keys.json.enc
 # Append-only run logs. `proof_of_work_log.jsonl` was listed by exact name and
 # tracked anyway; the extension pattern covers whatever the next writer calls it.
 *.jsonl
+reports/digest/

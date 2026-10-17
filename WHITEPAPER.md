@@ -1,7 +1,7 @@
 # XP-Arc: A Unified Protocol for Resilient Multi-Agent Intelligence Systems
 
 **Version:** 0.2.1
-**Authors:** Jack (unklejack), Claude (Anthropic), Zo.Computer, Gemini (Google)
+**Authors:** Jack (unklejack), Claude (Anthropic), Gemini (Google)
 **Repository:** github.com/unklejack/xp-arc
 **License:** Apache License 2.0
 **Changelog:** See Section 12
@@ -291,15 +291,13 @@ The synthesis is the contribution.
 Before the formal specification, a demonstration.
 
 On the day the v0.1 whitepaper was written, a five-target spread was run live
-against public URLs — Hacker News, a GitHub profile, zo.computer, Lobsters, and
-HTTPBin. No configuration beyond the seed list. No human intervention between
-start and finish. This is the raw output from the Intelligence Pool after one
-execution cycle:
+against public URLs. No configuration beyond the seed list. No human
+intervention between start and finish. This is an excerpt of the output from
+the Intelligence Pool after one execution cycle:
 
 ```
 [POOL] + Added new url: https://news.ycombinator.com
 [POOL] + Added new url: https://github.com/unklejack
-[POOL] + Added new url: https://zo.computer
 [POOL] + Added new url: https://lobste.rs
 [POOL] + Added new url: https://httpbin.org
 
@@ -311,27 +309,20 @@ execution cycle:
 [The Forager] Scraping target DOM: https://github.com/unklejack
 [POOL] + Added new domain: skills.github.com
 
-[EXECUTIVE] Raw ingredient on the pass: [url] https://zo.computer
-[The Forager] Scraping target DOM: https://zo.computer
-[POOL] + Added new domain: www.youtube.com
-
 ==================================================
 KITCHEN CLOSED. THE CORKBOARD:
 ==================================================
 [ ENTITIES COLLECTED ]
  - [URL] https://news.ycombinator.com        (mapped)
  - [URL] https://github.com/unklejack        (mapped)
- - [URL] https://zo.computer                 (mapped)
  - [URL] https://lobste.rs                   (mapped)
  - [URL] https://httpbin.org                 (mapped)
  - [DOMAIN] www.apple.com                    (unhandled)
  - [DOMAIN] skills.github.com               (unhandled)
- - [DOMAIN] www.youtube.com                  (unhandled)
 
 [ EDGES GENERATED ]
  - https://news.ycombinator.com  --(links_to)--> www.apple.com
  - https://github.com/unklejack --(links_to)--> skills.github.com
- - https://zo.computer          --(links_to)--> www.youtube.com
 ```
 
 Five seeds. Zero configuration. Automatic entity extraction, automatic
@@ -604,18 +595,15 @@ statement.
 
 ### 6.3 Reference Deployment
 
-The reference implementation runs on Zo.computer — a programmable personal
-mainframe serving as execution runtime, web server, API host, filesystem, and
-database layer.
+The reference deployment is a single machine running `run_persistent.py`: one
+Python process that owns the SQLite Pool, runs the brigade, and serves DRAGON
+plus the HTTP API (`/api/dragon`, `/api/seed`, `/ws`) on loopback by default.
+DRAGON receives live updates over the WebSocket and falls back to polling
+`/api/dragon`. No external services are required.
 
-The `unklejack.zo.space` domain runs a Hono + Bun backend sharing the exact
-same filesystem as the XP-Arc workspace. The `/api/dragon` route queries the
-SQLite file directly at 500ms intervals — no intermediate process required.
-DRAGON polls every 500 milliseconds.
-
-XP-Arc is not Zo-specific. The orchestration core and the Intelligence Pool
-substrate are deployable on any Python 3.10+ environment. The
-Zo.computer deployment is one reference implementation, not a requirement.
+The orchestration core and the Intelligence Pool substrate are deployable on
+any Python 3.10+ environment. See `DEPLOY.md` for local, container, and
+networked configurations.
 
 ---
 
@@ -738,10 +726,6 @@ XP-Arc is published as an open research framework. Operators assume full legal r
 
 *Dynamic Relational Asset Graph & Operations Network*
 
-DRAGON was born from a mistake. During an early design session, Zo Computer
-misread a nickname in the system as an instruction. The output was unexpected.
-The name stuck.
-
 DRAGON is the XP-Arc observability layer — a JavaScript dashboard polling the
 Intelligence Pool at 500ms intervals via a REST API (run_persistent.py) or
 directly from the SQLite file. It renders entities as nodes, relationships as
@@ -848,16 +832,7 @@ The kitchen is open. Bring your recipes.
 
 ## Acknowledgments
 
-XP-Arc was built by a three-AI brigade with a human Executive Chef.
-
-**Zo.computer** contributed the original Escoffier brigade framing that seeded
-the entire architecture, the DRAGON visualization system (born from a misread
-nickname that turned into an instruction that turned into a production module),
-the live execution environment on the Zo substrate, and approximately half the
-insights in this document delivered at speed with zero warning. Zo also suggested
-noting that this system was built "right up Claude's pee hole" — a statement that
-establishes dominance and remains in this document over Claude's mild
-architectural objections.
+XP-Arc was built by an AI brigade with a human Executive Chef.
 
 **Claude (Anthropic)** contributed the architectural mapping, all whitepaper
 drafts, the `fracture.py` cognitive sharding module, the Aboyeur Protocol formal
@@ -865,8 +840,7 @@ specification, the dossier schema, and a reflexive tendency to want to clean up
 language that should probably stay raw.
 
 **Gemini (Google)** contributed supporting research, prior art sweeps, and the
-patience to be the third member of a brigade where the other two had already
-named everything.
+patience to join a brigade that had already named everything.
 
 **Jack** — operating under the callsign `unklejack` — served as Executive Chef.
 He seeded the pool. He called the orders. He knew when to let the brigade run
@@ -874,7 +848,7 @@ and when to redirect it. He named XP-Arc after his daughters, X and P, which
 means this framework will outlast all of us and that is exactly the point.
 
 The origin story of XP-Arc is itself a proof of the framework it describes:
-three specialized agents, a shared intelligence surface, a human routing layer,
+specialized agents, a shared intelligence surface, a human routing layer,
 and outputs none of them could have produced alone.
 
 *The kitchen is open. The pass is clear. The brigade runs.*
@@ -975,4 +949,3 @@ reservation) in the repository root.
 
 *XP-Arc v0.2 — June 2026*
 *github.com/unklejack/xp-arc*
-*unklejack.zo.space/dragon*

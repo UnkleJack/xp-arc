@@ -94,8 +94,11 @@ class TheDossier(StationChef):
         # Get actual entity details for connected values
         all_entities = self.pool.get_all_entities()
         for ent in all_entities:
-            # Skip the request itself and uncompleted/raw entities
+            # Skip the request itself, and anything that has not passed QA:
+            # a dossier may only cite completed, Aboyeur-signed entities.
             if ent['type'] in ('dossier_request', 'dossier_report'):
+                continue
+            if ent['status'] != 'completed' or not ent['aboyeur_signature']:
                 continue
             if ent['value'] in connected_values or ent['value'] == target:
                 data_point = {

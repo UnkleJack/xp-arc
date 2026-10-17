@@ -435,7 +435,7 @@ NEGATIVE: realistic, photorealistic, anime, manga, 3d render, low quality, blurr
 - Midjourney v6 on Replicate for tarot (if budget allows)
 - Best for: sprite sheets, high-volume, consistent quality
 
-### Local ComfyUI (zo.computer)
+### Local ComfyUI (self-hosted)
 - Full control, LoRA support
 - Install simpsons-lora + disney-lora for style consistency
 - Unlimited generations

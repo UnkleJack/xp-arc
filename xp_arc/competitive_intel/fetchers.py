@@ -13,6 +13,8 @@ from urllib.parse import urlparse
 import feedparser
 import httpx
 
+from .versioning import predecessor
+
 logger = logging.getLogger(__name__)
 
 
@@ -342,8 +344,15 @@ class PyPIFetcher(BaseFetcher):
         releases = data.get("releases", {})
         info = data.get("info", {})
 
+        # Newest five by upload time. Sorting the version strings themselves is
+        # wrong: as text, "0.3.9" sorts above "0.3.10".
+        def _uploaded(version: str) -> str:
+            files = releases.get(version) or []
+            return files[0].get("upload_time_iso_8601", "") if files else ""
+
+        published = [v for v, files in releases.items() if files]
         events = []
-        for version in sorted(releases.keys(), reverse=True)[:5]:
+        for version in sorted(releases.keys(), key=_uploaded, reverse=True)[:5]:
             release_files = releases[version]
             if not release_files:
                 continue
@@ -363,6 +372,10 @@ class PyPIFetcher(BaseFetcher):
                         "version": version,
                         "files": len(release_files),
                         "requires_python": info.get("requires_python", ""),
+                        # From the full release list, so the digest can label
+                        # this release correctly even though only five are kept.
+                        "previous_version": predecessor(version, published),
+                        "latest_version": info.get("version"),
                     },
                     "tags": ["pypi", "release", "python"],
                 }
@@ -443,6 +456,8 @@ class NPMFetcher(BaseFetcher):
                         "version": version,
                         "dependencies": list(ver_data.get("dependencies", {}).keys()),
                         "license": ver_data.get("license", ""),
+                        "previous_version": predecessor(version, versions.keys()),
+                        "latest_version": data.get("dist-tags", {}).get("latest"),
                     },
                     "tags": ["npm", "release", "javascript"],
                 }
