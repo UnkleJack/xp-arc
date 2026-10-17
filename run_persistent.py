@@ -55,6 +55,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Set, Dict, Any, List
 from aiohttp import web, WSMsgType
+from aiohttp.web_log import AccessLogger
 
 # Logging configuration
 log_level = os.getenv('XP_ARC_LOG_LEVEL', 'INFO').upper()
@@ -582,6 +583,30 @@ def check_auth(request: web.Request) -> bool:
     return False
 
 
+class RedactingAccessLogger(AccessLogger):
+    """Access log that never records the API key.
+
+    /ws accepts the key as ?token=..., and the default log line includes the
+    full request line, which wrote the key into every log file.
+    """
+
+    def log(self, request, response, time):
+        if 'token' in request.query:
+            request = request.clone(rel_url=request.rel_url.update_query(token='REDACTED'))
+        super().log(request, response, time)
+
+
+def is_public_asset(request: web.Request) -> bool:
+    """The dashboard shell and its vendored libraries carry no pool data.
+
+    They must load without credentials so the browser can then present the API
+    key on its own data requests. /dragon/* stays protected: it can contain an
+    exported pool_state.json.
+    """
+    return request.method in ('GET', 'HEAD') and (
+        request.path == '/' or request.path.startswith('/vendor/'))
+
+
 @web.middleware
 async def cors_middleware(request: web.Request, handler):
     """Allow local DRAGON files and same-machine tools to read the observation API."""
@@ -607,7 +632,7 @@ async def auth_middleware(request: web.Request, handler):
     Both are now gated. When XP_ARC_API_KEY is unset, auth is disabled
     everywhere exactly as before, so this changes nothing for local dev.
     """
-    if request.path == '/api/health':
+    if request.path == '/api/health' or is_public_asset(request):
         return await handler(request)
     if not check_auth(request):
         return web.json_response({'error': 'Unauthorized - invalid or missing Bearer token'}, status=401)
@@ -703,13 +728,14 @@ def main():
             print("[API] *** WARNING: bound to all interfaces with XP_ARC_API_KEY "
                   "unset. Every endpoint, including the /ws telemetry stream, is "
                   "unauthenticated. ***")
-        print(f"[API] DRAGON dashboard:     http://{shown}:{args.port}/")
+        dashboard_hint = '#token=<XP_ARC_API_KEY>' if API_KEY else ''
+        print(f"[API] DRAGON dashboard:     http://{shown}:{args.port}/{dashboard_hint}")
         print(f"[API] WebSocket telemetry: ws://{shown}:{args.port}/ws")
         print(f"[API] DRAGON endpoint:     http://{shown}:{args.port}/api/dragon")
         print(f"[API] Seed endpoint:       POST http://{shown}:{args.port}/api/seed")
         print(f"[API] Health endpoint:     http://{shown}:{args.port}/api/health")
         print()
-        web.run_app(app, host=args.host, port=args.port)
+        web.run_app(app, host=args.host, port=args.port, access_log_class=RedactingAccessLogger)
         return
 
     # Without the local observation server, retain a foreground CLI mode.

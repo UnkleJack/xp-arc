@@ -376,7 +376,23 @@ const API_BASE = (() => {
   const params = new URLSearchParams(window.location.search);
   return params.get('api') || window.location.origin;
 })();
-const WS_URL = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws';
+// API key for daemons started with XP_ARC_API_KEY. Pass it in the URL fragment
+// (http://host:8089/#token=KEY): fragments are never sent to the server or
+// written to access logs. It is kept for this tab only and removed from the
+// address bar so it is not bookmarked or shared by accident.
+const API_TOKEN = (() => {
+  const fromHash = new URLSearchParams(window.location.hash.slice(1)).get('token');
+  try {
+    if (fromHash) sessionStorage.setItem('xp_arc_token', fromHash);
+    if (fromHash) history.replaceState(null, '', window.location.pathname + window.location.search);
+    return fromHash || sessionStorage.getItem('xp_arc_token') || '';
+  } catch (e) {
+    return fromHash || '';
+  }
+})();
+const AUTH_HEADERS = API_TOKEN ? { 'Authorization': `Bearer ${API_TOKEN}` } : {};
+const WS_URL = API_BASE.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws'
+  + (API_TOKEN ? `?token=${encodeURIComponent(API_TOKEN)}` : '');
 
 function scrollTo_(sel) {
   document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth' });
@@ -480,7 +496,7 @@ function loadStaticFallback() {
 
 async function fetchFullState() {
   try {
-    const res = await fetch(`${API_BASE}/api/dragon`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE}/api/dragon`, { cache: 'no-store', headers: AUTH_HEADERS });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     DATA = data;

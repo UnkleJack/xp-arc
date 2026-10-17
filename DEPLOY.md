@@ -166,6 +166,12 @@ Open `http://127.0.0.1:8089/` while the daemon runs. The page connects to `/ws`
 and falls back to polling `/api/dragon`. D3 is vendored in `dragon/vendor/`, so
 the dashboard works without internet access.
 
+With `XP_ARC_API_KEY` set, open `http://host:8089/#token=<XP_ARC_API_KEY>`. The
+page shell and `/vendor/` load without a key because they carry no pool data.
+The dashboard sends the key on its API and WebSocket requests and removes it
+from the address bar. Fragments are never sent to the server, and the access
+log redacts the WebSocket `token` parameter.
+
 ### Static mode
 ```bash
 python3 run_kitchen.py --export-only --db xp_arc.db
