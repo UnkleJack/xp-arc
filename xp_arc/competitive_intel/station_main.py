@@ -22,7 +22,7 @@ from xp_arc.competitive_intel.config import load_all_configs
 async def main():
     parser = argparse.ArgumentParser(description="XP-Arc Competitive Intelligence Station")
     parser.add_argument("command", choices=[
-        "run", "fetch", "detect", "report", "snapshot", "query", "health", "init-db"
+        "run", "fetch", "detect", "report", "digest", "snapshot", "query", "health", "init-db"
     ], help="Command to execute")
     parser.add_argument("--config", default="config/competitive-intelligence-station.yaml", help="Config file path")
     parser.add_argument("--watchlist", default="config/competitive-watchlist.yaml", help="Watchlist file path")
@@ -34,6 +34,8 @@ async def main():
     parser.add_argument("--status", choices=["open", "investigating", "prototyping", "shipped", "wont_fix"], help="Filter gaps by status")
     parser.add_argument("--daemon", action="store_true", help="Run as daemon (for scheduled runs)")
     parser.add_argument("--dry-run", action="store_true", help="Dry run - no database writes")
+    parser.add_argument("--output-dir", default="reports/digest",
+                        help="Directory for the weekly digest (digest command)")
 
     args = parser.parse_args()
 
@@ -68,6 +70,11 @@ async def main():
 
         elif args.command == "report":
             await station.generate_weekly_report(args.week)
+
+        elif args.command == "digest":
+            from xp_arc.competitive_intel.digest import write_digest
+            path = write_digest(str(station.db_path), args.output_dir, args.watchlist, args.week)
+            print(f"Digest written to {path}")
 
         elif args.command == "snapshot":
             if args.competitor:

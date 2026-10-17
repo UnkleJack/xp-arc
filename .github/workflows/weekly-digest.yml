@@ -1,0 +1,62 @@
+name: AI Agent Ecosystem Weekly
+
+on:
+  schedule:
+    # Mondays 13:17 UTC (06:17 Pacific), covering the week that just ended.
+    - cron: '17 13 * * 1'
+  workflow_dispatch:
+    inputs:
+      week:
+        description: 'ISO week to build, e.g. 2026-W42 (blank = current week)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install
+        run: pip install -e ".[competitive-intel]"
+
+      - name: Pick the week
+        id: week
+        run: |
+          if [ -n "${{ github.event.inputs.week }}" ]; then
+            echo "week=${{ github.event.inputs.week }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            # A Monday run reports on the week that just finished.
+            echo "week=$(date -u -d '3 days ago' +%G-W%V)" >> "$GITHUB_OUTPUT"
+          else
+            echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Collect and write digest
+        run: python scripts/weekly_digest.py --week "${{ steps.week.outputs.week }}"
+
+      - name: Show digest on the run page
+        if: always()
+        run: |
+          f="reports/digest/${{ steps.week.outputs.week }}.md"
+          if [ -f "$f" ]; then cat "$f" >> "$GITHUB_STEP_SUMMARY"; else echo "No digest produced." >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: Upload digest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-agent-ecosystem-weekly-${{ steps.week.outputs.week }}
+          path: |
+            reports/digest/*.md
+            data/competitive/job_runs.db
+          retention-days: 90
+          if-no-files-found: warn
