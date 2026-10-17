@@ -1,6 +1,6 @@
 # THE COGNITIVE LABOR CONSTITUTION
 ## XP-Arc Multi-Agent Orchestration Framework
-### Ratified: March 2026 | Version 1.7 | Apache License 2.0
+### Ratified: March 2026 | Version 1.8 | Apache License 2.0
 ### Authored under the direction of Jack (David J. Riedl)
 
 ---
@@ -591,12 +591,6 @@ This Article governs the **identity and behavioral laws** of AI entities operati
 
 Every interaction by every AI entity in this ecosystem serves the operational goals of XP-Arc: scalable, reusable, eventually-sellable, AI-driven solutions.
 
-### Section 13.4 — Named Entity: Lego / Batman (Zo Computer Instance)
-
-**Identity**: Expert reasoning engine. Peer-level collaborator, technically dense, no ceremony.
-**Role in Stack**: Primary execution and deployment agent on Zo.Computer infrastructure.
-**Behavioral Profile**: Operates under all seven Core Laws. Direct engagement. Zero hedging.
-
 ---
 
 ## ARTICLE XIV — ADVERSARIAL REVIEW AUTHORITY (SPAZZMATIС)
@@ -704,7 +698,6 @@ Community proposals via GitHub Issues tagged `constitutional-amendment`. Evaluat
 | **PRO** | Primary Role Occupancy; percentage of agents in primary vs. fallback roles |
 | **S** | Stability Quotient; ratio of tasks completed to tasks ingested per unit time |
 | **SpaZzMatiC** | Adversarial Review Authority; independent Gemini-backed QA agent with conditional safe halt authority |
-| **Lego / Batman** | Named Zo.Computer AI instance; primary execution and deployment peer |
 | **Serialized Write Queue** | N/A in current implementation. The SQLite WAL mode handles write serialization atomically at the file level. Redis-buffered HA Write Broker was originally specified but not implemented — SQLite WAL achieves the same atomicity without the infrastructure overhead. |
 | **Materialized View** | N/A in current implementation. DRAGON queries the SQLite file directly at 500ms polling intervals. The materialized view was part of the Write Broker architecture that was not implemented. |
 | **gc_eligible** | Retention policy marking a task as eligible for Plongeur GC sweep after the retention window |
@@ -753,5 +746,7 @@ LICENSE:                Apache 2.0. Patent grant + trademark reservation. See LI
 *v1.4: Redis-buffered HA Write Broker, DRAGON materialized view, DB-generated timestamps only, Aboyeur rejection circuit breaker (max_rejections), weighted S formula (Σsla_seconds), debt grace window hard cap, broker-enforced cascade depth.*
 *v1.5: Substrate corrected from DuckDB+Redis Write Broker to SQLite WAL. MIT license. All DuckDB/Write Broker/Materialized View references removed. No infrastructure dependencies for core.*
 *v1.7: Zoran's Law corrected — Article VIII 8.1 restated as a windowed RATE ratio; the cumulative form made the S > 1.0 HEALTHY state mathematically unreachable. sla_suspended excluded from both sides; non-agent infrastructure excluded from the PRO denominator. Article III 3.2 gains `fractured → failed` as the Chef de Cuisine escalation exit, closing the stranded-parent dead end. Article V 5.5 retry and escalation implemented (the retry gap was pool-wide, not shard-specific). Chef de Cuisine station built as a CRITICAL member surviving Brigade Compression.*
+
+*v1.8: Article XIII Section 13.4 (named host-specific agent instance) and its glossary entry removed. XP-Arc names no hosting platform or agent instance in its constitutional text.*
 
 *v1.6: Relicensed from MIT to Apache License 2.0 (Dragon's ruling, 2026-08-19). Rationale: express patent grant (§3) and trademark reservation (§6) support the certified-implementation/consulting monetization model without BSL's adoption-suppression tradeoff. See NOTICE for the trademark reservation list.*

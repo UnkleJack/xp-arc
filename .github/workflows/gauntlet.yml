@@ -60,10 +60,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .[gauntlet,dev]
-          # Ensure system-reckoner auditor is available
-          if [ -d ~/.hermes/skills/system-reckoner/scripts ]; then
-            chmod +x ~/.hermes/skills/system-reckoner/scripts/auditor.sh
-          fi
 
       - name: Run Gauntlet
         id: gauntlet

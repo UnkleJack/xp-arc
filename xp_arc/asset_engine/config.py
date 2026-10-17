@@ -24,7 +24,7 @@ class APIConfig(BaseModel):
     enabled: bool = True
     providers: list[str] = ["openrouter", "fal", "replicate", "comfyui"]
     budget_per_run_usd: float = 5.00
-    comfyui_endpoint: str = "http://zo.computer:8188"
+    comfyui_endpoint: str = "http://localhost:8188"
 
 
 class GenerationConfig(BaseModel):
