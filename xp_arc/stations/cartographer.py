@@ -32,7 +32,7 @@ class TheCartographer(StationChef):
     sla_seconds = 180
     is_primary = True
 
-    def map_topology(self) -> dict:
+    def map_topology(self, commit: bool = True) -> dict:
         """
         Full topological analysis of the entity graph.
         Writes discovered relationships as new edges.
@@ -78,11 +78,14 @@ class TheCartographer(StationChef):
         inferred = self._infer_relationships(directed, all_values)
         self.log(f"  Inferred {len(inferred)} hidden connections")
 
-        # Write inferred edges
-        new_edges = 0
-        for inf in inferred:
-            self.writer.add_edge(inf['source'], inf['relationship'], inf['target'])
-            new_edges += 1
+        # Standalone callers write directly; under the Executive (commit=False)
+        # the inferred edges are committed only after QA approves the output.
+        inferred_edges = [{'source': inf['source'], 'relationship': inf['relationship'],
+                           'target': inf['target']} for inf in inferred]
+        new_edges = len(inferred_edges)
+        if commit:
+            new_edges = sum(1 for e in inferred_edges
+                            if self.writer.add_edge(e['source'], e['relationship'], e['target']))
 
         # Write bridge findings
         for bridge in bridges:
@@ -119,6 +122,7 @@ class TheCartographer(StationChef):
             'hubs': [{'node': h[0], 'edges': h[1]} for h in hubs[:10]],
             'bridges': bridges[:10],
             'inferred_connections': inferred[:20],
+            'edges': inferred_edges,
         }
 
         self.pool._log_event('cartography_complete', self.station_id,
@@ -243,8 +247,9 @@ class TheCartographer(StationChef):
         return inferred
 
     def process(self, entity_id, entity_type, entity_value):
-        report = self.map_topology()
+        report = self.map_topology(commit=False)
         return {
+            'edges': report['edges'],
             'entity_type': '_cartography_request',
             'entity_value': 'topology_map',
             'relationships': [],

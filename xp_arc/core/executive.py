@@ -12,7 +12,7 @@ import time
 from .aboyeur import Aboyeur
 from .fracture import FractureRequest
 from .station import StationRefusal
-from .pool import MAX_CASCADE_DEPTH, MAX_SPAWN_PER_ENTITY
+from .pool import MAX_CASCADE_DEPTH, MAX_SPAWN_PER_ENTITY, MAX_EDGES_PER_ENTITY
 
 
 class ExecutiveChef:
@@ -24,6 +24,7 @@ class ExecutiveChef:
 
     MAX_CASCADE_DEPTH = MAX_CASCADE_DEPTH  # class-level alias to module constant
     MAX_SPAWN_PER_ENTITY = MAX_SPAWN_PER_ENTITY  # RT-14 entity-flood cap
+    MAX_EDGES_PER_ENTITY = MAX_EDGES_PER_ENTITY
 
     # Defense in depth for the retry driver. An entity's own
     # rejection_count/max_rejections is the real budget; this is an absolute
@@ -46,6 +47,7 @@ class ExecutiveChef:
         self._unhandled = 0
         self._spawn_blocked = 0
         self._spawn_created = 0
+        self._edges_created = 0
         self._retries = 0
         self._escalations = 0
 
@@ -178,7 +180,8 @@ class ExecutiveChef:
                         entity_id, 'completed',
                         station=handler.station_id,
                         confidence=output.get('confidence'),
-                        notes=output.get('notes', '')
+                        notes=output.get('notes', ''),
+                        prompt_version=output.get('prompt_version') or getattr(handler, 'prompt_version', None),
                     )
                     if self.verbose:
                         print(f"  [✓] Aboyeur approved. Signature: {result['signature'][:20]}...")
@@ -196,12 +199,17 @@ class ExecutiveChef:
                             if mapped_id and self.verbose:
                                 print(f"  [✓] Shards stitched successfully. Stitched entity ID: {mapped_id}")
 
-                    # Spawn directives — Snowball expansion
+                    # Spawn directives and edges are committed only now, after
+                    # the Aboyeur approved the output that declared them. A
+                    # rejected task leaves nothing behind in the graph.
                     spawn_targets = output.get('spawn_targets', [])
                     if spawn_targets:
                         new_ids = self._process_spawns(entity_id, spawn_targets)
                         if self.verbose and new_ids:
                             print(f"  [i] Snowball: spawned {len(new_ids)} child entities")
+                    edges = output.get('edges', [])
+                    if edges:
+                        self._commit_edges(handler, entity_id, edges)
                 else:
                     # Retry budget exhausted (or circuit breaker tripped).
                     entity_check = self.pool.get_entity(entity_id)
@@ -505,6 +513,38 @@ class ExecutiveChef:
 
         return created
 
+    def _commit_edges(self, handler, entity_id: int, edges: list[dict]) -> int:
+        """Write the edges an approved output declared, under the station's identity.
+
+        Each dict: {'source': str, 'relationship': str, 'target': str}. Malformed
+        entries are skipped; the list is capped at MAX_EDGES_PER_ENTITY.
+        Returns the number of new edges written (duplicates are not rewritten).
+        """
+        if len(edges) > self.MAX_EDGES_PER_ENTITY:
+            over = len(edges) - self.MAX_EDGES_PER_ENTITY
+            self.pool._log_event(
+                'edges_blocked_flood_limit', 'executive',
+                f"{len(edges)} edges from entity {entity_id} exceeds "
+                f"MAX_EDGES_PER_ENTITY={self.MAX_EDGES_PER_ENTITY}; {over} discarded.",
+                f"entity_id={entity_id}, station={handler.station_id}"
+            )
+            edges = edges[:self.MAX_EDGES_PER_ENTITY]
+
+        writer = self.pool.station_writer(handler.station_id)
+        written = 0
+        for edge in edges:
+            if not isinstance(edge, dict):
+                continue
+            source = edge.get('source')
+            rel = edge.get('relationship')
+            target = edge.get('target')
+            if not all(isinstance(v, str) and v for v in (source, rel, target)):
+                continue
+            if writer.add_edge(source, rel, target):
+                written += 1
+        self._edges_created += written
+        return written
+
     def summary(self) -> dict:
         s = {
             'cycles': self._cycles,
@@ -512,6 +552,7 @@ class ExecutiveChef:
             'unhandled': self._unhandled,
             'spawn_created': self._spawn_created,
             'spawn_blocked': self._spawn_blocked,
+            'edges_created': self._edges_created,
             'retries': self._retries,
             'escalations': self._escalations,
             'stations': [s.stats for s in self.stations],

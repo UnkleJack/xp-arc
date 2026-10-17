@@ -49,7 +49,7 @@ class TheSalamander(StationChef):
     sla_seconds = 120
     is_primary = True
 
-    def run_normalization(self) -> dict:
+    def run_normalization(self, commit: bool = True) -> dict:
         """
         Full normalization pass across the pool.
         Returns quality report.
@@ -84,13 +84,15 @@ class TheSalamander(StationChef):
                     'variants': originals,
                 })
 
-        # Write edges for normalization relationships
-        edges_added = 0
-        for normalized, originals in normalizations.items():
-            for orig in originals:
-                if orig != normalized:
-                    self.writer.add_edge(orig, 'normalizes_to', normalized)
-                    edges_added += 1
+        # Standalone callers write directly; under the Executive (commit=False)
+        # the edges are committed only after QA approves the output.
+        edges = [{'source': orig, 'relationship': 'normalizes_to', 'target': normalized}
+                 for normalized, originals in normalizations.items()
+                 for orig in originals if orig != normalized]
+        edges_added = len(edges)
+        if commit:
+            edges_added = sum(1 for e in edges
+                              if self.writer.add_edge(e['source'], e['relationship'], e['target']))
 
         # Write findings
         if duplicate_groups:
@@ -132,6 +134,7 @@ class TheSalamander(StationChef):
                 for k, v in sorted(duplicate_groups.items(), key=lambda x: -len(x[1]))[:10]
             ],
             'merge_candidates': merge_candidates[:10],
+            'edges': edges,
         }
 
         self.pool._log_event('normalization', self.station_id,
@@ -170,8 +173,9 @@ class TheSalamander(StationChef):
         return v
 
     def process(self, entity_id, entity_type, entity_value):
-        report = self.run_normalization()
+        report = self.run_normalization(commit=False)
         return {
+            'edges': report['edges'],
             'entity_type': '_normalization_pass',
             'entity_value': 'normalization',
             'relationships': [],

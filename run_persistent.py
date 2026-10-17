@@ -112,6 +112,7 @@ class PersistentKitchen:
         self._cycles = 0
         self._halt_vetoed = False
         self._halt_countdown = 0
+        self._halted = False
 
         # WebSocket connections
         self._ws_connections: Set[web.WebSocketResponse] = set()
@@ -182,6 +183,19 @@ class PersistentKitchen:
     def stop(self):
         self._running = False
 
+    def _enter_safe_halt(self):
+        """Stop processing and refuse new ingestion (CONSTITUTION Article VI 6.4)."""
+        self._running = False
+        if not self._halted:
+            self._halted = True
+            self.pool._log_event('safe_halt', 'persistent',
+                                 'Safe halt executed: processing stopped, ingestion refused.')
+
+    @property
+    def ingestion_open(self) -> bool:
+        """Seeds are refused while halted and during the safe-halt veto window."""
+        return not self._halted and self._halt_countdown <= 0
+
     def _cycle(self):
         """One processing cycle."""
         import math
@@ -194,7 +208,7 @@ class PersistentKitchen:
                 self._halt_countdown = max(0, self._halt_countdown - self.poll_interval)
                 if self._halt_countdown == 0 and not self._halt_vetoed:
                     print("\n[SAFE HALT] Veto window expired. Initiating safe halt.")
-                    self._running = False
+                    self._enter_safe_halt()
             return
 
         self._cycles += 1
@@ -225,7 +239,7 @@ class PersistentKitchen:
             else:
                 # Already vetoed, halt now
                 print("\n[SAFE HALT] Veto window expired. Initiating safe halt.")
-                self._running = False
+                self._enter_safe_halt()
         elif self._halt_countdown > 0:
             # Recommendation cleared — cancel the window
             print("\n[SAFE HALT] Recommendation cleared. Veto window cancelled.")
@@ -238,7 +252,7 @@ class PersistentKitchen:
                 print(f"[SAFE HALT] Veto window: {math.ceil(self._halt_countdown)}s remaining")
             elif not self._halt_vetoed:
                 self._halt_vetoed = True
-                self._running = False
+                self._enter_safe_halt()
                 print("\n[SAFE HALT] Veto window expired. Initiating safe halt.")
 
         # Export state for DRAGON (static fallback) + push WebSocket telemetry
@@ -361,6 +375,12 @@ class PersistentKitchen:
 
     def seed(self, url: str) -> dict:
         """Inject a seed URL into the pool. Returns entity info."""
+        if not self.ingestion_open:
+            state = 'safe halt' if self._halted else 'safe-halt veto window'
+            self.pool._log_event('seed_rejected', 'dragon_api',
+                                 f"Seed refused during {state}", f"url={str(url)[:256]}")
+            return {'status': 'halted', 'url': url,
+                    'reason': f'ingestion suspended: {state}'}
         reason = self.validate_seed_url(url)
         if reason:
             self.pool._log_event('seed_rejected', 'dragon_api',
@@ -488,6 +508,8 @@ async def seed_handler(request: web.Request):
     result = kitchen.seed(url)
     if result['status'] == 'rejected':
         return web.json_response(result, status=400)
+    if result['status'] == 'halted':
+        return web.json_response(result, status=503)
     return web.json_response(result)
 
 

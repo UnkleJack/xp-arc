@@ -64,17 +64,21 @@ class TheAnalyst(StationChef):
 
         classification = self._classify_domain(entity_value)
         relationships = []
+        spawn_targets = []
+        edges = []
 
-        # Check for subdomain relationships
+        # Subdomain relationship. Returned, not written: the Executive commits
+        # it after QA. The edge is declared even if the parent domain already
+        # exists in the pool, so the relationship is never lost to dedup.
         parts = entity_value.split('.')
         if len(parts) > 2:
             parent_domain = '.'.join(parts[-2:])
             if parent_domain != entity_value:
-                existing = self.writer.add_entity('domain', parent_domain)
-                if existing:
-                    self.writer.add_edge(entity_value, 'subdomain_of', parent_domain)
-                    relationships.append(parent_domain)
-                    self.log(f"  + Subdomain relationship: {entity_value} → {parent_domain}")
+                spawn_targets.append({'ent_type': 'domain', 'value': parent_domain})
+                edges.append({'source': entity_value, 'relationship': 'subdomain_of',
+                              'target': parent_domain})
+                relationships.append(parent_domain)
+                self.log(f"  + Subdomain relationship: {entity_value} → {parent_domain}")
 
         # Attempt lightweight HTTP probe for additional intelligence
         probe_result = self._probe_domain(entity_value)
@@ -96,6 +100,8 @@ class TheAnalyst(StationChef):
             'relationships': relationships,
             'confidence': min(confidence, 1.0),
             'notes': '. '.join(notes_parts),
+            'spawn_targets': spawn_targets,
+            'edges': edges,
         }
 
     def _classify_domain(self, domain: str) -> str:

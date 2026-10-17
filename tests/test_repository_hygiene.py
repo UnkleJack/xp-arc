@@ -54,9 +54,8 @@ ARTIFACT_PATTERNS = {
     "station_keys.json.enc": "station_keys.json.enc",
 }
 
-# Curated transcripts kept as documentation. `examples/five_target_spread.log`
-# is a 2 KB sample of the 5-target demo run, not generated output, so the log
-# rule deliberately does not reach into examples/.
+# examples/ is reserved for curated transcripts kept as documentation, not
+# generated output, so the log rule deliberately does not reach into it.
 LOG_ALLOWLIST = ("examples/",)
 
 

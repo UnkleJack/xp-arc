@@ -48,7 +48,7 @@ class TheAmphithere(StationChef):
         self.max_entities = max_entities
         socket.setdefaulttimeout(timeout)
 
-    def run_enrichment(self) -> dict:
+    def run_enrichment(self, commit: bool = True) -> dict:
         """
         Resolve DNS for domain entities and enrich the pool.
         Returns enrichment report.
@@ -65,8 +65,9 @@ class TheAmphithere(StationChef):
         resolved = 0
         failed = 0
         ips_found = defaultdict(list)  # ip -> [domains]
-        new_entities = 0
-        new_edges = 0
+        spawn_targets = []
+        edges = []
+        seen_ips = set()
 
         for i, entity in enumerate(domains):
             domain = entity['value']
@@ -77,14 +78,10 @@ class TheAmphithere(StationChef):
                 for ip in result['ips']:
                     ips_found[ip].append(domain)
 
-                    # Add IP entity
-                    eid = self.writer.add_entity('ip_address', ip)
-                    if eid:
-                        new_entities += 1
-
-                    # Add resolves_to edge
-                    self.writer.add_edge(domain, 'resolves_to', ip)
-                    new_edges += 1
+                    if ip not in seen_ips:
+                        seen_ips.add(ip)
+                        spawn_targets.append({'ent_type': 'ip_address', 'value': ip})
+                    edges.append({'source': domain, 'relationship': 'resolves_to', 'target': ip})
             else:
                 failed += 1
 
@@ -112,6 +109,19 @@ class TheAmphithere(StationChef):
 
         top_subnets = sorted(ip_prefixes.items(), key=lambda x: -x[1])[:10]
 
+        # Standalone callers write directly. Under the Executive (commit=False)
+        # the edges and IP entities ride back in the output and are committed
+        # only after QA approves it.
+        new_entities = 0
+        new_edges = 0
+        if commit:
+            for t in spawn_targets:
+                if self.writer.add_entity(t['ent_type'], t['value']):
+                    new_entities += 1
+            for e in edges:
+                if self.writer.add_edge(e['source'], e['relationship'], e['target']):
+                    new_edges += 1
+
         self.log(f"  Resolved: {resolved}/{len(domains)}")
         self.log(f"  Unique IPs: {len(ips_found)}")
         self.log(f"  Shared infrastructure: {len(shared_infra)} IPs host multiple domains")
@@ -131,6 +141,8 @@ class TheAmphithere(StationChef):
                                                        key=lambda x: -len(x[1]))[:10]],
             },
             'top_subnets': [{'subnet': s, 'count': c} for s, c in top_subnets],
+            'spawn_targets': spawn_targets,
+            'edges': edges,
         }
 
         self.pool._log_event('dns_enrichment', self.station_id,
@@ -159,7 +171,7 @@ class TheAmphithere(StationChef):
         return result
 
     def process(self, entity_id, entity_type, entity_value):
-        report = self.run_enrichment()
+        report = self.run_enrichment(commit=False)
         return {
             'entity_type': '_dns_enrichment',
             'entity_value': 'dns_sweep',
@@ -167,4 +179,6 @@ class TheAmphithere(StationChef):
             'confidence': 1.0,
             'notes': f"Resolved {report['resolved']} domains. "
                      f"{report['unique_ips']} unique IPs.",
+            'spawn_targets': report['spawn_targets'],
+            'edges': report['edges'],
         }

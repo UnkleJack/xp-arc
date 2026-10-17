@@ -96,7 +96,8 @@ xp-arc/
 ├── DEPLOY.md                        # Deployment guide
 ├── docs/
 │   ├── aboyeur-protocol-v1.json     # QA protocol schema
-│   └── advanced.md                  # Advanced topics
+│   ├── audits/                      # Dated audits with fix status
+│   └── RELEASING.md                 # Release runbook
 └── tests/
     └── test_basic.py, test_load.py  # Unit + load tests
 ```

@@ -145,6 +145,11 @@ MAX_CASCADE_DEPTH = 5
 # Executive when republishing spawn directives.
 MAX_SPAWN_PER_ENTITY = 50
 
+# Edge-flood cap. Pool-wide analysis stations (Amphithere, Cartographer,
+# Salamander) legitimately return hundreds of edges from one entity, so this is
+# looser than the spawn cap, but still bounds a single process() return.
+MAX_EDGES_PER_ENTITY = 1000
+
 # Shard-flood cap (RT-15). A station requesting fracture declares shard_count;
 # an unbounded value multiplies one entity into arbitrarily many shards, each
 # of which is itself a fracture candidate. Enforced by the Fracture Protocol.
@@ -201,6 +206,7 @@ class IntelligencePool:
                     cascade_depth INTEGER DEFAULT 0,
                     spawn_chain TEXT,
                     refusal_reason TEXT,
+                    prompt_version TEXT,
                     UNIQUE(type, value)
                 )
             """)
@@ -219,6 +225,8 @@ class IntelligencePool:
             }
             if 'refusal_reason' not in entity_columns:
                 self.conn.execute("ALTER TABLE entities ADD COLUMN refusal_reason TEXT")
+            if 'prompt_version' not in entity_columns:
+                self.conn.execute("ALTER TABLE entities ADD COLUMN prompt_version TEXT")
 
             # Edges — relationship graph
             self.conn.execute("""
@@ -512,6 +520,7 @@ class IntelligencePool:
 
     def transition_status(self, entity_id: int, new_status: str, station: str = None,
                           confidence: float = None, notes: str = None,
+                          prompt_version: str = None,
                           station_id: str = None, mac: str = None) -> bool:
         """Perform one validated state transition as an atomic Pool write.
 
@@ -561,6 +570,10 @@ class IntelligencePool:
             if notes is not None:
                 assignments.append("notes = ?")
                 values.append(notes)
+            if prompt_version is not None:
+                # Article X 10.4: the instruction set that produced the output.
+                assignments.append("prompt_version = ?")
+                values.append(str(prompt_version)[:128])
 
             values.append(entity_id)
             self.conn.execute(
@@ -735,13 +748,22 @@ class IntelligencePool:
             if not self._verify_write(station_id, payload, mac):
                 self._log_event('auth_failure', station_id,
                                 f"HMAC rejected for add_edge: {source}--({rel})-->{target}")
-                return
-        with self.conn:
+                return False
+        with self._write_lock, self.conn:
+            # An identical edge is the same fact; re-observing it from another
+            # parent must not duplicate the row.
+            exists = self.conn.execute(
+                "SELECT 1 FROM edges WHERE source = ? AND relationship = ? AND target = ?",
+                (source, rel, target)
+            ).fetchone()
+            if exists:
+                return False
             self.conn.execute(
                 "INSERT INTO edges (source, relationship, target) VALUES (?, ?, ?)",
                 (source, rel, target)
             )
         self._log_event('edge_added', station_id or 'pool', f"{source} --({rel})--> {target}")
+        return True
 
     def get_all_edges(self):
         return self.conn.execute(
