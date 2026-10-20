@@ -30,10 +30,9 @@ that tells operators whether their system is coherent or drifting.
 XP-Arc gives A2A and MCP a shared pool to write into and a QA layer to validate
 what they produce. Drop it into an existing multi-agent stack. Keep your agents.
 
-The reference implementation is written in Python 3.12. The orchestration core has
-zero pip dependencies — SQLite is part of the Python standard library.
-Full deployment requires Python 3.10+, the standard library `sqlite3` module,
-and a browser for the DRAGON visualization layer. The brigade has run.
+The reference implementation is written in Python (3.10+). The Pool uses the standard
+library `sqlite3` module; `pip install -e .` also installs `cryptography` (encrypted
+station keys) and `aiohttp` (daemon and API). DRAGON needs only a browser. The brigade has run.
 
 ---
 
@@ -432,6 +431,14 @@ authorization.
 
 ### 5.5 The Seven Stations
 
+> **Implementation note (v0.3.0).** This section describes the original seven-role
+> design. The reference implementation ships 16 stations (see `STATUS.md` and
+> `ARCHITECTURE.md` §5). Roles 1, 2, 5 and 6 map to the Forager, Analyst, Sentinel
+> and Aboyeur. The Mapper and Chronicler roles are partly covered by the
+> Cartographer (graph analysis) and Librarian (per-seed reports); there is no
+> dedicated temporal-archive station. The Chef de Cuisine escalation station was
+> added later and is not in the original seven.
+
 **1. The Forager** *(Garde Manger)*
 Raw intelligence acquisition. Seeds → DOM extraction → entity writes.
 Wraps MCP servers transparently. Fallback: passive pool reader, surfaces
@@ -556,13 +563,13 @@ xp-arc/
 │   │   └── plongeur.py      # Cleanup — orphan recovery, GC sweeps
 │   └── monitoring/
 │       ├── zorans_law.py    # Stability metrics — S quotient + PRO
-│       └── spazzmatic.py    # Adversarial review — Gemini-backed QA authority
+│       └── spazzmatic.py    # Adversarial review — rule-based in the reference implementation
 ├── dragon/                  # DRAGON web dashboard
 │   ├── index.html           # Live visualization of Intelligence Pool
 │   └── pool_state.json      # Exported pipeline state
 ├── run_kitchen.py           # CLI entry point
 ├── WHITEPAPER.md            # This document
-├── CONSTITUTION.MD          # Operational law (v1.4)
+├── CONSTITUTION.MD          # Operational law (v1.9)
 └── docs/
     └── aboyeur-protocol-v1.json
 ```
@@ -571,11 +578,11 @@ xp-arc/
 
 | Tier | Scope | Dependencies |
 |------|-------|-------------|
-| Core orchestration | `pool.py`, `station.py`, `executive.py`, `fracture.py` | Python 3.12 stdlib only — SQLite built-in |
-| Full deployment | Production runtime | Python 3.10+, standard library `sqlite3` |
-| Visualization | DRAGON dashboard | Any modern browser (no server required for static mode) |
+| Core orchestration | `pool.py`, `station.py`, `executive.py`, `fracture.py` | Python stdlib `sqlite3` plus `cryptography` (Fernet key storage in `pool.py`) |
+| Full deployment | Production runtime | Python 3.10+, plus `aiohttp` for the daemon and API |
+| Visualization | DRAGON dashboard | Any modern browser (no server required for static mode; D3 is vendored) |
 
-The "zero pip dependencies" claim is scoped to the orchestration core only.
+The core is **not** dependency-free: it needs `cryptography`. See Constitution Article XII.
 
 ### 6.2 Verified Execution — The Five-Target Spread
 

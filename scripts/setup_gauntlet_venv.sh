@@ -32,7 +32,7 @@ python3 -c "from cryptography.fernet import Fernet; print('✓ cryptography OK')
 
 # Install xp-arc with gauntlet extra in editable mode
 echo "Installing xp-arc[gauntlet]..."
-pip install -e /Users/jadeddragon/xp-arc[gauntlet]
+pip install -e "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)[gauntlet]"
 
 # Verify gauntlet imports
 python3 -c "

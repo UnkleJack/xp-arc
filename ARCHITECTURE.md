@@ -142,61 +142,31 @@ The reference implementation supports **13 core stations** plus **3 subpackage s
 
 ---
 
-## 5. Codebase Map (v0.2.1)
+## 5. Codebase Map (v0.3.0)
 
 ```
 xp-arc/
 ├── xp_arc/
-│   ├── __init__.py              # Package root, version = "0.2.1"
+│   ├── __init__.py              # Package root, version = "0.3.0"
 │   ├── core/
-│   │   ├── __init__.py
 │   │   ├── pool.py              # IntelligencePool — SQLite WAL state machine
 │   │   ├── station.py           # BaseStation abstract class
-│   │   ├── executive.py         # ExecutiveChef — typed routing
+│   │   ├── executive.py         # ExecutiveChef — typed routing, retry budget, Brigade Compression
 │   │   ├── aboyeur.py           # Aboyeur QA validation + signatures
 │   │   ├── authorization.py     # HMAC write auth + station keys
 │   │   ├── fracture.py          # Cognitive Sharding (Fracture Protocol)
-│   │   └── sanitization.py      # D2 graph export sanitization
-│   ├── stations/
-│   │   ├── __init__.py
-│   │   ├── forager.py
-│   │   ├── analyst.py
-│   │   ├── sentinel.py
-│   │   ├── plongeur.py
-│   │   ├── librarian.py
-│   │   ├── cartographer.py
-│   │   ├── auditor.py
-│   │   ├── warden.py
-│   │   ├── amphithere.py
-│   │   ├── hydra.py
-│   │   ├── salamander.py
-│   │   ├── herald.py
-│   │   └── dossier.py
+│   │   ├── network_guard.py     # SSRF guard
+│   │   └── sanitization.py      # Station-id sanitizing, D2 export
+│   ├── stations/                # 16 stations: forager, analyst, sentinel, cartographer,
+│   │                            # librarian, dossier, plongeur, amphithere, hydra, salamander,
+│   │                            # warden, herald, auditor, chef_de_cuisine,
+│   │                            # grc_supervisor + grc_commis (opt-in, --grc)
 │   ├── monitoring/
-│   │   ├── __init__.py
-│   │   ├── zorans_law.py        # S quotient + PRO metrics
+│   │   ├── zorans_law.py        # S quotient (windowed rate ratio) + PRO
 │   │   └── spazzmatic.py        # Rule-based adversarial review
-│   ├── broker.py                # OBSOLETE — legacy Redis/DuckDB broker
-│   ├── broker_client.py         # OBSOLETE
-│   ├── asset_engine/            # Subpackage: Evolutionary asset pipeline
-│   │   ├── __init__.py
-│   │   ├── api_agent/
-│   │   ├── asset_store/
-│   │   ├── browser_agent/
-│   │   ├── concepts/
-│   │   ├── config.py
-│   │   ├── evolution/
-│   │   ├── prompt_engine/
-│   │   ├── style_genomes/
-│   │   ├── templates/
-│   │   ├── themes/
-│   │   └── unity_pipeline/
-│   ├── competitive_intel/       # Subpackage: Competitive intelligence
-│   │   ├── __init__.py
-│   │   ├── config.py
-│   │   ├── station.py
-│   │   └── station_main.py
-│   └── __init__.py
+│   ├── asset_engine/            # Subpackage: SKELETON (config.py only)
+│   └── competitive_intel/       # Subpackage: fetchers, versioning, digest, detection,
+│                                # station, bridge (-> pool), analyst (pool station)
 ├── pyproject.toml               # Single source of truth for all deps
 ├── requirements.txt             # Dev/test deps only (pytest, bandit)
 ├── .gitignore                   # Runtime artifact exclusions
@@ -209,19 +179,16 @@ xp-arc/
 ├── LEGAL.md                     # Legal framework
 ├── LICENSE                      # Apache License 2.0
 ├── NOTICE                       # Copyright + trademark reservation
-├── SPEC.md                      # Asset Engine spec
-├── PROMPT_LIBRARY.md            # Asset Engine prompts
-├── FILTER_SAFE_PROMPTS.md       # Asset Engine safe prompts
 ├── install.sh
 ├── run_kitchen.py               # One-shot pipeline runner
 ├── run_persistent.py            # Persistent daemon + HTTP API
-├── dragon/                      # DRAGON dashboard (static + live)
+├── dragon/                      # DRAGON dashboard (index.html + vendored D3)
+├── scripts/                     # weekly_digest.py, competitive_acceptance_run.py
+├── gauntlet_pkg/                # Gauntlet red-team harness (xp-arc-gauntlet)
 ├── tests/
 ├── config/
 ├── sql/
 ├── templates/
-├── data/
-├── reports/
 ├── docs/
 ├── specs/
 └── asset-engine/                # Asset Engine docs (moved from subdir)
@@ -237,16 +204,15 @@ xp-arc/
 
 | Component | Version | Notes |
 |---|---|---|
-| XP-Arc Protocol | 0.2.1 | Consolidated subpackages |
-| Constitution | 1.6 | Apache 2.0 license, SQLite WAL substrate |
-| Pool Schema | v2 | Includes cascade lineage columns |
+| XP-Arc Protocol | 0.3.0 | `pyproject.toml` and `xp_arc/__init__.py` |
+| Constitution | 1.9 | Apache 2.0 license, SQLite WAL substrate |
+| Gauntlet Constitution | 1.1.0 | `Gauntlet_CONSTITUTION.md` |
 | Aboyeur Protocol | 1.0 | Schema in `docs/aboyeur-protocol-v1.json` |
-| Asset Engine | 0.1.0 | Subpackage under `xp_arc.asset_engine` |
-| Competitive Intel | 0.1.0 | Subpackage under `xp_arc.competitive_intel` |
-| DRAGON Dashboard | 0.2.0 | Live polling via `run_persistent.py` |
-| Broker | 0.0.0 | OBSOLETE — remove in v0.3 |
+| Asset Engine | 0.1.0 | Skeleton under `xp_arc.asset_engine` |
+| Competitive Intel | 0.1.0 | Subpackage under `xp_arc.competitive_intel`; weekly digest added in 0.3.0 |
+| DRAGON Dashboard | 0.2.0 | Live polling via `run_persistent.py`; vendored D3 7.9.0 |
 | License | Apache-2.0 | Relicensed from MIT 2026-08-19; see WHITEPAPER §13 |
 
 ---
 
-*Last updated: 2026-08-23 — license row updated to Apache-2.0; see WHITEPAPER.md §13 for the relicense changelog. Other sections carried forward from the 2026-07-21 v0.2.1 consolidation and known to be stale against current code — see STATUS.md.*
+*Last updated: 2026-10-20 — reconciled against the v0.3.0 code (see STATUS.md for the per-file status map). The Write Broker was removed in this revision.*

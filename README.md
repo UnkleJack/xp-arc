@@ -21,57 +21,48 @@ Inspired by Escoffier's kitchen brigade system, XP-Arc orchestrates AI agents th
 ```
 xp-arc/
 ├── xp_arc/                          # Core Python package (install: pip install -e .)
-│   ├── __init__.py                  # xp_arc v0.2.0
+│   ├── __init__.py                  # xp_arc v0.3.0
 │   ├── core/
 │   │   ├── pool.py                  # Intelligence Pool — SQLite WAL state machine
-│   │   ├── executive.py             # Routing loop — reads raw, dispatches by type
+│   │   ├── executive.py             # Routing loop, retry budget, Brigade Compression
 │   │   ├── station.py               # Base station class — all agents inherit this
 │   │   ├── aboyeur.py               # QA enforcement — validates every station output
 │   │   ├── fracture.py              # Cognitive sharding — task decomposition protocol
 │   │   ├── authorization.py         # HMAC write auth + capability tokens
-│   │   └── sanitization.py          # Input/output sanitization pipeline
+│   │   ├── network_guard.py         # SSRF guard for outbound URLs
+│   │   └── sanitization.py          # Station-id / display-name sanitizing, D2 export
 │   ├── stations/
-│   │   ├── forager.py               # DOM scraping — seed URLs → entity extraction
-│   │   ├── analyst.py               # Relationship inference — domain classification + edges
-│   │   ├── sentinel.py              # Anomaly detection — pool health monitoring
+│   │   ├── forager.py               # Seed URLs → entity extraction
+│   │   ├── analyst.py               # Relationship inference (Saucier)
+│   │   ├── sentinel.py              # Anomaly detection (Poissonnier)
+│   │   ├── cartographer.py          # Graph analysis — clusters, bridge nodes (Rôtisseur)
+│   │   ├── librarian.py             # Per-seed intelligence reports (Pâtissier)
+│   │   ├── dossier.py               # Final dossier assembly (Garde Manger)
 │   │   ├── plongeur.py              # Cleanup — orphan recovery, GC sweeps
-│   │   ├── dossier.py               # Entity profiling + enrichment
-│   │   ├── warden.py                # Access control + rate limiting
-│   │   ├── herald.py                # Notification + webhook dispatch
-│   │   ├── hydra.py                 # Multi-headed concurrent execution
-│   │   ├── salamander.py            # Regenerative station — self-healing patterns
-│   │   ├── amphithere.py            # Cross-pool synchronization
-│   │   ├── auditor.py               # Compliance + audit trail
-│   │   ├── cartographer.py          # Topology mapping + drift detection
-│   │   └── __init__.py
+│   │   ├── amphithere.py            # DNS enrichment
+│   │   ├── hydra.py                 # Pattern recognition
+│   │   ├── salamander.py            # Entity normalizer + deduplicator
+│   │   ├── warden.py                # Threat and risk scoring
+│   │   ├── herald.py                # Alert and notification engine
+│   │   ├── auditor.py               # Constitutional compliance checks
+│   │   ├── chef_de_cuisine.py       # Escalation station (survives Brigade Compression)
+│   │   ├── grc_supervisor.py        # Opt-in: CISO Assistant GRC integration (--grc)
+│   │   └── grc_commis.py            # Opt-in: read-only GRC fallback (--grc)
 │   ├── monitoring/
 │   │   ├── zorans_law.py            # Stability metrics — S quotient + PRO
-│   │   ├── spazzmatic.py            # Adversarial review — Gemini-backed QA authority
-│   │   └── __init__.py
-│   ├── broker.py                    # Redis-buffered write sequencer + hot standby
-│   ├── broker_client.py             # Client interface for remote broker
-│   ├── asset_engine/                # Subpackage: Evolutionary asset generation
-│   │   ├── __init__.py              # asset_engine v0.1.0
-│   │   ├── api_agent/               # LLM API integration layer
-│   │   ├── asset_store/             # SQLite-backed asset versioning
-│   │   ├── browser_agent/           # Playwright automation
-│   │   ├── concepts/                # Concept graph + evolution
-│   │   ├── config.py                # Config loader (config.yaml)
-│   │   ├── evolution/               # Genetic operators + selection
-│   │   ├── prompt_engine/           # Prompt templating + optimization
-│   │   ├── style_genomes/           # Style encoding + inheritance
-│   │   ├── templates/               # Jinja2 asset templates
-│   │   ├── themes/                  # Theme definitions + mutation
-│   │   └── unity_pipeline/          # Unity Editor + Addressables export
-│   ├── competitive_intel/           # Subpackage: Competitive landscape monitoring
-│   │   ├── __init__.py
-│   │   ├── station.py               # Core station implementation
-│   │   ├── config.py                # YAML config loader
-│   │   └── station_main.py          # CLI entry point
-│   └── __init__.py
+│   │   └── spazzmatic.py            # Adversarial review — rule-based (not LLM-backed)
+│   ├── asset_engine/                # Subpackage: SKELETON (config loader only; see STATUS.md)
+│   └── competitive_intel/           # Subpackage: competitive landscape + weekly digest
+│       ├── station.py               # Standalone async pipeline + CLI (station_main.py)
+│       ├── fetchers.py              # PyPI / npm / RSS / Hacker News fetchers
+│       ├── versioning.py            # Version parsing + release classification
+│       ├── digest.py                # AI Agent Ecosystem Weekly digest builder
+│       ├── detection.py             # Gap detection
+│       ├── bridge.py                # One-way bridge: findings → Intelligence Pool
+│       └── analyst.py               # Pool station that consumes bridged gaps
 ├── dragon/                          # DRAGON web dashboard
 │   ├── index.html                   # Live visualization of Intelligence Pool
-│   └── pool_state.json              # Exported pipeline state
+│   └── vendor/                      # Vendored D3 7.9.0 (served at /vendor; no CDN)
 ├── config/                          # Station YAML configs
 │   ├── competitive-intelligence-station.yaml
 │   └── competitive-watchlist.yaml
@@ -86,10 +77,11 @@ xp-arc/
 │   ├── PROMPT_LIBRARY.md            # Curated prompt library
 │   ├── FILTER_SAFE_PROMPTS.md       # Safety-filtered prompt set
 │   └── config.yaml                  # Runtime config template
+├── scripts/                         # weekly_digest.py, competitive_acceptance_run.py
 ├── run_kitchen.py                   # CLI entry point (orchestration core)
 ├── run_persistent.py                # Persistent server + DRAGON exporter
 ├── WHITEPAPER.md                    # Full protocol specification (v0.2)
-├── CONSTITUTION.MD                  # Operational law (v1.4)
+├── CONSTITUTION.MD                  # Operational law (v1.9)
 ├── LEGAL.md                         # Legal framework and operator responsibilities
 ├── ARCHITECTURE.md                  # Canonical architecture spec
 ├── STATUS.md                        # Code status map (active/legacy/obsolete)
@@ -99,7 +91,7 @@ xp-arc/
 │   ├── audits/                      # Dated audits with fix status
 │   └── RELEASING.md                 # Release runbook
 └── tests/
-    └── test_basic.py, test_load.py  # Unit + load tests
+    └── test_*.py                    # 212 tests; see tests/README.md
 ```
 
 ## Quick Start
@@ -116,6 +108,9 @@ export XP_ARC_ABOYEUR_KEY='replace-with-a-long-random-secret'
 # Run default 5-target spread
 python run_kitchen.py
 
+# Optional: also start the GRC stations (needs XP_ARC_CISO_TOKEN)
+python run_kitchen.py --grc
+
 # Serve the local DRAGON dashboard and observation API
 python run_persistent.py --port 8089
 # Open http://127.0.0.1:8089/ in a browser
@@ -129,7 +124,7 @@ pip install -e .[asset-engine]
 # With competitive intel extras
 pip install -e .[competitive-intel]
 
-# Everything (broker + asset-engine + competitive-intel)
+# Everything
 pip install -e .[all]
 ```
 
@@ -156,31 +151,35 @@ runs it every Monday and shows the digest on the run page. Edit
 
 | Subpackage | Install Extra | Purpose | Entry Point |
 |---|---|---|---|
-| `xp_arc` (core) | — | Orchestration protocol: pool, stations, broker, monitoring | `run_kitchen.py` |
-| `xp_arc.asset_engine` | `asset-engine` | Evolutionary asset generation with human-in-the-loop curation | `asset-engine/config.yaml` |
-| `xp_arc.competitive_intel` | `competitive-intel` | Competitive landscape monitoring, gap detection, weekly reports | `station_main.py` |
+| `xp_arc` (core) | — | Orchestration protocol: pool, stations, monitoring | `run_kitchen.py` |
+| `xp_arc.asset_engine` | `asset-engine` | **Skeleton** — config loader only; the pipeline is specified in `asset-engine/SPEC.md` but not implemented | `asset-engine/config.yaml` |
+| `xp_arc.competitive_intel` | `competitive-intel` | Competitive landscape monitoring, gap detection, weekly digest | `station_main.py`, `scripts/weekly_digest.py` |
 
-All three share the same `Intelligence Pool` (SQLite WAL) and `Aboyeur` QA gate. They don't talk to each other — they write to the Pool, independently or in concert, it's the same contract.
+The core and competitive-intel packages share the `Intelligence Pool` (SQLite WAL) and `Aboyeur` QA gate through a one-way bridge (`competitive_intel/bridge.py`). The standalone competitive-intel station keeps its own private database.
 
-## Recent Changes (v0.2.1)
+## Recent Changes (v0.3.0)
 
-- Consolidated three independent codebases into single repo with three subpackages under `xp_arc/`
-- Single `pyproject.toml` with optional dependency groups: `broker`, `asset-engine`, `competitive-intel`, `all`
-- Asset Engine: SPEC.md, PROMPT_LIBRARY.md, FILTER_SAFE_PROMPTS.md at repo root
-- Competitive Intel: watchlist config, gap schema, weekly report template
-- CI: GitHub Actions (tests + Bandit + Ruff)
-- Docs: ARCHITECTURE.md, STATUS.md, WHITEPAPER.md, CONSTITUTION.MD all aligned with v0.2 reality
+- Removed every hosting-platform reference; `DEPLOY.md` is host-neutral
+- Constitution v1.9: Zoran's Law as a windowed rate ratio, `fractured → failed` escalation exit, Chef de Cuisine station, retry budget actually enforced
+- Executive commits spawned entities and edges only after QA passes; capped per entity
+- DRAGON works offline (vendored D3) and behind `XP_ARC_API_KEY` (`http://host:8089/#token=KEY`); access logs redact `?token`
+- Safe halt refuses new seeds while halted or in the veto window
+- `scripts/weekly_digest.py` + scheduled workflow: AI Agent Ecosystem Weekly
+- Removed the obsolete Write Broker (`broker.py`, `broker_client.py`) and the `broker` extra
+- CI: GitHub Actions runs pytest and Bandit; the Gauntlet has its own workflow. Ruff is available in the `dev` extra but is not run in CI.
+- Dated audit with per-finding status: [`docs/audits/2026-07-14.md`](docs/audits/2026-07-14.md)
 
 ## Dependencies
 
+Python 3.10+. `pip install -e .` installs the core dependencies declared in `pyproject.toml`; "zero pip dependencies" is **not** true for the project as a whole.
+
 | Tier | Scope | Requirements |
 |------|-------|-------------|
-| Orchestration core | `pool.py`, `station.py`, `executive.py`, `fracture.py` | Python 3 stdlib only — SQLite built in, zero pip deps |
-| Broker (optional) | `broker.py`, `broker_client.py` | `redis` (via `pip install -e .[broker]`) |
-| Asset Engine | `xp_arc.asset_engine.*` | `pyyaml`, `jinja2`, `sqlite-utils`, `httpx`, `openai`, `playwright`, `watchdog`, `rich`, `typer`, `pydantic` (via `pip install -e .[asset-engine]`) |
-| Competitive Intel | `xp_arc.competitive_intel.*` | `pyyaml`, `jinja2`, `feedparser`, `httpx` (via `pip install -e .[competitive-intel]`) |
-| Full deployment | Production runtime | Python 3.10+, standard library `sqlite3` |
-| Visualization | DRAGON dashboard | Any modern browser (static `pool_state.json` or live via `run_persistent.py`) |
+| Core install | Pool, Executive, stations, `run_kitchen.py`, `run_persistent.py` | Python stdlib `sqlite3` plus `cryptography` (encrypted station keys in `pool.py`), `aiohttp` (daemon + API), `requests` (GRC stations), `pytz`, `certifi` |
+| Asset Engine (skeleton) | `xp_arc.asset_engine.*` | `pyyaml`, `jinja2`, `sqlite-utils`, `httpx`, `openai`, `playwright`, `watchdog`, `rich`, `typer`, `pydantic`, `pydantic-settings` (`pip install -e .[asset-engine]`) |
+| Competitive Intel | `xp_arc.competitive_intel.*` | `pyyaml`, `jinja2`, `feedparser`, `httpx` (`pip install -e .[competitive-intel]`) |
+| Dev / Gauntlet | Tests and scans | `pytest`, `pytest-asyncio`, `bandit`, `ruff`, `mypy` (`.[dev]`, `.[gauntlet]`) |
+| Visualization | DRAGON dashboard | Any modern browser. Single static page with vendored D3; no Node or CDN needed |
 
 ## The Six Coordination Primitives
 
@@ -189,8 +188,8 @@ All three share the same `Intelligence Pool` (SQLite WAL) and `Aboyeur` QA gate.
 | 1 | Shared Pool State | `pool.py` — SQLite WAL state machine, constitutional schema | ✓ |
 | 2 | Typed Routing | `executive.py` — dispatches by entity type to registered stations | ✓ |
 | 3 | QA Enforcement | `aboyeur.py` — validates every output, signs approved entities | ✓ |
-| 4 | Graceful Degradation | Brigade Compression fallback roles | Spec'd |
-| 5 | Cognitive Sharding | Fracture Protocol — task decomposition | Spec'd |
+| 4 | Graceful Degradation | `executive.py` — Brigade Compression to critical stations | ✓ |
+| 5 | Cognitive Sharding | `fracture.py` — Fracture Protocol, task decomposition | ✓ |
 | 6 | Stability Measurement | `zorans_law.py` — S quotient + PRO | ✓ |
 
 ## DRAGON Dashboard
@@ -200,7 +199,7 @@ DRAGON (Dynamic Relational Asset Graph & Operations Network) visualizes the Inte
 - Interactive entity network graph
 - Station health cards
 - Zoran's Law stability metrics (S quotient + PRO)
-- SpaZzMatiC adversarial findings and safe halt alerts
+- SpaZzMatiC adversarial findings (rule-based) and safe halt alerts
 - Full event timeline and Snowball cascade DAGs
 
 Run `python run_persistent.py --port 8089` and open `http://127.0.0.1:8089/` for the live local dashboard. The static `dragon/index.html` remains available as an exported-JSON fallback.
@@ -241,7 +240,7 @@ See [WHITEPAPER.md §2](./WHITEPAPER.md) for the full positioning argument.
 ## Documentation
 
 - [WHITEPAPER.md](./WHITEPAPER.md) — Full protocol specification (v0.2)
-- [CONSTITUTION.MD](./CONSTITUTION.MD) — Operational law (v1.4)
+- [CONSTITUTION.MD](./CONSTITUTION.MD) — Operational law (v1.9)
 - [LEGAL.md](./LEGAL.md) — Legal framework and operator responsibilities
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — Canonical architecture spec
 - [STATUS.md](./STATUS.md) — Code status map
@@ -254,6 +253,6 @@ Includes an express patent grant (§3) and reserves the "XP-Arc," "DRAGON," "Abo
 "Zoran's Law," and "SpaZzMatiC" names as trademarks (§6) — see [NOTICE](./NOTICE) for
 what that reservation means for certified/official implementations.
 
-**Version:** 0.2.1
+**Version:** 0.3.0
 **Author:** David J. Riedl (UnkleJack)
 **Repository:** github.com/unklejack/xp-arc

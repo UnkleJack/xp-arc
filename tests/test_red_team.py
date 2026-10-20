@@ -1047,13 +1047,12 @@ def test_rt12_closed_broker_execute_raw_is_unreachable():
     untrusted input can reach it, so what this pins is that NOTHING imports the
     broker: not the entrypoints, not the stations, not the pool.
 
-    NOTE: broker.py and broker_client.py are still present in the tree even
-    though the standing ruling retired the Write Broker permanently. They are
-    orphaned rather than wired in, so the vulnerability is not reachable — but
-    deleting them is a separate scope decision and is still outstanding. When
-    that happens, tighten this test to assert the files are gone.
+    broker.py and broker_client.py were deleted in v0.3.0 (the standing ruling
+    retired the Write Broker permanently); this also pins that they stay gone.
     """
     root = pathlib.Path(__file__).resolve().parent.parent
+    for gone in ('xp_arc/broker.py', 'xp_arc/broker_client.py'):
+        assert not (root / gone).exists(), f'{gone} was removed and must not return'
     importers = []
     for path in root.rglob('*.py'):
         if 'broker' in path.name or '.git' in path.parts:
