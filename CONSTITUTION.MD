@@ -1,6 +1,6 @@
 # THE COGNITIVE LABOR CONSTITUTION
 ## XP-Arc Multi-Agent Orchestration Framework
-### Ratified: March 2026 | Version 1.8 | Apache License 2.0
+### Ratified: March 2026 | Version 1.9 | Apache License 2.0
 ### Authored under the direction of Jack (David J. Riedl)
 
 ---
@@ -55,7 +55,7 @@ The atomic unit of cognitive labor is the **Task**. A Task consists of:
 | `processing_checkpoint` | JSON | Partial processing state emitted before yielding during Brigade Compression (nullable); explicitly exempt from the payload_hash covenant — the hash covers the input payload only, not mid-execution state |
 | `sla_suspended` | Boolean | When `true`, SLA timer is paused; Cognitive Debt does not accrue; set automatically on human escalation and safe halt |
 | `max_rejections` | Integer | Maximum Aboyeur rejections before task is failed and escalated; default: 3; prevents infinite Aboyeur hallucination loops |
-| `rejection_count` | Integer | Running count of Aboyeur rejections for this task; incremented atomically by the Write Broker on each rejection |
+| `rejection_count` | Integer | Running count of Aboyeur rejections for this task; incremented atomically by the Pool on each rejection |
 
 ### Section 1.3 — Labor vs. Routing
 
@@ -396,7 +396,7 @@ Spawn directives are only valid when:
 
 Every Snowball chain carries a **cascade_depth** counter. The default maximum cascade depth is **5 levels**. At maximum depth, spawn directives are dropped and logged as `spawn_blocked_depth_limit`.
 
-**Cascade depth is enforced by the Write Broker, not declared by the agent.** When a spawn directive is submitted, the Write Broker queries the actual database lineage of the `parent_task_id` to calculate the real cascade depth before inserting the new task. An agent that submits a spawn directive with a null or spoofed `parent_task_id` will have its depth calculated from scratch — any lineage manipulation that cannot be verified against the Pool is treated as cascade depth 5 and blocked. Agents cannot self-certify their own depth.
+**Cascade depth is enforced by the Pool, not declared by the agent.** When a spawn directive is submitted, the Pool queries the actual database lineage of the `parent_task_id` to calculate the real cascade depth before inserting the new task. An agent that submits a spawn directive with a null or spoofed `parent_task_id` will have its depth calculated from scratch — any lineage manipulation that cannot be verified against the Pool is treated as cascade depth 5 and blocked. Agents cannot self-certify their own depth.
 
 ### Section 7.4 — Cascade Observability
 
@@ -476,7 +476,7 @@ S and PRO are computed on a **rolling 60-second window** by default. Minimum win
 
 ### Section 9.1 — DRAGON Defined
 
-**DRAGON** (Dynamic Relational Asset Graph & Operations Network) is the XP-Arc observability layer — a React dashboard (Node.js/NPM) polling the Intelligence Pool at 500ms. It is a **constitutionally mandated visibility right**, not an optional add-on.
+**DRAGON** (Dynamic Relational Asset Graph & Operations Network) is the XP-Arc observability layer — a single-page web dashboard (static HTML with vendored D3) polling the Intelligence Pool. It is a **constitutionally mandated visibility right**, not an optional add-on.
 
 ### Section 9.2 — The Glass Wall Principle
 
@@ -553,17 +553,20 @@ The trademark reservation is the mechanism behind "certified" and "official" XP-
 XP-Arc operates across two distinct dependency tiers. Claiming "zero dependencies" is false and constitutionally prohibited.
 
 #### Tier 1: Core Orchestration Layer
-The orchestration engine (`pool.py`, `station.py`, `executive.py`, `fracture.py`) is implemented in **pure Python 3.12 stdlib with zero external pip dependencies**. This claim is scoped to the core layer only.
+The orchestration engine (`pool.py`, `station.py`, `executive.py`, `fracture.py`) is implemented in Python on the standard library (`sqlite3` for the Pool) plus one declared third-party package: `cryptography`, used by `pool.py` for Fernet encryption of station keys at rest. The claim "zero external pip dependencies" is therefore **not** made for the core layer.
 
 #### Tier 2: Declared Infrastructure Dependencies
-The following external dependencies are constitutionally acknowledged and required:
+The following external dependencies are constitutionally acknowledged and required for a standard deployment (all declared in `pyproject.toml`):
 
-|| Dependency | Purpose | Install |
+| Dependency | Purpose | Install |
 |---|---|---|
-| *(none for core)* | Intelligence Pool storage substrate | Built into Python 3 — no install required |
-| `React` + `Node.js` + `NPM` | DRAGON dashboard | Standard Node toolchain |
+| `cryptography` | Station key encryption at rest (`pool.py`) | Core install |
+| `aiohttp` | Persistent daemon and HTTP/WebSocket API (`run_persistent.py`) | Core install |
+| `requests` | GRC station HTTP client (opt-in `--grc` stations) | Core install |
+| `pytz`, `certifi` | Declared core dependencies | Core install |
+| *(none)* | DRAGON dashboard: one static HTML page with vendored D3 (`dragon/vendor/`); no Node, React or CDN | Any modern browser |
 
-SQLite is part of the Python standard library (`sqlite3`). No `pip install` required for the Pool. DRAGON is the only external dependency in a standard deployment.
+SQLite is part of the Python standard library (`sqlite3`), so the Pool needs no database server. Optional extras (`asset-engine`, `competitive-intel`, `gauntlet`, `dev`) are declared in `pyproject.toml` and are outside the core.
 
 Implementations MUST document any additional dependencies introduced beyond this declared list.
 
@@ -668,7 +671,7 @@ Amendments MUST NOT break constitutional backward compatibility within a major v
 
 Community proposals via GitHub Issues tagged `constitutional-amendment`. Evaluated against:
 
-1. **Tier 1 core simplicity** — pure Python 3.12 stdlib, zero external pip dependencies in the orchestration layer
+1. **Tier 1 core simplicity** — the orchestration layer stays on the Python standard library plus the minimum declared dependencies (currently `cryptography`)
 2. **Integrity of cognitive labor** — no shortcuts that undermine the payload covenant
 3. **Observability by default** — DRAGON is never optional
 
@@ -704,7 +707,7 @@ Community proposals via GitHub Issues tagged `constitutional-amendment`. Evaluat
 | **Routing Audit** | Periodic Chef de Cuisine review of Expeditor station assignment accuracy |
 | **Enhanced Scrutiny** | Double-pass Aboyeur verification with elevated schema strictness; applied to fallback outputs |
 | **max_rejections** | Task schema field capping Aboyeur rejection retries; default 3; prevents infinite hallucination loops |
-| **rejection_count** | Running count of Aboyeur rejections; incremented atomically by Write Broker |
+| **rejection_count** | Running count of Aboyeur rejections; incremented atomically by the Pool |
 | **Debt Grace Window** | Post-safe-halt Zoran enforcement suspension; capped at max(300s, 2× longest station SLA) |
 
 ---
@@ -714,12 +717,12 @@ Community proposals via GitHub Issues tagged `constitutional-amendment`. Evaluat
 ```
 PAYLOAD COVENANT:       payload_hash sealed at raw ingestion. Never mutate.
 POOL SOVEREIGNTY:       All state lives in the Pool. All transitions are atomic.
-SUBSTRATE:              SQLite WAL. Zero external deps for core. No Write Broker.
+SUBSTRATE:              SQLite WAL. No external queue, broker or database server.
 TIMESTAMPS:             DB-generated only. Agent timestamps constitutionally prohibited.
 STATUS CANON:           raw → processing → pending_qa → [failed|fractured|completed]
                         fractured → failed authorized for Chef escalation only (5.5)
 FRACTURE LIMIT:         Depth 1 only. Self-reported overload requires Aboyeur countersign.
-SNOWBALL LIMIT:         Fires only from completed+signed. Depth broker-enforced. Max 5.
+SNOWBALL LIMIT:         Fires only from completed+signed. Depth Pool-enforced. Max 5.
 ZORAN'S LAW:            S = Σsla_seconds(completed) / Σsla_seconds(ingested) > 1.0 | PRO ≥ 70%
 ABOYEUR RULE:           All inter-station handoffs require signature. No exceptions.
 ABOYEUR CIRCUIT:        max_rejections=3. Hit the cap → failed + Chef escalation. No infinite loops.
@@ -750,3 +753,5 @@ LICENSE:                Apache 2.0. Patent grant + trademark reservation. See LI
 *v1.8: Article XIII Section 13.4 (named host-specific agent instance) and its glossary entry removed. XP-Arc names no hosting platform or agent instance in its constitutional text.*
 
 *v1.6: Relicensed from MIT to Apache License 2.0 (Dragon's ruling, 2026-08-19). Rationale: express patent grant (§3) and trademark reservation (§6) support the certified-implementation/consulting monetization model without BSL's adoption-suppression tradeoff. See NOTICE for the trademark reservation list.*
+
+*v1.9: Editorial and factual corrections, no change to protocol behavior. "Write Broker" wording replaced with "Pool" (Article II rejection_count, Article VII 7.3 cascade depth, glossary, Appendix B); the Write Broker was removed from the code. Article XII 12.1 restated honestly: the core layer depends on `cryptography`, the daemon on `aiohttp`, and DRAGON no longer needs Node or React (vendored D3).*

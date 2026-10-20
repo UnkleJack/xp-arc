@@ -26,7 +26,7 @@ This document tracks the engineering status of all features described in the XP-
 || **Competitive Intel** | Extension | `xp_arc/competitive_intel/`| **SHIPPED** | Watchlist + gap detection, and, new in `59b98c1`, a one-way bridge that republishes findings into the Intelligence Pool — see §5.5. ||
 || **GRC Supervisor** | Extension | `xp_arc/stations/grc_supervisor.py` | **SHIPPED** | CISO Assistant write integration (assets, applied-controls, incidents, reference-controls, evidences, compliance-assessments). Opt-in via `run_kitchen.py --grc`; requires `XP_ARC_CISO_TOKEN` (hardcoded fallback token removed) — see §5.6. ||
 || **GRC Commis** | Extension | `xp_arc/stations/grc_commis.py` | **SHIPPED** | CISO Assistant read-only validation + audit exports. Same opt-in / token requirement as GRC Supervisor. ||
-|| **Write Broker** | Obsolete | `xp_arc/broker.py` | **OBSOLETE** | *Do not implement.* Still present in the tree despite the removal ruling — see §6. ||
+|| **Write Broker** | Obsolete | — | **REMOVED** | *Do not implement.* `broker.py` and `broker_client.py` were deleted in v0.3.0 (a test fails if anything imports them again). ||
 | **DuckDB Backend** | Obsolete | — | **OBSOLETE** | *Do not implement. Use SQLite WAL.* |
 | **Gemini-backed SpaZzMatiC** | Aspirational| — | **PENDING** | Current implementation is rule-based. |
 
@@ -34,10 +34,10 @@ This document tracks the engineering status of all features described in the XP-
 
 ## 2. Status of Key Architecture Modules
 
-### 2.1 Write Broker & Redis Sequencer (`xp_arc/broker.py`)
-- **Status**: **OBSOLETE / EXPERIMENTAL**.
-- **Context**: The original spec required a standalone Redis-buffered queue writing to DuckDB. This was replaced by a SQLite-direct WAL state machine.
-- **Guidance**: `broker.py` and its counterpart `broker_client.py` remain in the codebase as legacy or experimental endpoints. They are **not** loaded or executed by `run_kitchen.py` or `run_persistent.py`. A rebuild from scratch should target the direct SQLite-WAL operations in `pool.py` and ignore the Broker.
+### 2.1 Write Broker & Redis Sequencer (removed)
+- **Status**: **REMOVED** in v0.3.0.
+- **Context**: The original spec required a standalone Redis-buffered queue writing to DuckDB. This was replaced by a SQLite-direct WAL state machine, and the unused `broker.py` / `broker_client.py` were deleted.
+- **Guidance**: A rebuild from scratch should target the direct SQLite-WAL operations in `pool.py`. `tests/test_red_team.py::test_rt12_closed_broker_execute_raw_is_unreachable` fails if any module imports a broker again.
 
 ### 2.2 SpaZzMatiC Adversarial Review (`xp_arc/monitoring/spazzmatic.py`)
 - **Status**: **ACTIVE (RULE-BASED)**.
@@ -46,7 +46,7 @@ This document tracks the engineering status of all features described in the XP-
 
 ### 2.3 DuckDB Pool Backend
 - **Status**: **OBSOLETE**.
-- **Guidance**: DuckDB is not used in the reference implementation. The project uses standard library `sqlite3` exclusively to eliminate pip dependency footprints.
+- **Guidance**: DuckDB is not used in the reference implementation. The Pool uses standard library `sqlite3`.
 
 ### 2.4 D2 Graph Exporters (`xp_arc/core/sanitization.py`)
 - **Status**: **EXPERIMENTAL**.
@@ -83,9 +83,8 @@ This document tracks the engineering status of all features described in the XP-
 | `xp_arc/core/fracture.py` | **SHIPPED** | Cognitive sharding |
 | `xp_arc/core/authorization.py` | **SHIPPED** | HMAC auth |
 | `xp_arc/core/sanitization.py` | **EXPERIMENTAL** | D2 export; also now home to `sanitize_station_id()` / `sanitize_display_name()` (station-id injection hardening, `5c67e42`) |
-| `xp_arc/broker.py` | **OBSOLETE** | Legacy. Still present despite the removal ruling — see §6. |
-| `xp_arc/broker_client.py` | **OBSOLETE** | Legacy. Still present despite the removal ruling — see §6. |
-| `xp_arc/stations/*.py` (17 files) | **SHIPPED** | All core stations, including `chef_de_cuisine.py` (new, `5c67e42`) |
+| `xp_arc/broker.py`, `broker_client.py` | **REMOVED** | Deleted in v0.3.0. |
+| `xp_arc/stations/*.py` (16 stations) | **SHIPPED** | All core stations, including `chef_de_cuisine.py` (new, `5c67e42`) |
 | `xp_arc/asset_engine/__init__.py` | **SHIPPED** | Subpackage marker only |
 | `xp_arc/asset_engine/*` | **SKELETON** | Only `config.py` has content; see §2.5. Previously listed SHIPPED — corrected. |
 | `xp_arc/competitive_intel/__init__.py` | **SHIPPED** | Subpackage marker |
@@ -105,7 +104,7 @@ This document tracks the engineering status of all features described in the XP-
 
 ### What changed
 - **Three codebases → one**: `asset-engine/`, `competitive_intel/`, and `xp_arc/` merged under single `xp_arc/` package
-- **Single `pyproject.toml`**: All optional dependencies declared as extras (`[asset-engine]`, `[competitive-intel]`, `[broker]`, `[all]`)
+- **Single `pyproject.toml`**: All optional dependencies declared as extras (`[asset-engine]`, `[competitive-intel]`, `[all]`; the `[broker]` extra was removed in v0.3.0)
 - **Runtime artifacts ignored**: `.gitignore` excludes `asset-engine/browser-profiles/`, `asset-engine/generation-runs/`, `asset-engine/logs/`, `asset-engine/review-vault/`, `data/competitive/`, `reports/competitive/`
 - **Docs consolidated**: `SPEC.md`, `PROMPT_LIBRARY.md`, `FILTER_SAFE_PROMPTS.md` moved to repo root; `asset-engine/` dir now docs-only
 - **Version bump**: 0.2.0 → 0.2.1 (patch = structural consolidation, no API changes)
@@ -203,7 +202,7 @@ Implements what the commit message calls "Dragon's dual-path ruling": `Competiti
 
 ### 5.7 Test suite
 
-Confirmed in this documentation pass by running `python3.12 -m pytest tests/ -q` against this clone: **104 passed** (up from 40 before `5c67e42`; that commit's own message reports 92 passing at the point it landed, and `59b98c1` added the 11 competitive-bridge tests referenced in §5.5, and 1 additional Zoran test, bringing the total to 104 — consistent with what this pass observed).
+Historical note: **104 passed** when this section was written (2026-08-24). Current count is in §7.
 
 ---
 
@@ -212,17 +211,25 @@ Confirmed in this documentation pass by running `python3.12 -m pytest tests/ -q`
 Items below are known gaps or loose ends as of this documentation pass. None of them are fixed by `5c67e42` or `59b98c1`; listing them here is explicitly about what did **not** change.
 
 - **Git tags are stale.** `v0.2` and `v0.3` both point at the same commit (`d108fa3`, the initial commit from March 2026). Neither tag reflects the `0.3.0` version currently in `pyproject.toml`, let alone the work in `5c67e42`/`59b98c1`. `docs/RELEASING.md` describes the correct tagging process going forward (`git tag -a vX.Y.Z`), but no one has cut a tag matching current `main`.
-- **`station_keys.json` is still in git history.** Untracking the file (`5c67e42`) stops new commits from including it, but it does not remove the 14 HMAC keys already committed under prior history. A `git filter-repo` scrub plus rotation of every key that was ever committed is still required. This is explicitly held for Dragon, per the commit message — do not do this unilaterally, since rewriting history and rotating live write-auth keys is disruptive to any other clone/fork.
+- **`station_keys.json` is still in git history (decision: no history rewrite).** All keys found there and in 17 other files are random per-database test/dev keys and are dead; see `docs/audits/2026-07-14.md`. Original note: Untracking the file (`5c67e42`) stops new commits from including it, but it does not remove the 14 HMAC keys already committed under prior history. A `git filter-repo` scrub plus rotation of every key that was ever committed is still required. This is explicitly held for Dragon, per the commit message — do not do this unilaterally, since rewriting history and rotating live write-auth keys is disruptive to any other clone/fork.
 - **Open/redundant PRs** (state as of this pass, not independently re-verified beyond what was reported): PR #4 is stale, PR #7 is redundant with the relicense work that has already landed on `main`, and PR #8 is still needed. Whoever picks this up should re-check PR status directly rather than trusting this line indefinitely — PR state changes independently of the code in this clone.
 - **`xp_arc/__init__.py` version/licence drift — FIXED in this pass.** The module
   docstring declared `Version: 0.2.1` / `License: MIT` and `__version__ = "0.2.1"`,
   contradicting `pyproject.toml` (0.3.0, Apache-2.0) and README.md. It was the last
   surface still asserting MIT as the live licence. Now reads 0.3.0 / Apache-2.0.
-- **`broker.py` / `broker_client.py` are still present** in `xp_arc/`, despite being ruled obsolete (see §1, §2.1, §3) and not loaded by `run_kitchen.py` or `run_persistent.py`. The removal itself has not happened.
+- **`broker.py` / `broker_client.py` — REMOVED in v0.3.0.**
 - **`xp_arc/asset_engine/` is a skeleton**, not a shipped feature (corrected in §1, §2.5, §3 above). This was already the state of the code before `5c67e42`/`59b98c1` — those commits did not touch `asset_engine/` — but the prior version of this document claimed it was SHIPPED, which was not supported by what's actually in the directory. Flagging it here so it isn't mistaken for new information from this pass.
 
 ---
 
-*Last updated: 2026-08-24 — reconciled against commits `5c67e42` and `59b98c1` (Zoran's Law fix, retry budget, Chef de Cuisine, security hardening, competitive-intel bridge, release infra). Prior entry below preserved for history.*
+## 7. v0.3.0 Reconciliation (2026-10-20)
 
-*Previously updated: 2026-07-21 — v0.2.1 consolidation complete*
+- **Tests**: 212 passing (`XP_ARC_ABOYEUR_KEY` set; `pytest -q`). Bandit (`-ll`) is clean.
+- **Removed**: Write Broker, all hosting-platform (Zo) references, `FIXES_SUMMARY.md`, a stray `fetchers.py.backup`.
+- **Added**: AI Agent Ecosystem Weekly (`scripts/weekly_digest.py`, `competitive_intel/versioning.py`, `digest.py`, `weekly-digest.yml`), post-QA edge commit, `prompt_version` column, API-key-aware DRAGON, vendored D3.
+- **Still open**: Gauntlet expectation fixes (Phase 4 expects 50 shards; `MAX_SHARD_COUNT` is intentionally 20), 2 MB entity values accepted, future Zoran timestamps accepted, restored stations don't retry stranded `failed` tasks, four internal writer IDs write without a key (logged as `legacy_write`), Ruff not enforced in CI (~537 findings), `/api/dragon` has no pagination. Details: `docs/audits/2026-07-14.md`.
+- **Asset Engine** remains a skeleton.
+
+---
+
+*Last updated: 2026-10-20 — reconciled against v0.3.0. Sections 4 and 5 preserve the history of earlier passes.*
